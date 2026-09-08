@@ -1,0 +1,11 @@
+{
+  "files": {
+    "crates/infrastructure/src/process/image.rs": "89679e2176fb479bfaac400187b5dbc7d2e48894ce72e374bf70def2c295eed2",
+    "crates/infrastructure/src/process/backend.rs": "7388da3af426b948e8ffd22bee424640ff19b8aeed22f97e4a4c2a1dd02fc462",
+    "crates/infrastructure/tests/process_bundled_image.rs": "28523bf03162c61ca119ceabbc211625e53669f5ed35c2a1527088db7a935055"
+  },
+  "platform": "macOS arm64",
+  "concurrent_workload": "root local capacity run active; bounded local tests/Clippy only",
+  "tests": "5 passed in 0.14s; includes subprocess probe test and parent deadline test",
+  "frozen_changed": false
+}

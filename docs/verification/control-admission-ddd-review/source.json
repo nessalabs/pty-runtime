@@ -1,0 +1,12 @@
+{
+  "crates/application/src/projection/admission.rs": "84bac8f4c482ddb8e398d8d30765ca60a01b0792e52a630e4a59d8c86208e9b5",
+  "crates/application/src/projection/coordinator.rs": "1d4a2f5bf79ae25de2a4f1c03a7c213568156fed5627b97b313cd5b3d57181b0",
+  "crates/application/src/projection/observation.rs": "9f42977b3af1aed5ba5e8a888b84cf0b85a77127e1e5dd9cba9f6cf2757f15cb",
+  "crates/application/src/projection/snapshot.rs": "f369cd56e9bb0d9e8b93a5baa1fa3fe73cce1842f3049cbd5f08e50acaab0f71",
+  "crates/application/src/projection/budgets.rs": "261782f9950f20a46fabf7c073156cf828cdb83ac98114cc44f6b78558cd3633",
+  "crates/domain/src/projection/options.rs": "722a1b7773b9797434e969b098e6f21cb7cab7de881a7e7d28f55f992bb36c91",
+  "crates/infrastructure/src/process/image.rs": "89679e2176fb479bfaac400187b5dbc7d2e48894ce72e374bf70def2c295eed2",
+  "crates/application/src/projection/tests/control_capacity.rs": "2db8158f9254e904db0e5b524d74bc14959d1037bbabec990ced87924c92bca1",
+  "crates/infrastructure/tests/process_bundled_image.rs": "28523bf03162c61ca119ceabbc211625e53669f5ed35c2a1527088db7a935055",
+  "crates/application/src/diagnostics/resources.rs": "cc8521b107998bffb7798120219b2a7ded506015998ed3206141564506981531"
+}

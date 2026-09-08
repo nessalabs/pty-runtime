@@ -1,0 +1,4 @@
+Command: CARGO_TARGET_DIR=work/load-capacity-test-target cargo clippy --locked --no-default-features --features event-stream --example release_load -- -D warnings
+Exit: 0
+    Checking pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

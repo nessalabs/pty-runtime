@@ -1,0 +1,9 @@
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.46s
+     Running unittests src/lib.rs (work/coverage-contract-test-target/debug/deps/pty_runtime_application-fe125b4250f4aa0f)
+
+running 1 test
+test projection::tests::admission_rollback::rejected_projection_admission_settles_published_waiter_and_releases_identity_and_model_slot ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.00s
+

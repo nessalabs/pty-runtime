@@ -1,0 +1,20 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pty-runtime-application",
+    "--lib",
+    "projection::tests::control_capacity"
+  ],
+  "exit_code": 101,
+  "files": {
+    "crates/application/src/projection/admission.rs": "63720a28ace9ec614a64883aea957a2e654aa3c557ff3ae99b7f5e6ad8608926",
+    "crates/application/src/projection/coordinator.rs": "3627ba689910af1787db2547a559ca97acd414c39279d2549079a209b56c4237",
+    "crates/application/src/projection/state.rs": "6e77a39e7f4681cb373d371c7c0fa909f31df64b39051c58fd0eb072c4029fbf",
+    "crates/application/src/projection/tests/control_capacity.rs": "2db8158f9254e904db0e5b524d74bc14959d1037bbabec990ced87924c92bca1"
+  },
+  "unchanged_during_test": true
+}

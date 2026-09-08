@@ -10,11 +10,17 @@ use pty_runtime_domain::terminal::TerminalSize;
 use std::sync::{Arc, atomic::Ordering};
 impl ProjectionCoordinator {
     pub(super) fn staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
-        let slots = Lease::pair(
-            self.budgets.staging_slots.clone(),
-            self.local_slots.clone(),
-            1,
-        )?;
+        // Zero-payload controls already hold a bounded request ticket. Output
+        // must not consume their admission; both remain in the same FIFO queue.
+        let slots = if bytes == 0 {
+            None
+        } else {
+            Some(Lease::pair(
+                self.budgets.staging_slots.clone(),
+                self.local_slots.clone(),
+                1,
+            )?)
+        };
         let bytes = if bytes == 0 {
             None
         } else {
@@ -27,7 +33,7 @@ impl ProjectionCoordinator {
         Ok(StagingLease {
             timing: None,
             bytes,
-            slots: Some(slots),
+            slots,
             signal: self.services()?.capacity,
         })
     }

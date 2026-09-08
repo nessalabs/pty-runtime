@@ -15,5 +15,7 @@ mod acceptance;
 mod ready;
 mod shutdown;
 
+mod admission_rollback;
+mod control_capacity;
 mod io_faults;
 mod native_faults;

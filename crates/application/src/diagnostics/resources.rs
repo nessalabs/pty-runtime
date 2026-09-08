@@ -32,7 +32,7 @@ pub struct ProjectionResources {
     pub transfer_observers: BudgetUsage,
     /// Lossless staged original output bytes.
     pub staging_bytes: BudgetUsage,
-    /// Ordered output/control/request slots.
+    /// Parser output slots, independent from controls charged to requests.
     pub staging_slots: BudgetUsage,
     /// Native allocation reservations for resident/restoring terminals.
     pub native_reservations: BudgetUsage,
@@ -44,6 +44,6 @@ pub struct ProjectionResources {
     pub stored_slots: BudgetUsage,
     /// Copied views and pending authoritative reply buffers.
     pub views: BudgetUsage,
-    /// Pending or consumer-retained operation results.
+    /// Queued controls, pending operations, and consumer-retained operation results.
     pub requests: BudgetUsage,
 }

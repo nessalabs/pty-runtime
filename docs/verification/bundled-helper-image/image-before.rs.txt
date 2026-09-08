@@ -20,9 +20,7 @@ impl HelperImage {
             // staging preserves those exact bytes.
             let mut file = OpenOptions::new()
                 .read(true)
-                // Open unsupported stream types without waiting for a peer;
-                // the metadata check below admits regular files only.
-                .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK)
+                .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
                 .open(path)
                 .map_err(super::error)?;
             if !file.metadata().map_err(super::error)?.is_file() {

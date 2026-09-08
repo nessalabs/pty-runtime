@@ -91,3 +91,55 @@ fn chunking_matches_reference_suffix_across_capacities() {
         }
     }
 }
+
+#[test]
+fn releasing_storage_preserves_exact_loss_and_continuation_positions() {
+    let mut replay = buffer(8);
+    let initial = replay.end();
+    assert!(replay.reserve_capacity(8).unwrap() >= 8);
+    replay.append(b"abcdef").unwrap();
+    let end = replay.end();
+    for _ in 0..2 {
+        replay.release_storage();
+        assert_eq!(replay.len(), 0);
+        assert_eq!(replay.allocated_bytes(), 0);
+        assert_eq!(replay.end(), end);
+        assert_eq!(replay.floor(), end);
+        for _ in 0..2 {
+            assert_eq!(
+                replay.read(initial, 8),
+                Ok(ReplayPage::Gap {
+                    from: initial,
+                    to: end
+                })
+            );
+        }
+        assert_eq!(replay.read(end, 8), Ok(ReplayPage::Pending));
+    }
+    replay.append(b"gh").unwrap();
+    assert_eq!(
+        replay.end(),
+        ReplayCursor {
+            offset: 8,
+            ..initial
+        }
+    );
+    assert_eq!(
+        replay.read(initial, 8),
+        Ok(ReplayPage::Gap {
+            from: initial,
+            to: end
+        })
+    );
+    assert_eq!(
+        replay.read(end, 8),
+        Ok(ReplayPage::Bytes {
+            from: end,
+            bytes: b"gh".to_vec(),
+            next: ReplayCursor {
+                offset: 8,
+                ..initial
+            },
+        })
+    );
+}

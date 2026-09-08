@@ -1,0 +1,13 @@
+{
+  "files": {
+    "examples/release_load_support/resize.rs": "25417838bcf9a053b35036676a3bf11c51fb71265d3f34183e4c492172f77ecf",
+    "examples/release_load_support/phase.rs": "42600c59cf4cb79abf1697dca49b03a4cea61648a145f14c78884bcd4ae2e8f8",
+    "examples/release_load_support/mod.rs": "407de2ed6783ea9f1f7afbe41dff706e460134ce2bc511b4be4fa6f7a0a42cf4"
+  },
+  "test_execution": "not run by this reviewer; author focused tests compiling",
+  "source_size": {
+    "examples/release_load_support/resize.rs": 142,
+    "examples/release_load_support/phase.rs": 313,
+    "examples/release_load_support/mod.rs": 17
+  }
+}

@@ -1,0 +1,30 @@
+   Compiling pty-runtime-domain v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain)
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.04s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-fe125b4250f4aa0f)
+
+running 2 tests
+test projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_local_parser_slots_are_full ... FAILED
+test projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_shared_parser_slots_are_full ... FAILED
+
+failures:
+
+---- projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_local_parser_slots_are_full stdout ----
+
+thread 'projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_local_parser_slots_are_full' (17416308) panicked at crates/application/src/projection/tests/control_capacity.rs:39:10:
+output saturation must leave bounded control admission available: Capacity
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_shared_parser_slots_are_full stdout ----
+
+thread 'projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_shared_parser_slots_are_full' (17416309) panicked at crates/application/src/projection/tests/control_capacity.rs:39:10:
+output saturation must leave bounded control admission available: Capacity
+
+
+failures:
+    projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_local_parser_slots_are_full
+    projection::tests::control_capacity::resize_remains_ordered_and_bounded_when_shared_parser_slots_are_full
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 54 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pty-runtime-application --lib`

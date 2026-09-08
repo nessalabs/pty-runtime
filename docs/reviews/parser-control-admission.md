@@ -1,0 +1,33 @@
+# Independent acceptance: controls at parser slot capacity
+
+## Contract assessment
+
+ADR 0002 line 82 requires resize to remain serviceable during continuous output; its line 101 requires affected-session backpressure at parser capacity, and line 108 reserves a bounded lifecycle control path independently of input/output admission. ADR 0003 lines 189–193 explicitly preserve control serviceability at the parser backlog limit. These requirements support bounded resize admission despite fully occupied output slots. They do not require an ordered resize to overtake already-admitted output or complete without the parser making progress. Separate independent control admission and FIFO processing satisfy both obligations.
+
+The diagnostic `docs/verification/load-resize-failure-diagnostics/saturation-64-16` reported resize admission failure with a resident projection and no permanent projection failure. That strengthens the admission diagnosis but public shared snapshots cannot prove which local quota rejected it. The deterministic acceptance test below establishes the actual behavior defect separately from attributing a particular recorded trial to a local quota.
+
+## Independent deterministic acceptance test and retained red
+
+Added `crates/application/src/projection/tests/control_capacity.rs` using the existing manual scheduler and terminal trace, with separate local and shared output-slot exhaustion tests. Each admits two output chunks while work is paused, verifies a further chunk gets backpressure without advancing publication, then requires two independently bounded resize admissions and rejects a third by request capacity. After one output slot releases, the previously rejected output is admitted after the queued resizes.
+
+The rest of each test requires exact `first output, second output, resize 1, resize 2, later output` order; successful OS/model outcomes; exact published/processed byte totals; no permanent failure; retained completed waits still holding request quota; quota release after wait drop; a new generation-3 resize; and zero staging/request/native reservations after completion and close. It proves orchestration and admission contracts, not OS scheduling latency or native terminal performance.
+
+Before any production change, both tests failed at the first resize admission with `Capacity`. `docs/verification/parser-control-admission/red.log` retains cargo exit 101 and both failures; `red-source.json` records exact source hashes and unchanged source through the run. The original load failure remains retained. No production implementation was changed by this test author.
+
+## Proposed change assessment
+
+Using the existing independent request-slot reservations for control queue entries is consistent with the contract and preserves bounded outstanding/retained control work. Output staging slots should remain charged to output, with all admitted events still in the same FIFO. Queue storage must be reserved up front for the bounded sum of output staging slots and request slots, with finite checked arithmetic. Preserve dispatch timing ownership and capacity notifications, rollback acquired request reservations on rejected operations, and audit every queue insertion path rather than only resize. Do not silently retry or discard controls in the harness, and do not increase limits to conceal the defect.
+
+The coordinator owns implementation and full gate execution. The post-fix tests and independent source re-review are recorded below. Full load qualification, latency targets and exact failure-trial attribution remain separate evidence.
+
+## Independent re-review after root implementation — resolved in changed scope
+
+The root implementation changes zero-payload control staging to retain timing/capacity signaling without charging an output slot. Request tickets still retain both global and local request leases. Coordinator construction validates options and checks the staging/request slot sum before calling the checkpoint protector or terminal provider, then reserves initial FIFO backing for that sum. Existing finite option validation bounds both terms; a checked-add failure is `InvalidConfiguration` before provider activity.
+
+Audited every queue insertion: output admission obtains an output slot and payload charge; resize, view and checkpoint obtain a ticket before zero-payload staging; `begin_transfer` obtains its observer permit and request ticket before enqueueing. All five initial insertion paths hold their corresponding finite lease for the queued event. `native::requeue` moves the same event with its existing leases, including an in-flight resize's ticket. Popped native work, in-flight transfer I/O and retained completion waits continue owning their ticket or output lease, so they reduce rather than enlarge subsequent admission. Rejecting request/staging/services/status checks drops temporary tickets/permits. Cancellation of a wait does not release the queue's Arc prematurely. Normal admitted queue occupancy is bounded by the local staging plus request limits and fits the initially reserved backing; FIFO order is unchanged.
+
+Independent command `cargo test --locked -p pty-runtime-application --lib projection::tests` passed all 52 projection tests, including both previously red control-capacity tests and the concurrently added admission rollback acceptance test. Evidence: `green-projection.log`, `green-source.json`, with unchanged projection source during the run. The new tests verify exact output/resize order, successful bounded controls, preserved bytes and released reservations. No remaining P1/P2 finding in this changed normal-admission path. Complete gate and performance qualification remain the coordinating task's work.
+
+## Separate pre-existing failure-retention allocation caveat
+
+`ProjectionCoordinator::fail` in `worker.rs` takes the FIFO with `mem::take` and pushes retained output into a newly empty deque, discarding the original backing allocation. The failed projection policy may subsequently admit output up to the existing finite output leases. Thus logical entry/payload counts remain bounded, but this path can allocate again and cannot support a blanket claim of no queue allocation/growth after startup. Close/shutdown similarly take the queue while rejecting further work. This behavior predates the control-admission fix; at the coordinating task's explicit direction it is recorded separately and not changed in this scope. Acceptance here is bounded normal admission with checked initial backing and request-lifetime ownership, not a zero-allocation-after-failure claim.

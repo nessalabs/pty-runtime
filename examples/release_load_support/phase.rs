@@ -1,8 +1,8 @@
 use super::{
     DEADLINE, Result, config::Config, fixture::monotonic_ns, observe::Observer, payload,
-    population::Population, resources, wire::Frame,
+    population::Population, resize, resources, wire::Frame,
 };
-use pty_runtime::{AttachPosition, LatencyKind, RuntimeDiagnostics, RuntimeError, TerminalSize};
+use pty_runtime::{AttachPosition, LatencyKind, RuntimeDiagnostics, TerminalSize};
 use std::{
     collections::BTreeMap,
     time::{Duration, Instant},
@@ -154,9 +154,16 @@ pub async fn run(
             if config.raw {
                 tokio::time::timeout(DEADLINE, child.session.resize(size)?).await??;
             } else {
-                let result = tokio::time::timeout(DEADLINE, child.session.resize_projected(size)?)
-                    .await?
-                    .map_err(RuntimeError::from)?;
+                let result = resize::run(resize::Context {
+                    runtime: &population.runtime,
+                    session: &child.session,
+                    producer: child.producer,
+                    phase,
+                    probe,
+                    size,
+                    began,
+                })
+                .await?;
                 assert!(result.os.is_ok() && result.model.is_ok(), "{result:?}");
             }
             last_resize = Instant::now();

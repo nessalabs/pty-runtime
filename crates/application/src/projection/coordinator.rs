@@ -72,6 +72,12 @@ impl ProjectionCoordinator {
         input_slots: Arc<Quota>,
     ) -> Result<Arc<Self>, ProjectionError> {
         let options = options.validate()?;
+        // Every queued control owns a request ticket, while output owns a parser
+        // slot. Reserve both finite populations before accepting either kind.
+        let queue_slots = options
+            .staging_slots
+            .checked_add(options.request_slots)
+            .ok_or(ProjectionError::InvalidConfiguration)?;
         let protected_bytes = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             services
                 .protector
@@ -108,7 +114,7 @@ impl ProjectionCoordinator {
         .map_err(|_| ProjectionError::Worker)??;
         let mut queue = VecDeque::new();
         queue
-            .try_reserve_exact(options.staging_slots)
+            .try_reserve_exact(queue_slots)
             .map_err(|_| ProjectionError::Capacity)?;
         let owner = Arc::new(Self {
             journal: super::journal::Journal::new(lifetime, options, &budgets),

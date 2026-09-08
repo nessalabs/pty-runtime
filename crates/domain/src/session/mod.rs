@@ -238,3 +238,6 @@ pub enum OutputEvent {
     /// Process and drain have completed; repeated reads return this stable result.
     Complete(Completion),
 }
+
+#[cfg(test)]
+mod tests;

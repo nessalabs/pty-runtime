@@ -12,7 +12,7 @@ pub struct ProjectionLimits {
     pub transfer_observers: usize,
     /// Parser payload bytes, independent from evictable raw replay.
     pub staging_bytes: usize,
-    /// Parser chunks and ordered request queue entries.
+    /// Parser chunks, independent from ordered controls charged to request_slots.
     pub staging_slots: usize,
     /// Reserved native allocation caps of all resident/restoring models.
     pub resident_bytes: usize,
@@ -24,7 +24,7 @@ pub struct ProjectionLimits {
     pub stored_slots: usize,
     /// Copied terminal cells/text and pending authoritative reply buffers.
     pub view_bytes: usize,
-    /// Outstanding observation/control waits, including completed retained results.
+    /// Outstanding observation/control waits, including queued controls and completed retained results.
     pub request_slots: usize,
 }
 impl Default for ProjectionLimits {
@@ -80,9 +80,9 @@ pub struct ProjectionOptions {
     pub terminal: TerminalConfig,
     /// Lossless parser payload cap; must admit a complete native feed chunk.
     pub staging_bytes: usize,
-    /// Parser/control queue slots, including currently executing work.
+    /// Parser output slots, including currently executing work; controls use request_slots.
     pub staging_slots: usize,
-    /// Outstanding view/checkpoint/resize waits including completed retained results.
+    /// Outstanding view/checkpoint/resize waits including queued controls and completed retained results.
     pub request_slots: usize,
     /// Idle mutation interval before automatic parking; defaults to sixty seconds.
     pub park_after: Duration,
