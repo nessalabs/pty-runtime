@@ -39,7 +39,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: work/experiment-cache
-          key: experiments-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/pty/Cargo.lock') }}
+          key: experiments-baseline-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/run.py', 'scripts/native/bootstrap.py', 'experiments/pty/Cargo.lock') }}
       - name: Check runner and Rust fixture
         run: |
           python3 -m unittest discover -s experiments/tests -v

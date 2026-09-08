@@ -20,7 +20,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: work/experiment-cache
-          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json') }}
+          key: native-baseline-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/run.py', 'scripts/native/bootstrap.py') }}
       - run: python3 scripts/gate.py
   msrv:
     runs-on: ubuntu-24.04

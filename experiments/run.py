@@ -108,6 +108,16 @@ def target_key():
     return machine + "-" + system
 
 
+# Cached native archives must run across different CPUs of the same architecture.
+# Zig's omitted CPU target detects the build host and is unsafe for shared caches.
+NATIVE_BUILD_OPTIONS = ("-Demit-lib-vt", "-Demit-xcframework=false", "-Doptimize=ReleaseFast", "-Dcpu=baseline")
+
+
+def native_build_stamp(key):
+    return {"dependencies": DEPENDENCIES, "target": key, "libc": platform.libc_ver(),
+            "build_options": list(NATIVE_BUILD_OPTIONS), "build_driver_sha256": sha(Path(__file__))}
+
+
 def build(cache, suite, jobs):
     cache.mkdir(parents=True, exist_ok=True)
     logs = cache / "build-logs"
@@ -137,14 +147,13 @@ def build(cache, suite, jobs):
         fetch(DEPENDENCIES["ghostty"]["url"], DEPENDENCIES["ghostty"]["sha256"], archive)
         if not (source / "build.zig").exists():
             extract(archive, cache)
-        stamp_value = {"dependencies": DEPENDENCIES, "target": key, "libc": platform.libc_ver(),
-                       "optimize": "ReleaseFast", "emit-lib-vt": True, "emit-xcframework": False}
+        stamp_value = native_build_stamp(key)
         stamp = source / "experiment-build.json"
         library = source / "zig-out/lib/libghostty-vt.a"
         if not library.is_file() or not stamp.exists() or json.loads(stamp.read_text()) != json.loads(json.dumps(stamp_value)):
             print(f"Building pinned libghostty-vt for {key}...", flush=True)
-            checked([zig, "build", "-Demit-lib-vt", "-Demit-xcframework=false", "-Doptimize=ReleaseFast",
-                     f"-j{jobs}", "--global-cache-dir", cache / "zig-global-cache"], cwd=source,
+            checked([zig, "build", *NATIVE_BUILD_OPTIONS, f"-j{jobs}",
+                     "--global-cache-dir", cache / "zig-global-cache"], cwd=source,
                     timeout=1800, log=logs / "ghostty")
             gate.require(library.is_file(), "native build did not emit the static VT library")
             save(stamp, stamp_value)

@@ -1,0 +1,502 @@
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	﻿2026-09-08T09:40:24.9789778Z ##[group]Run python3 scripts/gate.py
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9789987Z ^[[36;1mpython3 scripts/gate.py^[[0m
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9820880Z shell: /usr/bin/bash -e {0}
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9821026Z env:
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9821143Z   RUSTUP_TOOLCHAIN: stable
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9821319Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9821565Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9821806Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9822024Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9822239Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9822462Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:24.9822646Z ##[endgroup]
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:25.1234125Z + python3 -m unittest discover -s scripts/tests -v
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8593236Z test_actual_workspace_is_accepted (test_gate.ArchitectureGateTests.test_actual_workspace_is_accepted) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8606933Z test_correctly_named_dependency_pointing_elsewhere_is_rejected (test_gate.ArchitectureGateTests.test_correctly_named_dependency_pointing_elsewhere_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8721661Z test_external_core_dependencies_in_all_declaration_kinds_are_rejected (test_gate.ArchitectureGateTests.test_external_core_dependencies_in_all_declaration_kinds_are_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8734385Z test_infrastructure_to_facade_reverse_edge_is_rejected (test_gate.ArchitectureGateTests.test_infrastructure_to_facade_reverse_edge_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8762278Z test_missing_each_required_package_is_rejected (test_gate.ArchitectureGateTests.test_missing_each_required_package_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8772954Z test_registry_dependency_impersonating_domain_is_rejected (test_gate.ArchitectureGateTests.test_registry_dependency_impersonating_domain_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8780507Z test_relocated_package_is_rejected (test_gate.ArchitectureGateTests.test_relocated_package_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8791739Z test_renamed_alias_does_not_hide_wrong_path (test_gate.ArchitectureGateTests.test_renamed_alias_does_not_hide_wrong_path) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8798375Z test_renamed_core_package_is_rejected (test_gate.ArchitectureGateTests.test_renamed_core_package_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8805848Z test_required_nonmember_is_rejected (test_gate.ArchitectureGateTests.test_required_nonmember_is_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8857715Z test_valid_domain_alias_remains_allowed (test_gate.ArchitectureGateTests.test_valid_domain_alias_remains_allowed) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8866907Z test_existing_evidence_is_never_overwritten (test_performance.PerformanceEvidence.test_existing_evidence_is_never_overwritten) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8875340Z Evidence directory: /tmp/tmpf3z9iq0p/evidence
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.8882991Z test_timeout_preserves_raw_and_metadata (test_performance.PerformanceEvidence.test_timeout_preserves_raw_and_metadata) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9358574Z test_oversized_native_rust_c_and_header_are_rejected (test_sizes.SizeGateTests.test_oversized_native_rust_c_and_header_are_rejected) ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9359369Z partial test output
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9359662Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9360051Z ----------------------------------------------------------------------
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9360523Z Ran 14 tests in 0.095s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9360831Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9361072Z OK
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9482368Z + cargo test --locked -p pty-runtime-domain --no-default-features
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:27.9722899Z     Updating crates.io index
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.1097395Z    Compiling pty-runtime-domain v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/domain)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9638282Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 1.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9657879Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-74f7f9dee138c564)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9670661Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9691027Z running 17 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9694949Z test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9695640Z test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9696702Z test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9697449Z test process::tests::commands_are_literal_bounded_and_redacted ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9710393Z test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9711140Z test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9712827Z test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9713572Z test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9734269Z      Running tests/replay_model.rs (target/debug/deps/replay_model-eafe28ce43f53de0)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9734844Z test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9757234Z test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9770364Z test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9771200Z test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9771969Z test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9772719Z test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9773429Z test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9774109Z test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9775045Z test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9775516Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9775927Z test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9776682Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9776852Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:28.9777095Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0690753Z test seeded_interleavings_match_an_append_only_ledger ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0691147Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0691565Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0693768Z    Doc-tests pty_runtime_domain
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0694218Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0904606Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0912254Z running 0 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0914898Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0915144Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0943544Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.0943859Z + cargo test --locked -p pty-runtime-application --no-default-features
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:29.1096046Z    Compiling pty-runtime-application v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/application)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4592504Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 1.35s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4597435Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-4b2b7ce6301a0b93)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4608480Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4608768Z running 21 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4610482Z test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4611360Z test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4612139Z test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4613826Z test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4614733Z test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4615862Z test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4616939Z test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4617810Z test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4618667Z test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4619462Z test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4620285Z test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4621103Z test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4622380Z test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4633879Z test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4636141Z    Doc-tests pty_runtime_application
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4637133Z test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4638319Z test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4639271Z test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4640121Z test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4641240Z test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4642082Z test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4642913Z test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4643481Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4643866Z test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4644329Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4875440Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4878951Z running 0 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4879279Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4879722Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4880206Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.4899129Z + cargo fmt --all --check
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:30.6060637Z + python3 scripts/native/bootstrap.py
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.1549835Z + cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.1979788Z  Downloading crates ...
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2484339Z   Downloaded cipher v0.4.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2505998Z   Downloaded chacha20 v0.9.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2528017Z   Downloaded cfg-if v1.0.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2586698Z   Downloaded chacha20poly1305 v0.10.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2616651Z   Downloaded aead v0.5.2
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2616955Z   Downloaded inout v0.1.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2617234Z   Downloaded universal-hash v0.5.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2626659Z   Downloaded subtle v2.6.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2671843Z   Downloaded crypto-common v0.1.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2686861Z   Downloaded version_check v0.9.5
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2696591Z   Downloaded generic-array v0.14.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2708139Z   Downloaded opaque-debug v0.3.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2715239Z   Downloaded futures-core v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2744040Z   Downloaded cpufeatures v0.2.17
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2756532Z   Downloaded rand_core v0.6.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2775870Z   Downloaded poly1305 v0.8.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2795514Z   Downloaded zeroize v1.9.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2807330Z   Downloaded getrandom v0.2.16
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2829923Z   Downloaded futures-channel v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.2854354Z   Downloaded typenum v1.20.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.3006929Z   Downloaded libc v0.2.189
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.3576627Z    Compiling version_check v0.9.5
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.3577228Z    Compiling libc v0.2.189
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.4837383Z    Compiling generic-array v0.14.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.5508014Z     Checking typenum v1.20.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:37.9187367Z     Checking cfg-if v1.0.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.0025834Z     Checking getrandom v0.2.16
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.0492076Z     Checking rand_core v0.6.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.0965677Z     Checking subtle v2.6.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.1380723Z     Checking cpufeatures v0.2.17
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.1547020Z     Checking pty-runtime-domain v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/domain)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.1894514Z     Checking crypto-common v0.1.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.2184271Z     Checking inout v0.1.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.2522321Z     Checking zeroize v1.9.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.3024110Z     Checking cipher v0.4.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.3093588Z     Checking universal-hash v0.5.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.3365727Z     Checking opaque-debug v0.3.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.3510610Z     Checking poly1305 v0.8.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.3802797Z     Checking chacha20 v0.9.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.4457350Z     Checking aead v0.5.2
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.4488629Z    Compiling pty-runtime-infrastructure v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/infrastructure)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.4800171Z     Checking futures-core v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.5171452Z     Checking futures-channel v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.5969324Z     Checking chacha20poly1305 v0.10.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:38.6257991Z     Checking pty-runtime-application v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/application)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:45.7337325Z     Checking pty-runtime v0.1.0 (/home/runner/work/pty-runtime/pty-runtime)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:46.5905683Z     Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.41s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:46.5985029Z + cargo test --locked --workspace --all-targets --all-features
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:46.6412703Z    Compiling libc v0.2.189
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:46.6413252Z    Compiling typenum v1.20.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.0363644Z    Compiling cfg-if v1.0.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.0567232Z    Compiling generic-array v0.14.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.1794156Z    Compiling getrandom v0.2.16
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.2527344Z    Compiling rand_core v0.6.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.3218612Z    Compiling zeroize v1.9.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.3427486Z    Compiling crypto-common v0.1.7
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.3772172Z    Compiling inout v0.1.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.3876141Z    Compiling cpufeatures v0.2.17
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.4065472Z    Compiling subtle v2.6.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.4199681Z    Compiling cipher v0.4.4
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.4627452Z    Compiling universal-hash v0.5.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.4980682Z    Compiling opaque-debug v0.3.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.5068143Z    Compiling chacha20 v0.9.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.5153146Z    Compiling poly1305 v0.8.0
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.5917171Z    Compiling aead v0.5.2
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.6497475Z    Compiling pty-runtime-infrastructure v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/crates/infrastructure)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.7377684Z    Compiling futures-core v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.7863230Z    Compiling futures-channel v0.3.34
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:47.8838345Z    Compiling chacha20poly1305 v0.10.1
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:50.1927619Z    Compiling pty-runtime v0.1.0 (/home/runner/work/pty-runtime/pty-runtime)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.4344522Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 9.82s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5200992Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime-b5a90b50b56e00f8)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5210318Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5210573Z running 0 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5212830Z      Running unittests tests/fixtures/pty_fixture.rs (target/debug/deps/pty_runtime_fixture-ee564a510aaf83c4)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5213475Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5214220Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5214678Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5221510Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5221749Z running 0 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5222027Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5222417Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5222852Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5223448Z      Running tests/ddd_spawn_failure.rs (target/debug/deps/ddd_spawn_failure-65e96d671f5f67a7)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5232508Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5232757Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5235727Z test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5236152Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5236727Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5237169Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5238223Z      Running tests/default_parking.rs (target/debug/deps/default_parking-9e8540eefe47c1a4)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5247741Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5247985Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5248625Z test default_policy_parks_at_sixty_seconds_and_keeps_process_alive ... ignored, explicit real-clock sixty-second parking qualification
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5249234Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5249586Z test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5250270Z      Running tests/input_reservation.rs (target/debug/deps/input_reservation-dc6c6c09cd41f2f0)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5250755Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5259469Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5259942Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5262155Z test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5262487Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5264474Z      Running tests/process_handle_resources.rs (target/debug/deps/process_handle_resources-e9de490b3193ad6d)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5269654Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5270101Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5274605Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5274833Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5449123Z      Running tests/projected_runtime.rs (target/debug/deps/projected_runtime-88a9277b2b5cdd16)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5449655Z test completed_old_handles_do_not_keep_process_wake_descriptors ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5457014Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5457281Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5457590Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5459508Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.5459598Z running 2 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:56.8067049Z test real_query_reply_is_sent_once_with_multiple_observers ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3133612Z test detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3134204Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3134735Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3135167Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3139612Z      Running tests/projection_cleanup_outcome.rs (target/debug/deps/projection_cleanup_outcome-1fa791dd8b00fb92)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3150862Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3151112Z running 2 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3152921Z test domain_session_validation_rejects_incompatible_projection_admission ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3201412Z test forget_preserves_delete_and_uncertain_commit_failures_including_repeated_calls ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3201900Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3202395Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3202967Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3203531Z      Running tests/projection_correctness.rs (target/debug/deps/projection_correctness-2af4676ecfcab862)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3212524Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3212765Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3220788Z test impossible_global_parser_budgets_reject_before_child_launch ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3224518Z test resize_panic_during_close_keeps_cleanup_scheduled ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3230497Z test process_future_panic_does_not_strand_runtime_shutdown ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3238320Z test shutdown_closes_model_with_completed_request_wait_retained ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3238719Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3239164Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3239668Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3240693Z      Running tests/raw_adversarial.rs (target/debug/deps/raw_adversarial-916088da248b891f)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3249947Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3250426Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3276405Z test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3276872Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3277307Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3277810Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3278733Z      Running tests/raw_child_contract.rs (target/debug/deps/raw_child_contract-285cfff9af804242)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3288022Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3288505Z running 2 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3325722Z test merged_stdout_stderr_preserves_binary_bytes_through_public_observer ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3360594Z test explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3361107Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3361548Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3362045Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3363332Z      Running tests/raw_completion.rs (target/debug/deps/raw_completion-49f5cbe57e1376fe)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3372516Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3372992Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3811763Z test signal_death_and_descendant_drain_never_become_fabricated_success ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3812210Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3812545Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3813216Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3814777Z      Running tests/raw_registration.rs (target/debug/deps/raw_registration-ad550ddcbb0afba8)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3823295Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3823543Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3871593Z test simultaneous_duplicate_calls_launch_once_even_after_completion_until_forgetting ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3872104Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3872473Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3872959Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3876153Z      Running tests/raw_runtime.rs (target/debug/deps/raw_runtime-c58d8df0526cf3f3)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3884384Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3884634Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3919748Z test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3933456Z test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3962385Z test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3962936Z test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3963319Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3963725Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3964166Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3967303Z      Running tests/runtime_performance.rs (target/debug/deps/runtime_performance-a43d9affb5bdb865)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3978041Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3978860Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3979448Z test projected_real_pty_producers ... ignored, scoped release performance measurement: scripts/performance.py
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3979993Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3980369Z test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3980810Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3987051Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-4b2b7ce6301a0b93)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3987516Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3987597Z running 21 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3992343Z test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3993435Z test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.3994398Z test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4020768Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-74f7f9dee138c564)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4021468Z test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4022323Z test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4023109Z test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4023927Z test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4024755Z test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4025535Z test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4026579Z test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4027391Z test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4028171Z test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4028903Z test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4029650Z test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4030676Z test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4031541Z test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4032410Z test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4033347Z test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4034224Z test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4035141Z test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4036367Z test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4036959Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4037318Z test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4037766Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4037929Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4038139Z running 17 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4038633Z test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4039308Z test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4039989Z test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4040647Z test process::tests::commands_are_literal_bounded_and_redacted ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4041246Z test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4041873Z test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4042571Z test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4043272Z test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4044118Z test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4044887Z test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4045659Z test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4046775Z test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4047501Z test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4048222Z test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4048909Z test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4049554Z test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4071866Z test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4072283Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4072664Z test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4083478Z      Running tests/replay_model.rs (target/debug/deps/replay_model-eafe28ce43f53de0)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4084061Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4084252Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.4084496Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5036752Z test seeded_interleavings_match_an_append_only_ledger ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5037101Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5037390Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5037798Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5038962Z      Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-139654d6623fbf4f)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5047252Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5047469Z running 8 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.5051685Z test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9178894Z test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9183727Z test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9198155Z test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9216821Z test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9219129Z test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:57.9221329Z test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1063478Z test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1063946Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1064272Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1064694Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1066076Z      Running tests/checkpoint_adversarial.rs (target/debug/deps/checkpoint_adversarial-9d765da7f9ed1652)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1074664Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1074872Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.1089055Z test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2880102Z test drop_does_not_remove_foreign_replacement_directory ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2894201Z test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2939165Z test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2939858Z      Running tests/checkpoint_contract.rs (target/debug/deps/checkpoint_contract-6685eafe12dff84e)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2943735Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2944125Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2944597Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2949177Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2949735Z running 5 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2957260Z test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2961075Z test injected_provider_same_contract ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:58.2961581Z test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.2087270Z test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4143086Z test real_disk_contract_private_permissions_and_cleanup ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4143478Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4143977Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.12s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4144408Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4145713Z      Running tests/checkpoint_opaque_envelope.rs (target/debug/deps/checkpoint_opaque_envelope-b5b8762c4458d4e8)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4154637Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.4154882Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6036324Z test storage_roundtrips_short_opaque_envelope_without_cipher_assumptions ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6036886Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6037378Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6037882Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6042633Z      Running tests/process_adversarial.rs (target/debug/deps/process_adversarial-a903839a04628ead)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6050158Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6050439Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6064133Z test failed_reader_terminates_long_lived_child_without_owner_shutdown ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6064571Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6064978Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6065602Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6069992Z      Running tests/process_contract.rs (target/debug/deps/process_contract-b19347b008a8d2b1)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6075621Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6075855Z running 7 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6506873Z test cancellation_bypasses_full_input_and_escalates_once ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6519248Z test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.6932706Z test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.7019429Z test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.7046929Z test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.7059089Z test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8703723Z test blocked_output_does_not_block_exit_or_shutdown ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8704116Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8704456Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8704855Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8706874Z      Running tests/process_handle_teardown.rs (target/debug/deps/process_handle_teardown-bc3bad8a9e530b61)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8715696Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8715944Z running 1 test
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8918033Z test retained_closed_handles_release_all_wake_descriptors ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8918609Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8919008Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8919478Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8924619Z      Running tests/process_host_contract.rs (target/debug/deps/process_host_contract-675ac9637c635f56)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8930371Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8930615Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8952566Z test backend_drop_ignores_twenty_four_hour_grace_and_reaps ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8956904Z test sigchld_policy_fixture ... ignored, runs only inside the isolated host-policy subprocess
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8967022Z test constructor_rejects_auto_reaping_policies_in_isolated_hosts ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8974361Z test unexpected_reader_failure_kills_long_lived_child_without_grace_delay ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8974808Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8975195Z test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8975634Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8985098Z      Running tests/process_pressure.rs (target/debug/deps/process_pressure-d4d64f527c880e44)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8985442Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.8985755Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.9021766Z test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.9462473Z test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:40:59.9466793Z test symlinks_cannot_escape_allowed_launch_roots ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0985586Z test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0986155Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0986871Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0987310Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0990973Z      Running tests/scheduling_adversarial.rs (target/debug/deps/scheduling_adversarial-9fce39aa4e84e405)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.0999942Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1000213Z running 4 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1003085Z test excessive_worker_counts_are_rejected_before_thread_creation ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1003982Z test impossible_blocking_queue_bound_returns_error_without_panicking ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1004660Z test callback_owner_destructor_panic_does_not_destroy_worker_capacity ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1005248Z test impossible_registration_bounds_return_errors_without_panicking ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1005615Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1005903Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1006690Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1009337Z      Running tests/scheduling_blocking.rs (target/debug/deps/scheduling_blocking-29ec50788ca04d80)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1017068Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1017307Z running 3 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1019653Z test capacity_generation_preserves_early_notifications ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1022139Z test job_panic_does_not_kill_worker_and_drop_joins_work ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1022973Z test blocked_job_admission_is_bounded_and_shutdown_drains_accepted_jobs ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1023465Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1023813Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1024244Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1024594Z      Running tests/scheduling_pool.rs (target/debug/deps/scheduling_pool-6395a90f0fc4a0ef)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1034319Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1034567Z running 5 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1038928Z test callback_can_request_shutdown_without_self_join ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1039502Z test panic_reports_failure_and_other_work_continues ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1041021Z test registration_caps_handle_drop_and_weak_drop_reclaim_slots ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1041668Z test running_wakes_coalesce_without_overlap_and_close_releases_after_run ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1142797Z test timer_fires_without_external_wake_and_finished_closes_handle ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1143270Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1143664Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1144173Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1153311Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1153758Z running 5 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1158765Z      Running tests/terminal_bounds.rs (target/debug/deps/terminal_bounds-b822bd55afb95069)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1176633Z test chunk_admission_does_not_mutate_and_reply_overflow_invalidates_projection ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1516604Z test checkpoint_and_native_allocations_are_bounded ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1624464Z test corrupted_and_truncated_snapshots_never_complete_successfully ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1843138Z test rejects_invalid_dimensions_config_and_incompatible_checkpoints ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1906696Z test view_and_parser_continuation_have_explicit_budgets ... ok
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1907114Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1907447Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1907862Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1910240Z      Running tests/terminal_contract.rs (target/debug/deps/terminal_contract-b74e8fe33f7d6417)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1920060Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.1920308Z running 6 tests
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4947310Z error: test failed, to rerun pass `-p pty-runtime-infrastructure --test terminal_contract`
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4948080Z 
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4948162Z Caused by:
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4948761Z   process didn't exit successfully: `/home/runner/work/pty-runtime/pty-runtime/target/debug/deps/terminal_contract-b74e8fe33f7d6417` (signal: 4, SIGILL: illegal instruction)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4965766Z Traceback (most recent call last):
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4971851Z   File "/home/runner/work/pty-runtime/pty-runtime/scripts/gate.py", line 77, in <module>
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4972507Z     main()
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4973057Z   File "/home/runner/work/pty-runtime/pty-runtime/scripts/gate.py", line 65, in main
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4973633Z     run('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4974151Z   File "/home/runner/work/pty-runtime/pty-runtime/scripts/gate.py", line 13, in run
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4974569Z     subprocess.run(args, cwd=ROOT, env=env, check=True)
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.4975024Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/subprocess.py", line 571, in run
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.5538041Z     raise CalledProcessError(retcode, process.args,
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.5547189Z subprocess.CalledProcessError: Command '('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')' returned non-zero exit status 101.
+gate (ubuntu-24.04)	Run python3 scripts/gate.py	2026-09-08T09:41:00.5610797Z ##[error]Process completed with exit code 1.
