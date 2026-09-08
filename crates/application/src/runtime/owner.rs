@@ -1,21 +1,24 @@
 use super::{
     ISessionRepository, RuntimeError, RuntimeOptions, Session, SessionContext, SessionOptions,
-    context::Events, quota::Quota,
+    context::Events, lifecycle::AdmissionGate, projected::ProjectionRuntime, quota::Quota,
 };
-use crate::process::IProcessBackend;
-use pty_runtime_domain::{SessionId, SessionLifetime, process::CommandSpec};
+use crate::{process::IProcessBackend, projection::ProjectionServices};
+use pty_runtime_domain::{
+    SessionId,
+    process::{CommandSpec, DrainOutcome},
+    projection::ProjectionError,
+    terminal::TerminalError,
+};
 use std::sync::{Arc, Mutex};
 
-struct Lifecycle {
-    closing: bool,
-    sequence: u64,
-}
 /// Application owner independent of transports. Dropping it shuts down its backend.
 /// This type is intentionally not Clone; sessions do not extend owner lifetime.
 pub struct Runtime {
     owner: u64,
     options: RuntimeOptions,
-    lifecycle: Mutex<Lifecycle>,
+    lifecycle: AdmissionGate,
+    shutdown: Mutex<()>,
+    projection: Option<ProjectionRuntime>,
     repository: Arc<dyn ISessionRepository>,
     backend: Arc<dyn IProcessBackend>,
     observers: Arc<Quota>,
@@ -39,13 +42,25 @@ impl Runtime {
             input_bytes: Arc::new(Quota::new(options.input_bytes)),
             input_slots: Arc::new(Quota::new(options.input_slots)),
             options,
-            lifecycle: Mutex::new(Lifecycle {
-                closing: false,
-                sequence: 0,
-            }),
+            lifecycle: AdmissionGate::new(),
+            shutdown: Mutex::new(()),
+            projection: None,
             repository,
             backend,
         })
+    }
+    /// Compose terminal/storage/scheduling adapters for subsequently projected sessions.
+    /// This runtime owns their worker lifetime and closes them during shutdown.
+    pub fn with_projection(mut self, services: ProjectionServices) -> Result<Self, RuntimeError> {
+        if self.projection.is_some() {
+            return Err(ProjectionError::InvalidConfiguration.into());
+        }
+        self.projection = Some(ProjectionRuntime::new(
+            services,
+            self.options.projection,
+            self.options.max_sessions,
+        )?);
+        Ok(self)
     }
     /// Reserve identity before executing the child. Early callbacks target the reserved context.
     /// Registration and process creation have rollback; completed IDs are never implicitly reused.
@@ -55,21 +70,11 @@ impl Runtime {
         command: &CommandSpec,
         options: SessionOptions,
     ) -> Result<Session, RuntimeError> {
-        options.process.validate()?;
-        if options.max_observers == 0 {
-            return Err(RuntimeError::Capacity);
+        options.validate(&self.options)?;
+        if options.projection.is_some() && self.projection.is_none() {
+            return Err(ProjectionError::Terminal(TerminalError::Unsupported).into());
         }
-        let lifetime = {
-            let mut state = self.lifecycle.lock().map_err(|_| RuntimeError::Internal)?;
-            if state.closing {
-                return Err(RuntimeError::Closed);
-            }
-            state.sequence = state
-                .sequence
-                .checked_add(1)
-                .ok_or(RuntimeError::Capacity)?;
-            SessionLifetime::new(self.owner, state.sequence)
-        };
+        let (lifetime, _admission) = self.lifecycle.admit(self.owner)?;
         let context = Arc::new(SessionContext::new(
             lifetime,
             options.clone(),
@@ -81,6 +86,29 @@ impl Runtime {
         ));
         self.repository
             .register(id.clone(), context.clone(), self.options.max_sessions)?;
+        if let (Some(owner), Some(policy)) = (&self.projection, options.projection) {
+            match owner.create(
+                lifetime,
+                policy,
+                self.input_bytes.clone(),
+                self.input_slots.clone(),
+            ) {
+                Ok(projection) => {
+                    *context
+                        .projection
+                        .lock()
+                        .map_err(|_| RuntimeError::Internal)? = Some(projection);
+                }
+                Err(error) => {
+                    context.record(|state| {
+                        state.status.record_admission_failure(error);
+                        let _ = state.status.record_drain(DrainOutcome::Eof);
+                    });
+                    self.repository.rollback_spawn(&id, lifetime);
+                    return Err(error);
+                }
+            }
+        }
         let events = Arc::new(Events(Arc::downgrade(&context)));
         match self
             .backend
@@ -89,11 +117,12 @@ impl Runtime {
             Ok(process) => {
                 *context.process.lock().map_err(|_| RuntimeError::Internal)? =
                     Some(process.clone());
-                let closing = self
-                    .lifecycle
-                    .lock()
-                    .map_err(|_| RuntimeError::Internal)?
-                    .closing;
+                if let Some(projection) = context.projection()? {
+                    // Binding failures remain independent projection status; the real child
+                    // stays owned and available through raw I/O and lifecycle controls.
+                    let _ = projection.bind_process(process.clone());
+                }
+                let closing = self.lifecycle.closing();
                 let cancelled = context.status()?.cancellation_requested;
                 if closing || cancelled {
                     let _ = process.request_cancel();
@@ -108,6 +137,11 @@ impl Runtime {
                         .record_drain(pty_runtime_domain::process::DrainOutcome::Failed(error));
                 });
                 self.repository.rollback_spawn(&id, lifetime);
+                if let (Some(owner), Ok(Some(projection))) =
+                    (&self.projection, context.projection())
+                {
+                    let _ = owner.close(&projection);
+                }
                 Err(error.into())
             }
         }
@@ -121,22 +155,33 @@ impl Runtime {
     /// Explicitly remove a finished entry. Existing handles remain tied to that old lifetime.
     pub fn forget(&self, id: &SessionId) -> Result<(), RuntimeError> {
         let context = self.repository.lookup(id)?;
+        if context.completion()?.is_none() {
+            return Err(RuntimeError::NotFinished);
+        }
+        if let (Some(owner), Some(projection)) = (&self.projection, context.projection()?) {
+            owner.close(&projection)?;
+        }
         self.repository.remove_finished(id, context.lifetime())
     }
     /// Reject new spawns then terminate/reap all admitted processes through the backend.
     /// This is a blocking ownership operation, independent of async caller wait cancellation.
     pub fn shutdown(&self) {
-        if let Ok(mut state) = self.lifecycle.lock() {
-            state.closing = true;
-        }
+        let _shutdown = self.shutdown.lock().unwrap_or_else(|e| e.into_inner());
+        self.lifecycle.begin_shutdown();
         self.backend.shutdown();
+        self.lifecycle.wait_for_spawns();
+        if let Some(projection) = &self.projection {
+            projection.shutdown();
+        }
     }
 }
 impl Drop for Runtime {
     fn drop(&mut self) {
-        if let Ok(mut state) = self.lifecycle.lock() {
-            state.closing = true;
-        }
+        self.lifecycle.begin_shutdown();
         self.backend.shutdown_now();
+        self.lifecycle.wait_for_spawns();
+        if let Some(projection) = &self.projection {
+            projection.shutdown();
+        }
     }
 }

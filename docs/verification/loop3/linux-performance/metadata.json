@@ -1,0 +1,29 @@
+{
+  "scope": "one 4 MiB/session trial at 1 and 16 sessions; not full G4 repeats or soak",
+  "platform": "Linux-6.8.0-117-generic-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "revision": "1c5d17e311ae24e8da53b36aa60e399b070c1974",
+  "source_sha256_before": "2a323935cf67ff3af88043c3570e1f23ca9d1291ccfed0bb1fa55a07d25ac972",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--release",
+    "--test",
+    "runtime_performance",
+    "--features",
+    "ghostty",
+    "--",
+    "--ignored",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "started_unix_seconds": 1788860171.4204676,
+  "rss_scope": "test process point samples; excludes separate helper/producer processes; not peak",
+  "exit_code": 0,
+  "timed_out": false,
+  "command_elapsed_seconds": 6.4676728489994275,
+  "source_sha256_after": "2a323935cf67ff3af88043c3570e1f23ca9d1291ccfed0bb1fa55a07d25ac972",
+  "source_stable": true
+}

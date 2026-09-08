@@ -13,8 +13,9 @@ impl IScheduledWork for Work {
     fn run(&self) -> WorkSchedule {
         (self.run)()
     }
-    fn failed(&self) {
-        (self.failed)()
+    fn failed(&self) -> WorkSchedule {
+        (self.failed)();
+        WorkSchedule::Finished
     }
 }
 fn work(run: impl Fn() -> WorkSchedule + Send + Sync + 'static) -> Arc<dyn IScheduledWork> {

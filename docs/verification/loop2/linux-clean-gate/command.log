@@ -1,0 +1,618 @@
++ python3 -m unittest discover -s scripts/tests -v
+test_actual_workspace_is_accepted (test_gate.ArchitectureGateTests.test_actual_workspace_is_accepted) ... ok
+test_correctly_named_dependency_pointing_elsewhere_is_rejected (test_gate.ArchitectureGateTests.test_correctly_named_dependency_pointing_elsewhere_is_rejected) ... ok
+test_external_core_dependencies_in_all_declaration_kinds_are_rejected (test_gate.ArchitectureGateTests.test_external_core_dependencies_in_all_declaration_kinds_are_rejected) ... ok
+test_infrastructure_to_facade_reverse_edge_is_rejected (test_gate.ArchitectureGateTests.test_infrastructure_to_facade_reverse_edge_is_rejected) ... ok
+test_missing_each_required_package_is_rejected (test_gate.ArchitectureGateTests.test_missing_each_required_package_is_rejected) ... ok
+test_registry_dependency_impersonating_domain_is_rejected (test_gate.ArchitectureGateTests.test_registry_dependency_impersonating_domain_is_rejected) ... ok
+test_relocated_package_is_rejected (test_gate.ArchitectureGateTests.test_relocated_package_is_rejected) ... ok
+test_renamed_alias_does_not_hide_wrong_path (test_gate.ArchitectureGateTests.test_renamed_alias_does_not_hide_wrong_path) ... ok
+test_renamed_core_package_is_rejected (test_gate.ArchitectureGateTests.test_renamed_core_package_is_rejected) ... ok
+test_required_nonmember_is_rejected (test_gate.ArchitectureGateTests.test_required_nonmember_is_rejected) ... ok
+test_valid_domain_alias_remains_allowed (test_gate.ArchitectureGateTests.test_valid_domain_alias_remains_allowed) ... ok
+test_oversized_native_rust_c_and_header_are_rejected (test_sizes.SizeGateTests.test_oversized_native_rust_c_and_header_are_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.230s
+
+OK
++ cargo test --locked -p pty-runtime-domain --no-default-features
+    Updating crates.io index
+   Compiling pty-runtime-domain v0.1.0 (/tmp/pty-runtime-loop2/crates/domain)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-e0f45ef33ffc953d)
+
+running 11 tests
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/replay_model.rs (target/debug/deps/replay_model-e90f1d357c31fe3b)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+   Doc-tests pty_runtime_domain
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo test --locked -p pty-runtime-application --no-default-features
+   Compiling pty-runtime-application v0.1.0 (/tmp/pty-runtime-loop2/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-9216427a99f9310f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime_application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo fmt --all --check
++ python3 scripts/native/bootstrap.py
+Downloading pinned dependency: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+Downloading pinned dependency: https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41
+Building pinned libghostty-vt for x86_64-linux...
++ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+ Downloading crates ...
+  Downloaded cfg-if v1.0.4
+  Downloaded chacha20 v0.9.1
+  Downloaded cipher v0.4.4
+  Downloaded aead v0.5.2
+  Downloaded inout v0.1.4
+  Downloaded chacha20poly1305 v0.10.1
+  Downloaded crypto-common v0.1.7
+  Downloaded subtle v2.6.1
+  Downloaded version_check v0.9.5
+  Downloaded cpufeatures v0.2.17
+  Downloaded opaque-debug v0.3.1
+  Downloaded universal-hash v0.5.1
+  Downloaded zeroize v1.9.0
+  Downloaded futures-core v0.3.34
+  Downloaded generic-array v0.14.7
+  Downloaded poly1305 v0.8.0
+  Downloaded rand_core v0.6.4
+  Downloaded futures-channel v0.3.34
+  Downloaded getrandom v0.2.16
+  Downloaded typenum v1.20.1
+   Compiling version_check v0.9.5
+   Compiling libc v0.2.189
+    Checking typenum v1.20.1
+    Checking cfg-if v1.0.4
+    Checking zeroize v1.9.0
+    Checking cpufeatures v0.2.17
+    Checking pty-runtime-domain v0.1.0 (/tmp/pty-runtime-loop2/crates/domain)
+   Compiling generic-array v0.14.7
+    Checking subtle v2.6.1
+    Checking opaque-debug v0.3.1
+   Compiling pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+    Checking futures-core v0.3.34
+    Checking futures-channel v0.3.34
+    Checking pty-runtime-application v0.1.0 (/tmp/pty-runtime-loop2/crates/application)
+    Checking getrandom v0.2.16
+    Checking inout v0.1.4
+    Checking rand_core v0.6.4
+    Checking crypto-common v0.1.7
+    Checking universal-hash v0.5.1
+    Checking cipher v0.4.4
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking aead v0.5.2
+    Checking chacha20poly1305 v0.10.1
+    Checking pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.08s
++ cargo test --locked --workspace --all-targets --all-features
+   Compiling libc v0.2.189
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.4
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling cpufeatures v0.2.17
+   Compiling opaque-debug v0.3.1
+   Compiling futures-core v0.3.34
+   Compiling pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+   Compiling futures-channel v0.3.34
+   Compiling generic-array v0.14.7
+   Compiling getrandom v0.2.16
+   Compiling rand_core v0.6.4
+   Compiling crypto-common v0.1.7
+   Compiling inout v0.1.4
+   Compiling universal-hash v0.5.1
+   Compiling cipher v0.4.4
+   Compiling aead v0.5.2
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.30s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime-8b6fd1028a1adf8a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests tests/fixtures/pty_fixture.rs (target/debug/deps/pty_runtime_fixture-6d840e10e8a90b32)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ddd_spawn_failure.rs (target/debug/deps/ddd_spawn_failure-470c9e8c0eb4a168)
+
+running 1 test
+test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input_reservation.rs (target/debug/deps/input_reservation-b96c8c8a36632725)
+
+running 1 test
+test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_adversarial.rs (target/debug/deps/raw_adversarial-901759715554c367)
+
+running 1 test
+test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_runtime.rs (target/debug/deps/raw_runtime-5221b83a2084f004)
+
+running 4 tests
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-9216427a99f9310f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-e0f45ef33ffc953d)
+
+running 11 tests
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/replay_model.rs (target/debug/deps/replay_model-e90f1d357c31fe3b)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-35d7c435ec3819c3)
+
+running 8 tests
+test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_adversarial.rs (target/debug/deps/checkpoint_adversarial-43febc0138bab0b7)
+
+running 4 tests
+test drop_does_not_remove_foreign_replacement_directory ... ok
+test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_contract.rs (target/debug/deps/checkpoint_contract-cfadf9ed479c1ce7)
+
+running 5 tests
+test injected_provider_same_contract ... ok
+test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+test real_disk_contract_private_permissions_and_cleanup ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_opaque_envelope.rs (target/debug/deps/checkpoint_opaque_envelope-2deac3a18b2190fe)
+
+running 1 test
+test storage_roundtrips_short_opaque_envelope_without_cipher_assumptions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_adversarial.rs (target/debug/deps/process_adversarial-35cd7aad8596eaa7)
+
+running 1 test
+test failed_reader_terminates_long_lived_child_without_owner_shutdown ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_contract.rs (target/debug/deps/process_contract-68887cd1026f1cf2)
+
+running 7 tests
+test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+test cancellation_bypasses_full_input_and_escalates_once ... ok
+test blocked_output_does_not_block_exit_or_shutdown ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/process_host_contract.rs (target/debug/deps/process_host_contract-233831fbf5aac07b)
+
+running 4 tests
+test sigchld_policy_fixture ... ignored, runs only inside the isolated host-policy subprocess
+test backend_drop_ignores_twenty_four_hour_grace_and_reaps ... ok
+test unexpected_reader_failure_kills_long_lived_child_without_grace_delay ... ok
+test constructor_rejects_auto_reaping_policies_in_isolated_hosts ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_pressure.rs (target/debug/deps/process_pressure-00e56ca9b5991a0c)
+
+running 4 tests
+test symlinks_cannot_escape_allowed_launch_roots ... ok
+test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/scheduling_adversarial.rs (target/debug/deps/scheduling_adversarial-772ca2d13b1a6b3b)
+
+running 4 tests
+test excessive_worker_counts_are_rejected_before_thread_creation ... ok
+test impossible_registration_bounds_return_errors_without_panicking ... ok
+test impossible_blocking_queue_bound_returns_error_without_panicking ... ok
+test callback_owner_destructor_panic_does_not_destroy_worker_capacity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_blocking.rs (target/debug/deps/scheduling_blocking-a931f82f417e3936)
+
+running 3 tests
+test capacity_generation_preserves_early_notifications ... ok
+test job_panic_does_not_kill_worker_and_drop_joins_work ... ok
+test blocked_job_admission_is_bounded_and_shutdown_drains_accepted_jobs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_pool.rs (target/debug/deps/scheduling_pool-45ac9aa5fb24ea05)
+
+running 5 tests
+test running_wakes_coalesce_without_overlap_and_close_releases_after_run ... ok
+test panic_reports_failure_and_other_work_continues ... ok
+test callback_can_request_shutdown_without_self_join ... ok
+test registration_caps_handle_drop_and_weak_drop_reclaim_slots ... ok
+test timer_fires_without_external_wake_and_finished_closes_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/terminal_bounds.rs (target/debug/deps/terminal_bounds-8aefb9ee2ceca161)
+
+running 5 tests
+test chunk_admission_does_not_mutate_and_reply_overflow_invalidates_projection ... ok
+test rejects_invalid_dimensions_config_and_incompatible_checkpoints ... ok
+test checkpoint_and_native_allocations_are_bounded ... ok
+test view_and_parser_continuation_have_explicit_budgets ... ok
+test corrupted_and_truncated_snapshots_never_complete_successfully ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/terminal_contract.rs (target/debug/deps/terminal_contract-3425cbba3b99579e)
+
+running 6 tests
+test palette_and_default_color_overrides_are_domain_values ... ok
+test incremental_text_styles_modes_cursor_and_ordered_resize ... ok
+test compression_preserves_wide_combining_text_and_full_history ... ok
+test terminal_owner_can_move_threads_and_drop_with_pending_history ... ok
+test checkpoints_preserve_parser_continuation_and_uninterrupted_state ... ok
+test ready_fences_mutations_to_preserve_one_hundred_thousand_history_lines ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.91s
+
++ cargo test --locked --workspace --no-default-features
+   Compiling pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+   Compiling pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.33s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime-22a76cb1d41c3614)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ddd_spawn_failure.rs (target/debug/deps/ddd_spawn_failure-f1d1756e4707f645)
+
+running 1 test
+test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input_reservation.rs (target/debug/deps/input_reservation-729ab8b0d1cb6c21)
+
+running 1 test
+test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_adversarial.rs (target/debug/deps/raw_adversarial-23755860fa9f568c)
+
+running 1 test
+test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_runtime.rs (target/debug/deps/raw_runtime-f385c1d4884db089)
+
+running 4 tests
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-9216427a99f9310f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-e0f45ef33ffc953d)
+
+running 11 tests
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/replay_model.rs (target/debug/deps/replay_model-e90f1d357c31fe3b)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-c20ebf329985d666)
+
+running 8 tests
+test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_adversarial.rs (target/debug/deps/checkpoint_adversarial-ed78cafd58abf885)
+
+running 4 tests
+test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+test drop_does_not_remove_foreign_replacement_directory ... ok
+test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_contract.rs (target/debug/deps/checkpoint_contract-4ec87b177f4d3f2e)
+
+running 5 tests
+test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+test injected_provider_same_contract ... ok
+test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+test real_disk_contract_private_permissions_and_cleanup ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_opaque_envelope.rs (target/debug/deps/checkpoint_opaque_envelope-13c828b1198dbf3a)
+
+running 1 test
+test storage_roundtrips_short_opaque_envelope_without_cipher_assumptions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_adversarial.rs (target/debug/deps/process_adversarial-2d0339d7c9ae2398)
+
+running 1 test
+test failed_reader_terminates_long_lived_child_without_owner_shutdown ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_contract.rs (target/debug/deps/process_contract-0c7d227983caf12e)
+
+running 7 tests
+test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+test cancellation_bypasses_full_input_and_escalates_once ... ok
+test blocked_output_does_not_block_exit_or_shutdown ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/process_host_contract.rs (target/debug/deps/process_host_contract-10de30a7976b0822)
+
+running 4 tests
+test sigchld_policy_fixture ... ignored, runs only inside the isolated host-policy subprocess
+test backend_drop_ignores_twenty_four_hour_grace_and_reaps ... ok
+test constructor_rejects_auto_reaping_policies_in_isolated_hosts ... ok
+test unexpected_reader_failure_kills_long_lived_child_without_grace_delay ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_pressure.rs (target/debug/deps/process_pressure-cb7412401980599d)
+
+running 4 tests
+test symlinks_cannot_escape_allowed_launch_roots ... ok
+test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/scheduling_adversarial.rs (target/debug/deps/scheduling_adversarial-e9037d4648cc2902)
+
+running 4 tests
+test excessive_worker_counts_are_rejected_before_thread_creation ... ok
+test impossible_blocking_queue_bound_returns_error_without_panicking ... ok
+test impossible_registration_bounds_return_errors_without_panicking ... ok
+test callback_owner_destructor_panic_does_not_destroy_worker_capacity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_blocking.rs (target/debug/deps/scheduling_blocking-2423ba610adb7355)
+
+running 3 tests
+test capacity_generation_preserves_early_notifications ... ok
+test job_panic_does_not_kill_worker_and_drop_joins_work ... ok
+test blocked_job_admission_is_bounded_and_shutdown_drains_accepted_jobs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_pool.rs (target/debug/deps/scheduling_pool-f87869f04afb03a8)
+
+running 5 tests
+test callback_can_request_shutdown_without_self_join ... ok
+test panic_reports_failure_and_other_work_continues ... ok
+test registration_caps_handle_drop_and_weak_drop_reclaim_slots ... ok
+test running_wakes_coalesce_without_overlap_and_close_releases_after_run ... ok
+test timer_fires_without_external_wake_and_finished_closes_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/terminal_bounds.rs (target/debug/deps/terminal_bounds-620d6b67c16eecbc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/terminal_contract.rs (target/debug/deps/terminal_contract-deb537cd9e5603e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime_application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime_domain
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime_infrastructure
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo doc --locked --workspace --no-deps --all-features
+    Checking pty-runtime-domain v0.1.0 (/tmp/pty-runtime-loop2/crates/domain)
+ Documenting pty-runtime-domain v0.1.0 (/tmp/pty-runtime-loop2/crates/domain)
+    Checking pty-runtime-application v0.1.0 (/tmp/pty-runtime-loop2/crates/application)
+ Documenting pty-runtime-application v0.1.0 (/tmp/pty-runtime-loop2/crates/application)
+    Checking pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+ Documenting pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+ Documenting pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Checking pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.72s
+   Generated /tmp/pty-runtime-loop2/target/doc/pty_runtime/index.html and 4 other files
++ python3 -m unittest discover -s experiments/tests -v
+test_descriptor_leak_is_rejected (test_gate.GateTests.test_descriptor_leak_is_rejected) ... ok
+test_different_platform_is_rejected (test_gate.GateTests.test_different_platform_is_rejected) ... ok
+test_different_workload_is_rejected (test_gate.GateTests.test_different_workload_is_rejected) ... ok
+test_duplicate_result_is_rejected (test_gate.GateTests.test_duplicate_result_is_rejected) ... ok
+test_extra_worker_is_rejected (test_gate.GateTests.test_extra_worker_is_rejected) ... ok
+test_failed_result_cannot_be_omitted (test_gate.GateTests.test_failed_result_cannot_be_omitted) ... ok
+test_fixture_timeout_is_reported_and_reaped (test_gate.GateTests.test_fixture_timeout_is_reported_and_reaped) ... ok
+test_identical_baseline_passes (test_gate.GateTests.test_identical_baseline_passes) ... ok
+test_memory_regression_fails (test_gate.GateTests.test_memory_regression_fails) ... ok
+test_missing_latency_samples_are_rejected (test_gate.GateTests.test_missing_latency_samples_are_rejected) ... ok
+test_missing_metric_cannot_pass_comparison (test_gate.GateTests.test_missing_metric_cannot_pass_comparison) ... ok
+test_missing_repetition_is_rejected (test_gate.GateTests.test_missing_repetition_is_rejected) ... ok
+test_nonfinite_measurement_is_rejected (test_gate.GateTests.test_nonfinite_measurement_is_rejected) ... ok
+test_results_are_revalidated_from_raw_records (test_gate.GateTests.test_results_are_revalidated_from_raw_records) ... ok
+test_small_noise_passes (test_gate.GateTests.test_small_noise_passes) ... ok
+test_smoke_run_cannot_become_a_performance_baseline (test_gate.GateTests.test_smoke_run_cannot_become_a_performance_baseline) ... ok
+test_throughput_regression_fails (test_gate.GateTests.test_throughput_regression_fails) ... ok
+test_wrong_byte_total_is_rejected (test_gate.GateTests.test_wrong_byte_total_is_rejected) ... ok
+test_wrong_os_memory_counter_is_rejected (test_gate.GateTests.test_wrong_os_memory_counter_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.113s
+
+OK
++ cargo fmt --manifest-path experiments/pty/Cargo.toml --check
++ cargo clippy --manifest-path experiments/pty/Cargo.toml --locked --all-targets -- -D warnings
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling libc v0.2.189
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking pty-experiment-harness v0.1.0 (/tmp/pty-runtime-loop2/experiments/pty)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.73s
+Mechanical gate passed. Specialist reviews and milestone proof remain required.

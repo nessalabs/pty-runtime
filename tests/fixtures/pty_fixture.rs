@@ -1,4 +1,7 @@
 //! Deterministic local process fixture; only synthetic input/output.
+mod contract_support;
+mod performance_support;
+mod projection_support;
 use std::io::{Read, Write};
 fn raw() {
     assert!(
@@ -13,6 +16,21 @@ fn raw() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("performance-producer") => {
+            performance_support::producer(args[2].parse().unwrap(), args[3].parse().unwrap())
+        }
+        Some("projection-query") => projection_support::query(),
+        Some("record-launch") => contract_support::record_launch(&args[2]),
+        Some("inspect-contract") => contract_support::inspect(&args),
+        Some("merged-bytes") => {
+            raw();
+            std::io::stdout().write_all(&[0, 255, b'A']).unwrap();
+            std::io::stdout().flush().unwrap();
+            std::io::stderr().write_all(&[128, b'B', 0]).unwrap();
+            std::io::stderr().flush().unwrap();
+            std::io::stdout().write_all(b"C").unwrap();
+            std::io::stdout().flush().unwrap();
+        }
         Some("bytes") => {
             raw();
             let length: usize = args[2].parse().unwrap();

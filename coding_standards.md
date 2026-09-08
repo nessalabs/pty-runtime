@@ -46,9 +46,16 @@ is necessary but does not replace the specialist reviews or ADR acceptance tests
 Each review loop requires three independent specialist reviews:
 
 1. DDD/dependency direction and domain-to-infrastructure conversion contracts.
-2. Organization, file size, cohesion, ownership and appropriate design patterns.
+2. Strict independent Clean Code/SOLID review: organization, file size, cohesion,
+   ownership, dependency inversion and appropriate design patterns. This reviewer
+   must challenge the implementation rather than accept its author's rationale.
 3. Behavioral correctness: adversarial concurrency, resource bounds, cleanup,
    failure injection, and whether tests prove the actual ADR requirement.
+
+Every acceptance loop also requires scoped performance tests with recorded workload,
+source identity, platform and raw results. These do not substitute for the full
+release performance/repetition/soak requirements. P1/P2 findings in the accepted
+scope block acceptance until independently re-reviewed as resolved.
 
 Record findings with file/line evidence and severity, changes made, and unresolved
 items under `docs/reviews`. Re-review fixes; never mark an issue resolved only

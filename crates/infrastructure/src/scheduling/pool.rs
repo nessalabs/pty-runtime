@@ -181,8 +181,7 @@ fn run(shared: Arc<Shared>) {
         let schedule = match schedule {
             Ok(schedule) => schedule,
             Err(_) => {
-                let _ = catch_unwind(AssertUnwindSafe(|| work.failed()));
-                WorkSchedule::Finished
+                catch_unwind(AssertUnwindSafe(|| work.failed())).unwrap_or(WorkSchedule::Finished)
             }
         };
         // Release arbitrary callback destructors outside the scheduler mutex.

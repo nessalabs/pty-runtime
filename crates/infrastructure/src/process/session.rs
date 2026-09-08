@@ -47,16 +47,32 @@ pub(super) struct Session {
     pub stop_reader: AtomicBool,
     pub reader_done: AtomicBool,
     pub reader_failed: AtomicBool,
-    pub wake: Arc<UnixStream>,
-    pub reader_wake: UnixStream,
+    pub wake: Mutex<Option<Arc<UnixStream>>>,
+    pub reader_wake: Mutex<Option<UnixStream>>,
 }
 impl Session {
     pub fn notify(&self) {
-        let _ = (&*self.wake).write(&[1]);
+        if let Ok(wake) = self.wake.lock() {
+            if let Some(wake) = wake.as_ref() {
+                let _ = (&**wake).write(&[1]);
+            }
+        }
     }
     pub fn stop(&self) {
         self.stop_reader.store(true, Ordering::Release);
-        let _ = (&self.reader_wake).write(&[1]);
+        if let Ok(wake) = self.reader_wake.lock() {
+            if let Some(wake) = wake.as_ref() {
+                let _ = (&*wake).write(&[1]);
+            }
+        }
+    }
+    pub fn release_wakes(&self) {
+        if let Ok(mut wake) = self.wake.lock() {
+            wake.take();
+        }
+        if let Ok(mut wake) = self.reader_wake.lock() {
+            wake.take();
+        }
     }
     pub fn finish_inputs(&self, reason: ProcessError) {
         self.closed.store(true, Ordering::Release);

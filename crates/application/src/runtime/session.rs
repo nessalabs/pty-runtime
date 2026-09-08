@@ -67,11 +67,18 @@ impl Session {
         }
         Ok(())
     }
-    /// Resize the PTY. Projected resize ordering is added at the terminal coordinator.
+    /// Resize a raw PTY. Projected sessions must use `resize_projected` to preserve
+    /// ordered model state and expose separate OS/model outcomes.
     pub fn resize(
         &self,
         size: TerminalSize,
     ) -> Result<ProcessOperation<Result<(), ProcessError>>, RuntimeError> {
+        if self.context.options.projection.is_some() {
+            return Err(pty_runtime_domain::projection::ProjectionError::Terminal(
+                pty_runtime_domain::terminal::TerminalError::Unsupported,
+            )
+            .into());
+        }
         Ok(self.context.process()?.resize(size)?)
     }
     /// Reserve a bounded completion waiter; cancelling its future does not cancel the child.

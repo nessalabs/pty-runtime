@@ -13,3 +13,5 @@ pub mod terminal;
 pub mod session;
 
 pub mod checkpoint;
+
+pub mod projection;

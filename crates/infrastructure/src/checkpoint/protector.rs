@@ -47,6 +47,14 @@ fn metadata(key: CheckpointKey, d: &CheckpointDescriptor) -> Result<Vec<u8>, Che
     Ok(bytes)
 }
 impl ICheckpointProtector for CheckpointProtector {
+    fn protected_size_limit(&self, plaintext_bytes: usize) -> Result<usize, CheckpointError> {
+        if plaintext_bytes > self.max_bytes {
+            return Err(CheckpointError::CapacityExceeded);
+        }
+        plaintext_bytes
+            .checked_add(40)
+            .ok_or(CheckpointError::CapacityExceeded)
+    }
     fn protect(
         &self,
         key: CheckpointKey,

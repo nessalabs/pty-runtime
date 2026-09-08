@@ -33,8 +33,11 @@ pub enum WorkSchedule {
 pub trait IScheduledWork: Send + Sync {
     /// Perform one bounded unit without sleeping on storage/OS operations.
     fn run(&self) -> WorkSchedule;
-    /// Report worker panic/failure without claiming the native operation completed.
-    fn failed(&self);
+    /// Contain a worker panic/failure and choose whether its registration remains
+    /// available for cleanup. Never claim the failed operation completed. Returning
+    /// Dormant preserves the handle; Finished retires it. If this callback panics,
+    /// the scheduler retires the registration.
+    fn failed(&self) -> WorkSchedule;
 }
 /// A coalesced wake registration; repeated wake calls never grow an unbounded queue.
 pub trait IWorkHandle: Send + Sync {

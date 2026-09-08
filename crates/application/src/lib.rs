@@ -7,3 +7,5 @@ pub mod terminal;
 
 pub mod checkpoint;
 pub mod scheduling;
+
+pub mod projection;

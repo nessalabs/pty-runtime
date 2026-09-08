@@ -18,3 +18,9 @@ Native prerequisites are Python 3.9+, a C compiler, and Rust.
 builds the native library into the ignored cache. The mandatory gate prepares
 that cache automatically. `cargo test --no-default-features` exercises raw-only
 use without Ghostty; projected use requires the default `ghostty` feature.
+
+The [review loop 3 record](docs/verification/loop3.md) covers integrated real-PTY
+projection, bounded parser staging, ordered resize/replies, encrypted idle parking,
+restoration and snapshot pins. It includes independent review and executed gates.
+Ordered observer continuation, foreground guardian integration, event-stream and
+full release qualification remain in progress; see the [requirements ledger](docs/verification/requirements.md).

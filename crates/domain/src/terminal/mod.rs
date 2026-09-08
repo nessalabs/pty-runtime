@@ -49,6 +49,20 @@ pub struct TerminalConfig {
     pub feed_bytes: usize,
 }
 impl TerminalConfig {
+    /// Bounded defaults for an authoritative terminal at the supplied dimensions.
+    /// Native reservation is eight MiB; history targets one MiB plus native overhead.
+    pub fn new(size: TerminalSize) -> Self {
+        Self {
+            size,
+            history_bytes: 1024 * 1024,
+            continuation_bytes: 65536,
+            reply_bytes: 4096,
+            checkpoint_bytes: 8 * 1024 * 1024,
+            native_bytes: 8 * 1024 * 1024,
+            view_bytes: 1024 * 1024,
+            feed_bytes: 4096,
+        }
+    }
     /// Validate allocation limits before constructing an engine.
     pub fn validate(self) -> Result<Self, TerminalError> {
         if self.native_bytes == 0

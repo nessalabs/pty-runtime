@@ -1,11 +1,14 @@
 //! Session use cases and bounded observation, independent of OS and engine types.
 mod attachment;
 mod context;
+mod lifecycle;
 mod options;
 mod owner;
-mod quota;
+mod projected;
+pub(crate) mod quota;
 mod repository;
 mod session;
+mod session_projection;
 
 pub use attachment::{Attachment, NextOutput};
 pub use context::SessionContext;

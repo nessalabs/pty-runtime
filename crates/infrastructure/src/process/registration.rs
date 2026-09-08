@@ -36,8 +36,8 @@ pub(super) fn start(
             stop_reader: AtomicBool::new(false),
             reader_done: AtomicBool::new(false),
             reader_failed: AtomicBool::new(false),
-            wake: shared.wake.clone(),
-            reader_wake,
+            wake: Mutex::new(Some(shared.wake.clone())),
+            reader_wake: Mutex::new(Some(reader_wake)),
         });
         let watcher = ExitWatch::new(child.id());
         // A child may exit before registration. Only actual wait status makes this safe.

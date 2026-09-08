@@ -33,13 +33,14 @@ pending. No 128-projected-session capacity or soak result is claimed.
 | `python3 scripts/gate.py`: pass, macOS arm64 | [final log](loop2/macos-final-gate/command.log), [metadata and exact source hashes](loop2/macos-final-gate/metadata.json) | Architecture/size negative tests, core independence, formatting, real native bootstrap, strict Clippy, workspace/all-feature tests, raw-only tests, Rustdoc warnings, experiment validator and fixture checks |
 | `cargo +1.85.0 test --locked --workspace --all-targets --all-features --target-dir target/msrv-loop2`: pass, macOS arm64 | [log](loop2/macos-msrv/command.log), [metadata](loop2/macos-msrv/metadata.json) | Runtime, native and adapter tests on declared minimum Rust; subsequent final-gate source differs only by Cargo trailing whitespace and checkpoint-port documentation |
 | Earlier complete macOS gate: pass | [log](loop2/macos-gate/command.log), [metadata](loop2/macos-gate/metadata.json) | Retained pre-final documentation/whitespace revision |
-| Linux x86_64 full gate | Pending execution/report; no pass claimed in this checkpoint | Fresh Box source copy; initial transfer contained AppleDouble metadata and failed source scanning before tests; cleaned transfer is being tested |
+| `python3 scripts/gate.py`: pass, Linux x86_64 | [log](loop2/linux-clean-gate/command.log), [metadata](loop2/linux-clean-gate/metadata.json) | Exact source manifest matches final macOS gate; command completed in 230.25 seconds including fresh native bootstrap. The [initial transfer failure](loop2/linux-gate/command.log) is retained; it contained AppleDouble metadata and stopped before tests. |
 | Foreground primitive: 150 cases each on macOS arm64/Linux x86_64, zero failures | [source/raw files](foreground-prototype/), [design and exact limits](../reviews/foreground-control-design.md) | Isolated mechanism prototype only; no production guardian, owner-abort cleanup, interactive-shell or resource qualification claim |
 
 `record_validation.py` records command, platform, toolchain, base commit, every
 source-file hash before execution, command output, and whether sources changed
-while the command ran. Both final macOS records have successful commands and
-unchanged source manifests. The implementation changes are based on foundation
+while the command ran. The final macOS and Linux full-gate records have successful commands and
+unchanged, identical source manifests. The macOS minimum-Rust record also passed
+with unchanged sources during its execution. The implementation changes are based on foundation
 commit `1c5d17e311ae24e8da53b36aa60e399b070c1974`; exact uncommitted source identities
 are in each record and become part of this review commit.
 

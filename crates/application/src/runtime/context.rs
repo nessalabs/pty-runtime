@@ -1,5 +1,8 @@
 use super::{Completion, OutputEvent, RuntimeError, SessionOptions, SessionStatus, quota::Quota};
-use crate::process::{IProcessEvents, IProcessSession, OutputAcceptance};
+use crate::{
+    process::{IProcessEvents, IProcessSession, OutputAcceptance},
+    projection::ProjectionCoordinator,
+};
 use pty_runtime_domain::{
     ReplayBuffer, ReplayCursor, ReplayPage, SessionLifetime,
     process::{DrainOutcome, ExitStatus, ProcessError},
@@ -24,6 +27,7 @@ pub struct SessionContext {
     pub(crate) options: SessionOptions,
     pub(crate) state: Mutex<State>,
     pub(crate) process: Mutex<Option<Arc<dyn IProcessSession>>>,
+    pub(crate) projection: Mutex<Option<Arc<ProjectionCoordinator>>>,
     pub(crate) observers: Arc<Quota>,
     pub(crate) replay_quota: Arc<Quota>,
     pub(crate) page_bytes: usize,
@@ -50,6 +54,7 @@ impl SessionContext {
             }),
             options,
             process: Mutex::new(None),
+            projection: Mutex::new(None),
             observers,
             replay_quota,
             page_bytes,
@@ -136,6 +141,13 @@ impl SessionContext {
             waker.wake();
         }
     }
+    pub(crate) fn projection(&self) -> Result<Option<Arc<ProjectionCoordinator>>, RuntimeError> {
+        Ok(self
+            .projection
+            .lock()
+            .map_err(|_| RuntimeError::Internal)?
+            .clone())
+    }
     pub(crate) fn process(&self) -> Result<Arc<dyn IProcessSession>, RuntimeError> {
         self.process
             .lock()
@@ -163,6 +175,16 @@ impl IProcessEvents for Events {
         let Ok(mut state) = context.state.lock() else {
             return OutputAcceptance::Closed;
         };
+        let projection = match context.projection() {
+            Ok(projection) => projection,
+            Err(_) => return OutputAcceptance::Closed,
+        };
+        if let Some(projection) = projection {
+            match projection.stage_output(bytes) {
+                OutputAcceptance::Accepted => (),
+                other => return other,
+            }
+        }
         let capacity = state.replay.allocated_bytes();
         let needed = state
             .replay
@@ -205,9 +227,12 @@ impl IProcessEvents for Events {
         }
         OutputAcceptance::Accepted
     }
-    fn wait_for_capacity(&self, _deadline: std::time::Instant) {
-        // Raw replay always accepts by advancing an explicit gap under pressure.
-        // Projected staging supplies a separate bounded wait before G2 integration.
+    fn wait_for_capacity(&self, deadline: std::time::Instant) {
+        if let Some(context) = self.0.upgrade() {
+            if let Ok(Some(projection)) = context.projection() {
+                projection.wait_for_capacity(deadline);
+            }
+        }
     }
     fn exited(&self, status: ExitStatus) {
         if let Some(context) = self.0.upgrade() {

@@ -33,6 +33,27 @@ pub struct FileCheckpointStore {
     state: Mutex<State>,
 }
 impl FileCheckpointStore {
+    /// Create an opaque fresh namespace under the supplied parent or OS temporary
+    /// directory. The parent must satisfy the same trust condition as `new`.
+    /// At most eight random-name collisions are retried; no existing path is reused.
+    pub fn temporary(parent: Option<&Path>, limit_bytes: usize) -> Result<Self, CheckpointError> {
+        if limit_bytes == 0 {
+            return Err(CheckpointError::InvalidConfiguration);
+        }
+        let parent = parent
+            .map(Path::to_path_buf)
+            .unwrap_or_else(std::env::temp_dir);
+        for _ in 0..8 {
+            let mut random = [0; 16];
+            getrandom::getrandom(&mut random).map_err(|_| CheckpointError::EntropyUnavailable)?;
+            let name = format!("pty-runtime-{:032x}", u128::from_ne_bytes(random));
+            match Self::new(parent.join(name), limit_bytes) {
+                Err(CheckpointError::AlreadyExists) => continue,
+                result => return result,
+            }
+        }
+        Err(CheckpointError::AlreadyExists)
+    }
     /// Create a new private directory at `path`; parent must already exist and remain
     /// trusted against concurrent name replacement through this store's lifetime.
     /// Drop refuses a preexisting replacement namespace; Unix cannot atomically

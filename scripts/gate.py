@@ -66,6 +66,7 @@ def main():
     run('cargo', 'test', '--locked', '--workspace', '--no-default-features')
     run('cargo', 'doc', '--locked', '--workspace', '--no-deps', '--all-features',
         env={**os.environ, 'RUSTDOCFLAGS': '-D warnings'})
+    run('python3', 'scripts/performance.py')
     run('python3', '-m', 'unittest', 'discover', '-s', 'experiments/tests', '-v')
     run('cargo', 'fmt', '--manifest-path', 'experiments/pty/Cargo.toml', '--check')
     run('cargo', 'clippy', '--manifest-path', 'experiments/pty/Cargo.toml', '--locked', '--all-targets', '--', '-D', 'warnings')

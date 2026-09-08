@@ -45,6 +45,10 @@ the experiment report validate the evidence validator, not the runtime.
 The [review-loop 2 record](loop2.md) adds executed raw-runtime and concrete-adapter
 tests. It is a partial implementation checkpoint and does not discharge a whole
 integrated milestone. Every row below still requires its full scoped proof.
+The [review-loop 3 record](loop3.md) adds integrated projection, encryption/parking,
+restoration, bounded snapshot pins, default 60-second parking evidence, scoped
+performance, cleanup regressions and independent architecture review. It does not
+yet establish ordered observer continuation or full release qualification.
 
 ## G1: identity, processes, bytes, and portable boundaries
 

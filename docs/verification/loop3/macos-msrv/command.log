@@ -1,0 +1,336 @@
+   Compiling libc v0.2.189
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.4
+   Compiling zeroize v1.9.0
+   Compiling pty-runtime-domain v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain)
+   Compiling subtle v2.6.1
+   Compiling opaque-debug v0.3.1
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+   Compiling futures-core v0.3.34
+   Compiling futures-channel v0.3.34
+   Compiling generic-array v0.14.7
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application)
+   Compiling getrandom v0.2.16
+   Compiling rand_core v0.6.4
+   Compiling crypto-common v0.1.7
+   Compiling inout v0.1.4
+   Compiling universal-hash v0.5.1
+   Compiling aead v0.5.2
+   Compiling cipher v0.4.4
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.24s
+     Running unittests src/lib.rs (target/msrv-loop3/debug/deps/pty_runtime-df56937bd201bb24)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests tests/fixtures/pty_fixture.rs (target/msrv-loop3/debug/deps/pty_runtime_fixture-49369a3bff815e64)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ddd_spawn_failure.rs (target/msrv-loop3/debug/deps/ddd_spawn_failure-4595b252d457bd8e)
+
+running 1 test
+test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/default_parking.rs (target/msrv-loop3/debug/deps/default_parking-56dd70ff233b0e06)
+
+running 1 test
+test default_policy_parks_at_sixty_seconds_and_keeps_process_alive ... ignored, explicit real-clock sixty-second parking qualification
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input_reservation.rs (target/msrv-loop3/debug/deps/input_reservation-156effa377c8afa3)
+
+running 1 test
+test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_handle_resources.rs (target/msrv-loop3/debug/deps/process_handle_resources-316069d3ba57c53b)
+
+running 1 test
+test completed_old_handles_do_not_keep_process_wake_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/projected_runtime.rs (target/msrv-loop3/debug/deps/projected_runtime-84fc6c3b45d84ebc)
+
+running 2 tests
+test real_query_reply_is_sent_once_with_multiple_observers ... ok
+test detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/projection_cleanup_outcome.rs (target/msrv-loop3/debug/deps/projection_cleanup_outcome-166f82cc49c5cb5f)
+
+running 2 tests
+test domain_session_validation_rejects_incompatible_projection_admission ... ok
+test forget_preserves_delete_and_uncertain_commit_failures_including_repeated_calls ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/projection_correctness.rs (target/msrv-loop3/debug/deps/projection_correctness-534ae7316ce8cd42)
+
+running 4 tests
+test impossible_global_parser_budgets_reject_before_child_launch ... ok
+test process_future_panic_does_not_strand_runtime_shutdown ... ok
+test shutdown_closes_model_with_completed_request_wait_retained ... ok
+test resize_panic_during_close_keeps_cleanup_scheduled ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_adversarial.rs (target/msrv-loop3/debug/deps/raw_adversarial-de1d2b9c2fd40dda)
+
+running 1 test
+test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_child_contract.rs (target/msrv-loop3/debug/deps/raw_child_contract-ad58b8630d8693c5)
+
+running 2 tests
+test merged_stdout_stderr_preserves_binary_bytes_through_public_observer ... ok
+test explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/raw_completion.rs (target/msrv-loop3/debug/deps/raw_completion-42b68815b0933054)
+
+running 1 test
+test signal_death_and_descendant_drain_never_become_fabricated_success ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/raw_registration.rs (target/msrv-loop3/debug/deps/raw_registration-4bb4902fa7a1147e)
+
+running 1 test
+test simultaneous_duplicate_calls_launch_once_even_after_completion_until_forgetting ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_runtime.rs (target/msrv-loop3/debug/deps/raw_runtime-2a178d94d07ebd5d)
+
+running 4 tests
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/runtime_performance.rs (target/msrv-loop3/debug/deps/runtime_performance-446768f44ee153fb)
+
+running 1 test
+test projected_real_pty_producers ... ignored, scoped release performance measurement: scripts/performance.py
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/msrv-loop3/debug/deps/pty_runtime_application-24dcb054fa64755d)
+
+running 21 tests
+test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/msrv-loop3/debug/deps/pty_runtime_domain-ceb5680ac66f94e5)
+
+running 17 tests
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/replay_model.rs (target/msrv-loop3/debug/deps/replay_model-8bac772693bee35c)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/lib.rs (target/msrv-loop3/debug/deps/pty_runtime_infrastructure-e2ba904203a029cd)
+
+running 8 tests
+test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/checkpoint_adversarial.rs (target/msrv-loop3/debug/deps/checkpoint_adversarial-b1fc610601927f6d)
+
+running 4 tests
+test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+test drop_does_not_remove_foreign_replacement_directory ... ok
+test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_contract.rs (target/msrv-loop3/debug/deps/checkpoint_contract-9b3e3eaeb02e0445)
+
+running 5 tests
+test injected_provider_same_contract ... ok
+test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+test real_disk_contract_private_permissions_and_cleanup ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/checkpoint_opaque_envelope.rs (target/msrv-loop3/debug/deps/checkpoint_opaque_envelope-5e303b261d285534)
+
+running 1 test
+test storage_roundtrips_short_opaque_envelope_without_cipher_assumptions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/process_adversarial.rs (target/msrv-loop3/debug/deps/process_adversarial-aa48d585e0a9cae1)
+
+running 1 test
+test failed_reader_terminates_long_lived_child_without_owner_shutdown ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/process_contract.rs (target/msrv-loop3/debug/deps/process_contract-f03cbf94d70151fb)
+
+running 7 tests
+test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+test cancellation_bypasses_full_input_and_escalates_once ... ok
+test blocked_output_does_not_block_exit_or_shutdown ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/process_handle_teardown.rs (target/msrv-loop3/debug/deps/process_handle_teardown-a2ba101e10b47349)
+
+running 1 test
+test retained_closed_handles_release_all_wake_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/process_host_contract.rs (target/msrv-loop3/debug/deps/process_host_contract-8e22dce78f549b2b)
+
+running 4 tests
+test sigchld_policy_fixture ... ignored, runs only inside the isolated host-policy subprocess
+test constructor_rejects_auto_reaping_policies_in_isolated_hosts ... ok
+test backend_drop_ignores_twenty_four_hour_grace_and_reaps ... ok
+test unexpected_reader_failure_kills_long_lived_child_without_grace_delay ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/process_pressure.rs (target/msrv-loop3/debug/deps/process_pressure-47b0c4dabed411ad)
+
+running 4 tests
+test symlinks_cannot_escape_allowed_launch_roots ... ok
+test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/scheduling_adversarial.rs (target/msrv-loop3/debug/deps/scheduling_adversarial-21ff0befbab817a9)
+
+running 4 tests
+test excessive_worker_counts_are_rejected_before_thread_creation ... ok
+test impossible_registration_bounds_return_errors_without_panicking ... ok
+test impossible_blocking_queue_bound_returns_error_without_panicking ... ok
+test callback_owner_destructor_panic_does_not_destroy_worker_capacity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_blocking.rs (target/msrv-loop3/debug/deps/scheduling_blocking-bb672b26d616dd65)
+
+running 3 tests
+test capacity_generation_preserves_early_notifications ... ok
+test blocked_job_admission_is_bounded_and_shutdown_drains_accepted_jobs ... ok
+test job_panic_does_not_kill_worker_and_drop_joins_work ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_pool.rs (target/msrv-loop3/debug/deps/scheduling_pool-2afe1c8b2e717349)
+
+running 5 tests
+test registration_caps_handle_drop_and_weak_drop_reclaim_slots ... ok
+test callback_can_request_shutdown_without_self_join ... ok
+test running_wakes_coalesce_without_overlap_and_close_releases_after_run ... ok
+test panic_reports_failure_and_other_work_continues ... ok
+test timer_fires_without_external_wake_and_finished_closes_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/terminal_bounds.rs (target/msrv-loop3/debug/deps/terminal_bounds-1abc323267861a94)
+
+running 5 tests
+test chunk_admission_does_not_mutate_and_reply_overflow_invalidates_projection ... ok
+test checkpoint_and_native_allocations_are_bounded ... ok
+test rejects_invalid_dimensions_config_and_incompatible_checkpoints ... ok
+test corrupted_and_truncated_snapshots_never_complete_successfully ... ok
+test view_and_parser_continuation_have_explicit_budgets ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/terminal_contract.rs (target/msrv-loop3/debug/deps/terminal_contract-e2970a4892f20995)
+
+running 6 tests
+test palette_and_default_color_overrides_are_domain_values ... ok
+test incremental_text_styles_modes_cursor_and_ordered_resize ... ok
+test compression_preserves_wide_combining_text_and_full_history ... ok
+test terminal_owner_can_move_threads_and_drop_with_pending_history ... ok
+test checkpoints_preserve_parser_continuation_and_uninterrupted_state ... ok
+test ready_fences_mutations_to_preserve_one_hundred_thousand_history_lines ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.18s
+

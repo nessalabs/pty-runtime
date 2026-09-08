@@ -6,6 +6,10 @@ use pty_runtime_domain::{
 
 /// Owner-lifetime authenticated encryption; no storage provider receives plaintext.
 pub trait ICheckpointProtector: Send + Sync {
+    /// Maximum opaque protected payload for a plaintext of at most this length.
+    /// Return a finite, nonzero bound before the application reserves memory/disk.
+    /// This keeps algorithm-specific envelope overhead outside application policy.
+    fn protected_size_limit(&self, plaintext_bytes: usize) -> Result<usize, CheckpointError>;
     /// Consume bounded plaintext and authenticate all identity/order metadata.
     fn protect(
         &self,

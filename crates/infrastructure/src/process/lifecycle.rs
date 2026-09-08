@@ -120,5 +120,6 @@ impl Drop for OwnedProcess {
         if let Some(reader) = self.reader.take() {
             let _ = reader.join();
         }
+        self.session.release_wakes();
     }
 }

@@ -36,7 +36,9 @@ impl IScheduledWork for DropFailure {
         self.release.wait();
         WorkSchedule::Dormant
     }
-    fn failed(&self) {}
+    fn failed(&self) -> WorkSchedule {
+        WorkSchedule::Finished
+    }
 }
 impl Drop for DropFailure {
     fn drop(&mut self) {
@@ -49,7 +51,9 @@ impl IScheduledWork for Good {
         self.0.send(()).unwrap();
         WorkSchedule::Finished
     }
-    fn failed(&self) {}
+    fn failed(&self) -> WorkSchedule {
+        WorkSchedule::Finished
+    }
 }
 
 #[test]

@@ -2,7 +2,8 @@
 use crate::{
     ReplayCursor, ReplayPage,
     process::{DrainOutcome, ExitStatus, ProcessError, ProcessLimits},
-    terminal::TerminalSize,
+    projection::{ProjectionError, ProjectionLimits, ProjectionOptions},
+    terminal::{TerminalConfig, TerminalSize},
 };
 
 /// Application failures do not expose registry locks or external errors.
@@ -22,6 +23,8 @@ pub enum RuntimeError {
     InvalidCursor,
     /// Process boundary failure.
     Process(ProcessError),
+    /// Independent terminal admission or projection failure.
+    Projection(ProjectionError),
     /// A core invariant or synchronization failed.
     Internal,
 }
@@ -34,6 +37,12 @@ impl std::error::Error for RuntimeError {}
 impl From<ProcessError> for RuntimeError {
     fn from(e: ProcessError) -> Self {
         Self::Process(e)
+    }
+}
+
+impl From<ProjectionError> for RuntimeError {
+    fn from(error: ProjectionError) -> Self {
+        Self::Projection(error)
     }
 }
 
@@ -52,6 +61,8 @@ pub struct RuntimeOptions {
     pub input_bytes: usize,
     /// Aggregate admitted input operations, including abandoned waits.
     pub input_slots: usize,
+    /// Independent global parser, native, checkpoint and observation budgets.
+    pub projection: ProjectionLimits,
 }
 impl Default for RuntimeOptions {
     fn default() -> Self {
@@ -62,6 +73,7 @@ impl Default for RuntimeOptions {
             output_page_bytes: 16384,
             input_bytes: 4 * 1024 * 1024,
             input_slots: 512,
+            projection: ProjectionLimits::default(),
         }
     }
 }
@@ -77,11 +89,12 @@ impl RuntimeOptions {
         {
             return Err(RuntimeError::Capacity);
         }
+        self.projection.validate()?;
         Ok(())
     }
 }
 
-/// Per-session creation choices. Projection will be added through its own port.
+/// Per-session creation choices. Raw and projected modes are fixed at creation.
 #[derive(Debug, Clone)]
 pub struct SessionOptions {
     /// Initial PTY dimensions.
@@ -92,8 +105,39 @@ pub struct SessionOptions {
     pub max_observers: usize,
     /// OS process work and lifecycle budgets.
     pub process: ProcessLimits,
+    /// None selects raw bytes; Some creates one authoritative terminal with parking.
+    pub projection: Option<ProjectionOptions>,
 }
 impl SessionOptions {
+    /// Validate local choices against the runtime's shared admission ceilings.
+    /// Installed adapter capabilities are checked separately by the application.
+    pub fn validate(&self, runtime: &RuntimeOptions) -> Result<(), RuntimeError> {
+        self.process.validate()?;
+        if self.max_observers == 0 {
+            return Err(RuntimeError::Capacity);
+        }
+        if let Some(projection) = self.projection {
+            projection.validate()?;
+            if projection.terminal.size != self.size
+                || self.process.read_chunk > projection.terminal.feed_bytes
+                || self.process.read_chunk > projection.staging_bytes
+                || self.process.read_chunk > runtime.projection.staging_bytes
+                || projection.terminal.reply_bytes > runtime.projection.view_bytes
+                || projection.terminal.reply_bytes > runtime.input_bytes
+                || projection.terminal.reply_bytes > self.process.input_chunk
+            {
+                return Err(ProjectionError::InvalidConfiguration.into());
+            }
+        }
+        Ok(())
+    }
+
+    /// Create an authoritative terminal; automatic parking is enabled by default.
+    pub fn projected(terminal: TerminalConfig) -> Self {
+        let mut options = Self::raw(terminal.size);
+        options.projection = Some(ProjectionOptions::new(terminal));
+        options
+    }
     /// Construct a raw byte session with bounded default retention and work.
     pub fn raw(size: TerminalSize) -> Self {
         Self {
@@ -101,6 +145,7 @@ impl SessionOptions {
             replay_bytes: 65536,
             max_observers: 16,
             process: ProcessLimits::default(),
+            projection: None,
         }
     }
 }
@@ -125,6 +170,8 @@ pub struct SessionStatus {
     pub drain: Option<DrainOutcome>,
     /// Supervision failed without manufacturing an exit status.
     pub supervision_error: Option<ProcessError>,
+    /// Failure before any process was admitted; this is never an actual child exit.
+    pub admission_error: Option<RuntimeError>,
     /// A cancellation request was admitted and remains owned by the runtime.
     pub cancellation_requested: bool,
 }
@@ -149,6 +196,10 @@ impl SessionStatus {
     pub fn record_failure(&mut self, error: ProcessError) {
         self.supervision_error.get_or_insert(error);
     }
+    /// Fail admission without manufacturing process supervision or exit.
+    pub fn record_admission_failure(&mut self, error: RuntimeError) {
+        self.admission_error.get_or_insert(error);
+    }
     /// Cancellation is durable intent until process supervision completes.
     pub fn admit_cancel(&mut self) -> Result<(), RuntimeError> {
         if self.completion().is_some() {
@@ -160,7 +211,11 @@ impl SessionStatus {
 
     /// Whether terminal process supervision and output draining have both finished.
     pub fn completion(self) -> Option<Completion> {
-        if (self.exit.is_some() || self.supervision_error.is_some()) && self.drain.is_some() {
+        if (self.exit.is_some()
+            || self.supervision_error.is_some()
+            || self.admission_error.is_some())
+            && self.drain.is_some()
+        {
             Some(Completion { status: self })
         } else {
             None

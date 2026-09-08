@@ -1,0 +1,35 @@
+   Compiling libc v0.2.189
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.4
+   Compiling cpufeatures v0.2.17
+   Compiling subtle v2.6.1
+   Compiling zeroize v1.9.0
+   Compiling generic-array v0.14.7
+   Compiling opaque-debug v0.3.1
+   Compiling pty-runtime-infrastructure v0.1.0 (/tmp/pty-runtime-loop2/crates/infrastructure)
+   Compiling pty-runtime-domain v0.1.0 (/tmp/pty-runtime-loop2/crates/domain)
+   Compiling futures-core v0.3.34
+   Compiling futures-channel v0.3.34
+   Compiling pty-runtime-application v0.1.0 (/tmp/pty-runtime-loop2/crates/application)
+   Compiling getrandom v0.2.16
+   Compiling rand_core v0.6.4
+   Compiling inout v0.1.4
+   Compiling crypto-common v0.1.7
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling aead v0.5.2
+   Compiling chacha20poly1305 v0.10.1
+   Compiling pty-runtime v0.1.0 (/tmp/pty-runtime-loop2)
+    Finished `release` profile [optimized] target(s) in 5.53s
+     Running tests/runtime_performance.rs (target/release/deps/runtime_performance-82d58d04a7012a7f)
+
+running 1 test
+test projected_real_pty_producers ... PERFORMANCE_JSON {"schema":1,"os":"linux","arch":"x86_64","build":"release","sessions":1,"payload_bytes_per_session":4194304,"raw_bytes_validated":4194326,"parser_processed_bytes":4194326,"startup_ns":3063811,"release_completion_skew_ns":0,"elapsed_ns":50778003,"payload_bytes_per_second":82600806.4948911,"cleanup_ns":656006,"rss_ready_bytes":4960256,"rss_after_processing_bytes":10510336,"open_fds_ready":14,"open_fds_after_shutdown":5,"descendant_processes_ready":1,"descendant_processes_after_shutdown":0,"peak_rss_bytes":null,"pss_bytes":null,"resident_budget_bytes":1073741824,"staging_budget_bytes":67108864,"replay_budget_bytes":4198400,"success":true}
+PERFORMANCE_JSON {"schema":1,"os":"linux","arch":"x86_64","build":"release","sessions":16,"payload_bytes_per_session":4194304,"raw_bytes_validated":67109222,"parser_processed_bytes":67109222,"startup_ns":49325641,"release_completion_skew_ns":9461879,"elapsed_ns":646982378,"payload_bytes_per_second":103725953.4138347,"cleanup_ns":3279483,"rss_ready_bytes":6393856,"rss_after_processing_bytes":112218112,"open_fds_ready":89,"open_fds_after_shutdown":5,"descendant_processes_ready":16,"descendant_processes_after_shutdown":0,"peak_rss_bytes":null,"pss_bytes":null,"resident_budget_bytes":1073741824,"staging_budget_bytes":67108864,"replay_budget_bytes":67174400,"success":true}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
