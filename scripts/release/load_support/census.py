@@ -50,10 +50,17 @@ def sample(owner, workloads, phase):
 def cpu_delta(before, after):
     seconds = after['monotonic_seconds'] - before['monotonic_seconds']
     original = {row['pid']: row for row in before['processes']}
+    final = {row['pid']: row for row in after['processes']}
     result = {}
     for category in ('owner', 'workload_fixture', 'guardian_helper'):
         rows = [row for row in after['processes'] if row['category'] == category and row['pid'] in original]
-        cpu = sum(row['cpu_seconds']-original[row['pid']]['cpu_seconds'] for row in rows)
-        result[category] = dict(cpu_seconds=cpu, core_percent=cpu/seconds*100, matched_processes=len(rows))
+        cpu = sum(row['cpu_seconds']-original[row['pid']]['cpu_seconds'] for row in rows) if rows else None
+        result[category] = dict(cpu_seconds=cpu, core_percent=cpu/seconds*100 if cpu is not None else None,
+                                matched_processes=len(rows))
     return dict(event='cpu_interval', seconds=seconds, categories=result,
-                includes_census_overhead=True)
+                includes_census_overhead=True,
+                complete_process_tree_accounting=False,
+                measurement_scope='CPU deltas for PIDs present in both snapshots; processes created and exited between snapshots are unmeasured',
+                unmatched_before_pids=sorted(original.keys() - final.keys()),
+                unmatched_after_pids=sorted(final.keys() - original.keys()),
+                unavailable_pids=sorted(set(before.get('unavailable_pids', [])) | set(after.get('unavailable_pids', []))))

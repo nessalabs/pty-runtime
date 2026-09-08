@@ -1,18 +1,33 @@
-use super::{Result, payload, wire::Frame};
+use super::{Result, producer, wire::Frame};
 use std::{
-    io::{Read, Write},
-    os::unix::net::UnixStream,
+    io::Read,
+    os::{
+        fd::AsRawFd,
+        unix::{fs::OpenOptionsExt, net::UnixStream},
+    },
     sync::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 pub fn unix_ns() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos() as u64
+}
+pub fn monotonic_ns() -> u64 {
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: now is writable and lives through this synchronous call.
+    assert_eq!(
+        unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) },
+        0
+    );
+    now.tv_sec as u64 * 1_000_000_000 + now.tv_nsec as u64
 }
 fn emit(socket: &Mutex<UnixStream>, frame: Frame) -> std::io::Result<()> {
     frame.write(&mut socket.lock().unwrap())
@@ -57,6 +72,18 @@ pub fn run(path: &str, producer: usize) -> Result<()> {
             }
         }
     });
+    let mut tty = [0i8; 1024];
+    // SAFETY: tty is writable for its full supplied length; stdout remains open.
+    let status = unsafe { libc::ttyname_r(libc::STDOUT_FILENO, tty.as_mut_ptr(), tty.len()) };
+    if status != 0 {
+        return Err(std::io::Error::from_raw_os_error(status).into());
+    }
+    // SAFETY: successful ttyname_r guarantees NUL termination inside tty.
+    let tty = unsafe { std::ffi::CStr::from_ptr(tty.as_ptr()) }.to_str()?;
+    let stream = std::fs::OpenOptions::new()
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK | libc::O_NOCTTY)
+        .open(tty)?;
     emit(&output, Frame::new(b'r', &[std::process::id().into()]))?;
     let mut offset = 0u64;
     let mut summary = [0; 7];
@@ -70,61 +97,56 @@ pub fn run(path: &str, producer: usize) -> Result<()> {
                 emit(&output, Frame::new(b'd', &summary))?;
             }
             b'b' => {
-                let [phase, seconds, rate, chunk, start, ..] = frame.values;
-                if chunk == 0 || chunk > 65536 {
-                    return Err(std::io::Error::other("invalid producer chunk").into());
+                let [phase, seconds, rate, chunk, start, unpaced, cap] = frame.values;
+                if chunk == 0 || chunk > 65536 || cap == 0 {
+                    return Err(std::io::Error::other("invalid producer bounds").into());
                 }
-                std::thread::sleep(Duration::from_nanos(start.saturating_sub(unix_ns())));
-                let began = Instant::now();
-                emit(&output, Frame::new(b's', &[phase, unix_ns()]))?;
-                let mut bytes = vec![0; chunk as usize];
-                let mut stream = std::io::stdout().lock();
-                let mut phase_bytes = 0u64;
-                let mut writes = 0;
-                let mut blocked = 0;
-                let mut maximum = 0;
-                let mut progress = Instant::now();
-                while began.elapsed() < Duration::from_secs(seconds) {
-                    if rate == 0 {
-                        std::thread::sleep(Duration::from_millis(10));
-                        continue;
-                    }
-                    let target = Duration::from_secs_f64(phase_bytes as f64 / rate as f64);
-                    if let Some(wait) = target.checked_sub(began.elapsed()) {
-                        std::thread::sleep(wait);
-                    }
-                    if began.elapsed() >= Duration::from_secs(seconds) {
-                        break;
-                    }
-                    payload::fill(&mut bytes, offset, producer);
-                    let before = Instant::now();
-                    stream.write_all(&bytes)?;
-                    stream.flush()?;
-                    let elapsed = before.elapsed().as_nanos() as u64;
-                    blocked += elapsed;
-                    maximum = maximum.max(elapsed);
-                    writes += 1;
-                    offset += bytes.len() as u64;
-                    phase_bytes += bytes.len() as u64;
-                    if progress.elapsed() >= Duration::from_secs(1) {
-                        emit(&output, Frame::new(b'p', &[offset]))?;
-                        progress = Instant::now();
-                    }
-                }
+                std::thread::sleep(Duration::from_nanos(start.saturating_sub(monotonic_ns())));
+                emit(
+                    &output,
+                    Frame::new(b's', &[phase, unix_ns(), monotonic_ns()]),
+                )?;
+                let began = monotonic_ns();
+                let result = producer::run(
+                    stream.as_raw_fd(),
+                    offset,
+                    producer::Plan {
+                        duration: Duration::from_secs(seconds),
+                        rate,
+                        unpaced: unpaced != 0,
+                        chunk: chunk as usize,
+                        cap,
+                        producer,
+                    },
+                )?;
+                let ended = monotonic_ns();
+                offset += result.bytes;
+                emit(
+                    &output,
+                    Frame::new(b'e', &[phase, ended - began, result.bytes, began, ended]),
+                )?;
                 emit(
                     &output,
                     Frame::new(
-                        b'e',
-                        &[phase, began.elapsed().as_nanos() as u64, phase_bytes],
+                        b'w',
+                        &[
+                            phase,
+                            result.syscall_ns,
+                            result.max_syscall_ns,
+                            result.eagain,
+                            result.partial,
+                            cap,
+                            u64::from(result.capped),
+                        ],
                     ),
                 )?;
                 summary = [
                     phase,
                     offset,
                     replies.load(Ordering::Relaxed),
-                    blocked,
-                    maximum,
-                    writes,
+                    result.wait_ns,
+                    result.max_wait_ns,
+                    result.attempts,
                     errors.load(Ordering::Relaxed),
                 ];
                 emit(&output, Frame::new(b'd', &summary))?;

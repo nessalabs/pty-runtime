@@ -71,6 +71,50 @@ class LoadDiagnostics(unittest.TestCase):
         self.assertIn('lsof', sample['unavailable_reason'])
         self.assertIn('456', sample['unavailable_reason'])
 
+    def test_darwin_cpu_minutes_continue_past_one_hour(self):
+        inventory = subprocess.CompletedProcess(['lsof'], 0, 'p123\nf0\n', '')
+        for elapsed, expected in [('59:59.99', 3599.99), ('60:00.00', 3600.0), ('1295:17.02', 77717.02)]:
+            with self.subTest(elapsed=elapsed), patch.object(resources.platform, 'system', return_value='Darwin'), patch.object(resources.subprocess, 'check_output', return_value=f'123 100 {elapsed}\n'), patch.object(resources.subprocess, 'run', return_value=inventory):
+                self.assertAlmostEqual(resources.process_costs([123])[0]['cpu_seconds'], expected)
+
+    def test_unavailable_idle_cpu_cannot_pass_target_but_is_not_correctness_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'fixture'
+            binary.write_text('#!' + sys.executable + '\nimport json\nfor phase in ["measurement_start", "measurement_end"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\n')
+            binary.chmod(0o700)
+            destination = root / 'result.jsonl'
+            with patch.object(load.census, 'sample', return_value=dict(event='physical_resources')), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=None)))):
+                self.assertTrue(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0, 'mode': 'idle'}, destination, True, 1, {}, 5))
+            events = [json.loads(line) for line in destination.read_text().splitlines()]
+            target = next(row for row in events if row.get('event') == 'idle_cpu_target')
+            self.assertIsNone(target['measured_core_percent'])
+            self.assertIsNone(target['passed'])
+            self.assertFalse(target['acceptance_duration'])
+
+    def test_success_closes_owned_pipes_after_final_output_and_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'fixture'
+            binary.write_text('#!' + sys.executable + '\nimport json,sys\nfor phase in ["measurement_start", "measurement_end"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\nprint("final fixture stderr", file=sys.stderr, flush=True)\n')
+            binary.chmod(0o700)
+            destination = root / 'result.jsonl'
+            children = []
+            popen = subprocess.Popen
+            def capture(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                return child
+            with patch.object(load.subprocess, 'Popen', side_effect=capture), patch.object(load.census, 'sample', return_value=dict(event='physical_resources')), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=0.0)))):
+                self.assertTrue(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0, 'mode': 'idle'}, destination, True, 1, {}, 5))
+            child, = children
+            self.assertEqual(child.returncode, 0)
+            self.assertTrue(child.stdin.closed, 'owned stdin remains open after successful trial')
+            self.assertTrue(child.stdout.closed, 'owned stdout remains open after successful trial')
+            events = [json.loads(line) for line in destination.read_text().splitlines()]
+            self.assertTrue(any(row.get('text') == 'final fixture stderr' for row in events))
+            self.assertEqual(events[-1]['event'], 'trial_result')
+
     def test_missing_ps_process_identifies_missing_pid(self):
         result = subprocess.CompletedProcess(['lsof'], 0, 'p123\nf0\np456\nf0\n', '')
         with patch.object(resources.platform, 'system', return_value='Darwin'), patch.object(resources.subprocess, 'check_output', return_value='123 100 0:00.01\n'), patch.object(resources.subprocess, 'run', return_value=result):

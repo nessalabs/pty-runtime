@@ -9,6 +9,8 @@ def cases(smoke=False):
         result[name] = {**baseline, 'mode': 'attached', **changes}
     for mode in ('attached', 'detached', 'stalled-observer', 'stalled-sink', 'dominant'):
         add(mode, mode=mode)
+    add('capacity-projected', mode='saturation', rate=0)
+    add('capacity-raw', mode='saturation', rate=0, raw=True)
     add('128-active', sessions=128, active=128)
     add('128-mixed', sessions=128, active=32)
     for rate in (1, 20, 40):

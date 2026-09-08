@@ -1,0 +1,87 @@
+experiments (ubuntu-24.04)	Measure current revision and apply gate	﻿2026-09-08T19:49:14.5430711Z ##[group]Run comparison_args=()
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5431245Z ^[[36;1mcomparison_args=()^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5431898Z ^[[36;1mif [[ -f "$RUNNER_TEMP/pty-baseline.json" ]]; then^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5432661Z ^[[36;1m  comparison_args+=(--baseline "$RUNNER_TEMP/pty-baseline.json")^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5433588Z ^[[36;1mfi^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5434380Z ^[[36;1mpython3 experiments/run.py run --profile "$PROFILE" --output work/current-results "${comparison_args[@]}"^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5475100Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5475443Z env:
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5475641Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5476144Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5476422Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5476875Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5477326Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5477706Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5478123Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5478509Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.5478856Z ##[endgroup]
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:14.6280321Z Building the locked Rust PTY fixture...
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:21.4464304Z Downloading pinned dependency: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:38.2758102Z Downloading pinned dependency: https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:49:43.8909371Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:48.7103260Z [1/29] pty-idle-n1-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:49.1140988Z [2/29] pty-idle-n1-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:49.5171700Z [3/29] pty-idle-n1-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:49.9205618Z [4/29] pty-idle-n1-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:50.3234535Z [5/29] pty-idle-n16-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:50.7384372Z [6/29] pty-idle-n16-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:51.1431977Z [7/29] pty-idle-n16-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:51.5486428Z [8/29] pty-idle-n16-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:51.9549014Z [9/29] pty-serial-n16-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:52.2749780Z [10/29] pty-serial-n16-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:52.5622116Z [11/29] pty-serial-n16-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:52.8461189Z [12/29] pty-serial-n16-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:53.1400112Z [13/29] pty-concurrent-n16-a16-rate0-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:53.8594600Z [14/29] pty-concurrent-n16-a16-rate0-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:54.5782952Z [15/29] pty-concurrent-n16-a16-rate0-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:55.2977667Z [16/29] pty-concurrent-n16-a16-rate0-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:56.0294488Z [17/29] pty-concurrent-n16-a4-rate655360-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:56.7477030Z [18/29] pty-concurrent-n16-a4-rate655360-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:57.4559199Z [19/29] pty-concurrent-n16-a4-rate655360-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:58.1643100Z [20/29] pty-concurrent-n16-a4-rate655360-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:58.8743062Z [21/29] native-n1-v0-c0-a0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:59.0895530Z Experiment run failed: 'tracked_native_bytes'
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T19:53:59.1030128Z ##[error]Process completed with exit code 1.
+experiments (macos-15)	Measure current revision and apply gate	﻿2026-09-08T19:49:39.2109730Z ##[group]Run comparison_args=()
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2110420Z ^[[36;1mcomparison_args=()^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2110760Z ^[[36;1mif [[ -f "$RUNNER_TEMP/pty-baseline.json" ]]; then^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2111250Z ^[[36;1m  comparison_args+=(--baseline "$RUNNER_TEMP/pty-baseline.json")^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2111620Z ^[[36;1mfi^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2112150Z ^[[36;1mpython3 experiments/run.py run --profile "$PROFILE" --output work/current-results "${comparison_args[@]}"^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2203140Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2203610Z env:
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2203840Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2204200Z   PROFILE: smoke
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2204540Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2205080Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2205600Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2206290Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2206760Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.2207190Z ##[endgroup]
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:39.4452510Z Building the locked Rust PTY fixture...
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:49:46.5731590Z Downloading pinned dependency: https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:50:24.8263260Z Downloading pinned dependency: https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:50:32.7053650Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:23.4386490Z [1/29] pty-idle-n1-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:24.0230730Z [2/29] pty-idle-n1-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:24.7401040Z [3/29] pty-idle-n1-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:25.1848550Z [4/29] pty-idle-n1-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:25.7601590Z [5/29] pty-idle-n16-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:26.3399440Z [6/29] pty-idle-n16-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:26.8232610Z [7/29] pty-idle-n16-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:27.5141830Z [8/29] pty-idle-n16-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:27.9630310Z [9/29] pty-serial-n16-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:28.5407040Z [10/29] pty-serial-n16-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:29.1256820Z [11/29] pty-serial-n16-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:29.6869320Z [12/29] pty-serial-n16-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:30.1865800Z [13/29] pty-concurrent-n16-a16-rate0-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:30.9925580Z [14/29] pty-concurrent-n16-a16-rate0-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:31.8600650Z [15/29] pty-concurrent-n16-a16-rate0-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:32.6957800Z [16/29] pty-concurrent-n16-a16-rate0-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:33.6143830Z [17/29] pty-concurrent-n16-a4-rate655360-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:34.3994950Z [18/29] pty-concurrent-n16-a4-rate655360-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:35.1827610Z [19/29] pty-concurrent-n16-a4-rate655360-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:35.9405070Z [20/29] pty-concurrent-n16-a4-rate655360-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:36.7003980Z [21/29] native-n1-v0-c0-a0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:37.0270890Z Experiment run failed: 'tracked_native_bytes'
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T19:53:37.0655820Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,70 @@
+{
+  "scope": "capacity load fixture organization; no product or native changes",
+  "files": {
+    "examples/release_load_support/allocator.rs": {
+      "sha256": "0c144cd062537c749d8d486e8acfb0228395bfd215219db59e1192d776bf6a7e",
+      "nonblank_lines": 58
+    },
+    "examples/release_load_support/cancel.rs": {
+      "sha256": "02d3643530b1a2da3d354a9ffaba367d6dd4746bbc781067b9717e07ca73db2f",
+      "nonblank_lines": 41
+    },
+    "examples/release_load_support/config.rs": {
+      "sha256": "4d0a1989d139db31288b86a63ddf97eba853b342dbba5a125554809c278d6698",
+      "nonblank_lines": 103
+    },
+    "examples/release_load_support/fixture.rs": {
+      "sha256": "a27f8477a4fbbf4127440af7ad4d6e0313f7c5e199b03bfed19a84c521db6b31",
+      "nonblank_lines": 157
+    },
+    "examples/release_load_support/mod.rs": {
+      "sha256": "633d56207dfc9357d83e5ebb7b0bc5fa342ff07ccb5fac985323c258bb97ec33",
+      "nonblank_lines": 16
+    },
+    "examples/release_load_support/observe.rs": {
+      "sha256": "9d8220a02f48303e7f200b7906325157f084484e5b4709bdeb0c7cb79f7414f7",
+      "nonblank_lines": 50
+    },
+    "examples/release_load_support/payload.rs": {
+      "sha256": "008e39e4905498582b7b88ec0577082a6b67c923cdc95bd52367b403df589a48",
+      "nonblank_lines": 23
+    },
+    "examples/release_load_support/phase.rs": {
+      "sha256": "414af572104cf72bb4dc4152851ac93a52a1190464e418be81dedc456d6f5070",
+      "nonblank_lines": 306
+    },
+    "examples/release_load_support/population.rs": {
+      "sha256": "6fcb618e3e1c9b199a84169ae18b77e7ae573fea197336e6b65b9519fa05d655",
+      "nonblank_lines": 182
+    },
+    "examples/release_load_support/producer.rs": {
+      "sha256": "b6e0f592fe7ae1db188caf88145be1cb325b392b7c4111ad8e50cf69c07b6f1d",
+      "nonblank_lines": 155
+    },
+    "examples/release_load_support/report.rs": {
+      "sha256": "e0982ffba37451fcad855a5e17d020e47a6a8323a7fc0665c1f3db4325e1fae2",
+      "nonblank_lines": 36
+    },
+    "examples/release_load_support/resources.rs": {
+      "sha256": "2aa5449545f19af18e1f9347c0272bf07324f0de484f21f08e35264387c7bcb3",
+      "nonblank_lines": 34
+    },
+    "examples/release_load_support/run.rs": {
+      "sha256": "617b93387347858a6544b588d5f3837973b79489ad005f21197d9ca6ca1a2972",
+      "nonblank_lines": 126
+    },
+    "examples/release_load_support/sink.rs": {
+      "sha256": "03f4e233e1b27916beee25f5157e5ba512a9eef18b06717b772aa9c29df678d5",
+      "nonblank_lines": 103
+    },
+    "examples/release_load_support/wire.rs": {
+      "sha256": "5770a4c5526c7e7912fc638c231b953954f281815eafad090817e5a71b6fb95d",
+      "nonblank_lines": 82
+    }
+  },
+  "checks": {
+    "source_size_inventory": "PASS",
+    "author_manifest_all_fixture_hashes_match": true,
+    "independent_workload_execution": false
+  }
+}

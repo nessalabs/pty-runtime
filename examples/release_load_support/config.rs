@@ -8,6 +8,7 @@ pub struct Config {
     pub warmup: u64,
     pub rate: u64,
     pub chunk: usize,
+    pub producer_bytes: u64,
     pub observers: usize,
     pub cols: u16,
     pub rows: u16,
@@ -27,6 +28,7 @@ impl Config {
             seconds: value("--seconds", "60").parse()?,
             warmup: value("--warmup", "10").parse()?,
             rate: value("--rate", "10485760").parse()?,
+            producer_bytes: value("--producer-bytes", "8589934592").parse()?,
             chunk: value("--chunk", "4093").parse()?,
             observers: value("--observers", "1").parse()?,
             cols: value("--cols", "80").parse()?,
@@ -37,12 +39,20 @@ impl Config {
             || result.sessions > 128
             || result.active > result.sessions
             || result.seconds == 0
+            || result.producer_bytes == 0
+            || result.producer_bytes > 68_719_476_736
             || result.chunk == 0
             || result.chunk > 65536
             || result.observers > 16
             || !matches!(
                 result.mode.as_str(),
-                "attached" | "detached" | "stalled-observer" | "stalled-sink" | "dominant" | "idle"
+                "attached"
+                    | "detached"
+                    | "stalled-observer"
+                    | "stalled-sink"
+                    | "dominant"
+                    | "idle"
+                    | "saturation"
             )
         {
             return Err(std::io::Error::other("invalid bounded load configuration").into());
@@ -50,6 +60,11 @@ impl Config {
         if (result.mode == "idle" && result.active != 0) || (result.active == 0 && result.rate != 0)
         {
             return Err(std::io::Error::other("idle requires --active 0 --rate 0").into());
+        }
+        if result.mode == "saturation" && (result.active == 0 || result.rate != 0) {
+            return Err(
+                std::io::Error::other("saturation requires active producers and --rate 0").into(),
+            );
         }
         Ok(result)
     }
@@ -65,5 +80,25 @@ impl Config {
         } else {
             self.rate / self.active as u64
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn parse(arguments: &[&str]) -> Result<Config> {
+        Config::parse(
+            &arguments
+                .iter()
+                .map(|s| (*s).to_owned())
+                .collect::<Vec<_>>(),
+        )
+    }
+    #[test]
+    fn saturation_is_explicit_and_output_budget_is_finite() {
+        assert!(parse(&["--mode", "saturation", "--rate", "0"]).is_ok());
+        assert!(parse(&["--mode", "saturation"]).is_err());
+        assert!(parse(&["--producer-bytes", "0"]).is_err());
+        assert!(parse(&["--mode", "saturation", "--rate", "0", "--active", "0"]).is_err());
     }
 }

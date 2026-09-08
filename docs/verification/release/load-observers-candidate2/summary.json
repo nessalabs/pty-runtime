@@ -1,0 +1,134 @@
+{
+  "smoke": false,
+  "repeats": 5,
+  "results": [
+    {
+      "case": "detached",
+      "trial": 1,
+      "passed": true,
+      "path": "detached-1.jsonl"
+    },
+    {
+      "case": "detached",
+      "trial": 2,
+      "passed": true,
+      "path": "detached-2.jsonl"
+    },
+    {
+      "case": "detached",
+      "trial": 3,
+      "passed": true,
+      "path": "detached-3.jsonl"
+    },
+    {
+      "case": "detached",
+      "trial": 4,
+      "passed": true,
+      "path": "detached-4.jsonl"
+    },
+    {
+      "case": "detached",
+      "trial": 5,
+      "passed": true,
+      "path": "detached-5.jsonl"
+    },
+    {
+      "case": "stalled-observer",
+      "trial": 1,
+      "passed": true,
+      "path": "stalled-observer-1.jsonl"
+    },
+    {
+      "case": "stalled-observer",
+      "trial": 2,
+      "passed": true,
+      "path": "stalled-observer-2.jsonl"
+    },
+    {
+      "case": "stalled-observer",
+      "trial": 3,
+      "passed": true,
+      "path": "stalled-observer-3.jsonl"
+    },
+    {
+      "case": "stalled-observer",
+      "trial": 4,
+      "passed": true,
+      "path": "stalled-observer-4.jsonl"
+    },
+    {
+      "case": "stalled-observer",
+      "trial": 5,
+      "passed": true,
+      "path": "stalled-observer-5.jsonl"
+    },
+    {
+      "case": "stalled-sink",
+      "trial": 1,
+      "passed": true,
+      "path": "stalled-sink-1.jsonl"
+    },
+    {
+      "case": "stalled-sink",
+      "trial": 2,
+      "passed": true,
+      "path": "stalled-sink-2.jsonl"
+    },
+    {
+      "case": "stalled-sink",
+      "trial": 3,
+      "passed": true,
+      "path": "stalled-sink-3.jsonl"
+    },
+    {
+      "case": "stalled-sink",
+      "trial": 4,
+      "passed": true,
+      "path": "stalled-sink-4.jsonl"
+    },
+    {
+      "case": "stalled-sink",
+      "trial": 5,
+      "passed": true,
+      "path": "stalled-sink-5.jsonl"
+    },
+    {
+      "case": "dominant",
+      "trial": 1,
+      "passed": true,
+      "path": "dominant-1.jsonl"
+    },
+    {
+      "case": "dominant",
+      "trial": 2,
+      "passed": true,
+      "path": "dominant-2.jsonl"
+    },
+    {
+      "case": "dominant",
+      "trial": 3,
+      "passed": true,
+      "path": "dominant-3.jsonl"
+    },
+    {
+      "case": "dominant",
+      "trial": 4,
+      "passed": true,
+      "path": "dominant-4.jsonl"
+    },
+    {
+      "case": "dominant",
+      "trial": 5,
+      "passed": false,
+      "path": "dominant-5.jsonl"
+    }
+  ],
+  "full_matrix_executed": false,
+  "all_trials_passed": false,
+  "limitations": [
+    "C/OS allocator overhead is measured by RSS/PSS separately.",
+    "Darwin PSS and portable per-process wakeup counts are unavailable from this collector.",
+    "Rust requested allocation totals include fixture bookkeeping; they are not a standalone 4KiB control-metadata proof.",
+    "Exact raw byte/gap and processed-offset accounting does not replace canonical terminal reference tests."
+  ]
+}

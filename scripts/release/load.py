@@ -11,7 +11,7 @@ import tempfile
 import threading
 import time
 import traceback
-from load_support import census, identity, matrix
+from load_support import census, identity, matrix, reporting
 
 
 def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
@@ -48,6 +48,16 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
         def record(value):
             output.write(json.dumps(value) + '\n')
             output.flush()
+        def close_pipes():
+            streams = [('stdin', process.stdin)]
+            if not reader.is_alive():
+                streams.append(('stdout', process.stdout))
+            for name, stream in streams:
+                try:
+                    stream.close()
+                except OSError as cleanup_error:
+                    record(dict(event='trial_cleanup_failure', stream=name,
+                                error=repr(cleanup_error)))
         record({**metadata, 'command': command, 'configuration': config, 'smoke': smoke,
                 'repeat': repeat, 'owner_pid': process.pid, 'sample_seconds': sample_seconds})
         try:
@@ -92,6 +102,8 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
                     record(census.sample(process.pid, workloads, 'periodic'))
                     next_sample = time.monotonic() + sample_seconds
             result = process.wait(timeout=10)
+            reader.join(timeout=2)
+            close_pipes()
             assert result == 0 and complete, ('trial failed', result, complete)
             if starts:
                 record(dict(event='producer_start_skew', nanoseconds=max(starts)-min(starts), count=len(starts)))
@@ -101,7 +113,11 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
                         continue
                     value = latencies.get(boundary, {})
                     observed = value.get('p99_us')
-                    target = dict(event='latency_target', boundary=boundary, target_p99_us=ceiling, observed_p99_us=observed, passed=observed is not None and observed <= ceiling and value.get('failures', 0) == 0 and value.get('unavailable', 0) == 0)
+                    failures, unavailable = value.get('failures', 0), value.get('unavailable', 0)
+                    target = dict(event='latency_target', boundary=boundary, target_p99_us=ceiling,
+                                  observed_p99_us=observed, failures=failures, unavailable=unavailable,
+                                  measurement_complete=observed is not None and unavailable == 0,
+                                  passed=reporting.measurement_verdict(observed, ceiling, failures, unavailable))
                     targets.append(target)
                     record(target)
             cpu = census.cpu_delta(checkpoints['measurement_start'], checkpoints['measurement_end'])
@@ -110,11 +126,12 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
                 owner = cpu['categories']['owner']
                 record(dict(event='idle_cpu_target', target_core_percent=1.0,
                             measured_core_percent=owner['core_percent'],
-                            passed=owner['core_percent'] <= 1.0,
+                            measurement_complete=owner['core_percent'] is not None,
+                            passed=reporting.measurement_verdict(owner['core_percent'], 1.0),
                             acceptance_duration=config['seconds'] >= 60 and not smoke))
             record(dict(event='trial_result', passed=True, seconds=time.monotonic()-started,
                         full_duration_trial=not smoke and config['seconds'] >= 60,
-                        latency_targets_passed=all(target['passed'] for target in targets) if targets else None))
+                        latency_targets_passed=reporting.verdict([target['passed'] for target in targets])))
             return True
         except Exception as error:
             record(dict(event='trial_failure', error=repr(error), traceback=traceback.format_exc(),
@@ -140,15 +157,7 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
             record(dict(event='trial_failure_process', exit_code=status,
                         exit_before_cleanup=previous_status, killed_by_driver=killed,
                         output_reader_finished=not reader.is_alive()))
-            streams = [('stdin', process.stdin)]
-            if not reader.is_alive():
-                streams.append(('stdout', process.stdout))
-            for name, stream in streams:
-                try:
-                    stream.close()
-                except OSError as cleanup_error:
-                    record(dict(event='trial_cleanup_failure', stream=name,
-                                error=repr(cleanup_error)))
+            close_pipes()
             return False
 
 
@@ -185,10 +194,13 @@ def main():
                 output = args.output / f'{name}-{repeat+1}.jsonl'
                 print(f'{name} trial {repeat+1}/{repeats}', flush=True)
                 passed = trial(binary, cases[name], output, args.smoke, repeat+1, metadata, args.sample_seconds)
-                results.append(dict(case=name, trial=repeat+1, passed=passed, path=output.name))
+                results.append(dict(case=name, trial=repeat+1, passed=passed, path=output.name,
+                                    **reporting.trial_targets(output, cases[name])))
     summary = dict(smoke=args.smoke, repeats=repeats, results=results,
                    full_matrix_executed=not args.smoke and repeats >= 5 and set(selected) == set(cases),
                    all_trials_passed=all(row['passed'] for row in results),
+                   all_trials_passed_scope='execution_and_correctness_accounting_only',
+                   target_rollup=reporting.rollup(results),
                    limitations=['C/OS allocator overhead is measured by RSS/PSS separately.',
                                 'Darwin PSS and portable per-process wakeup counts are unavailable from this collector.',
                                 'Rust requested allocation totals include fixture bookkeeping; they are not a standalone 4KiB control-metadata proof.',

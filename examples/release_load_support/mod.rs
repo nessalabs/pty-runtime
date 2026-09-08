@@ -11,5 +11,6 @@ pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + S
 pub const DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
 pub mod cancel;
 pub mod phase;
+pub mod producer;
 pub mod resources;
 pub mod sink;

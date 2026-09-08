@@ -83,9 +83,22 @@ def validate_record(case, data):
             require(row[field] == int(case["args"][argument]), f"native workload differs: {field}")
         require(row["verified_terminals"] == int(case["args"][0]), "native restore count differs")
         require(row["skipped_pages"] == 0, "native history was skipped in a quiescent fixture")
-        for stage in (r for r in data if r.get("stage") in ("parked", "cleanup")):
+        for stage in (r for r in data if r.get("kind") == "memory"
+                      and r.get("stage") in ("parked", "cleanup")):
             require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
                     "native allocator retains live owned objects")
+        # New fixtures emit separate pool counters alongside the OS/native
+        # memory records. Older recorded runs contain memory records only.
+        packed = [r for r in data if r.get("kind") == "packed_pool"]
+        if packed:
+            require(len(packed) == len(expected) and {r["stage"] for r in packed} == expected,
+                    "missing/duplicate packed stages")
+            for stage in (r for r in packed if r["stage"] in ("parked", "cleanup")):
+                for key in ("requested", "mapped", "maps", "unmaps"):
+                    require(number(stage[key], key) >= 0, f"negative packed counter: {key}")
+                require(stage["requested"] == 0 and stage["mapped"] == 0
+                        and stage["maps"] == stage["unmaps"],
+                        "packed pool retains live owned objects or mappings")
     elif kind == "native-codec":
         require(len(data) == 30 and {r["sample"] for r in data} == set(range(30)),
                 "missing/duplicate codec samples")

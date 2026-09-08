@@ -1,0 +1,8 @@
+{
+  "files": {
+    "scripts/release/load.py": "f9edb836b1e784c9b49c57b4e796ae36b5d49a63a103df0a12c97f3ff59b6764",
+    "scripts/tests/test_load_diagnostics.py": "1ef8e4670a7c15b5070f7a40bfc7ed29ca4f7c58f5c2461a692ff631f271fbe7"
+  },
+  "test_command": "python3 -W error::ResourceWarning -m unittest discover -s scripts/tests -p test_load_*.py -v",
+  "frozen_changed": false
+}

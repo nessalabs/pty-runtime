@@ -1,0 +1,130 @@
+test_legacy_memory_only_records_keep_identical_metrics (test_native_lifecycle_gate.NativeLifecycleGate) ... ok
+test_memory_cleanup_retention_is_still_rejected (test_native_lifecycle_gate.NativeLifecycleGate) ... test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) ... test_partial_packed_stage_inventory_cannot_hide_cleanup (test_native_lifecycle_gate.NativeLifecycleGate) ... ERROR
+test_real_interleaved_pool_and_memory_records_validate_and_summarize (test_native_lifecycle_gate.NativeLifecycleGate) ... ERROR
+
+======================================================================
+ERROR: test_memory_cleanup_retention_is_still_rejected (test_native_lifecycle_gate.NativeLifecycleGate) (stage='parked', field='tracked_native_bytes')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 41, in test_memory_cleanup_retention_is_still_rejected
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_memory_cleanup_retention_is_still_rejected (test_native_lifecycle_gate.NativeLifecycleGate) (stage='parked', field='mapped_allocator_bytes')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 41, in test_memory_cleanup_retention_is_still_rejected
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_memory_cleanup_retention_is_still_rejected (test_native_lifecycle_gate.NativeLifecycleGate) (stage='cleanup', field='tracked_native_bytes')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 41, in test_memory_cleanup_retention_is_still_rejected
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_memory_cleanup_retention_is_still_rejected (test_native_lifecycle_gate.NativeLifecycleGate) (stage='cleanup', field='mapped_allocator_bytes')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 41, in test_memory_cleanup_retention_is_still_rejected
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='parked', field='requested')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='parked', field='mapped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='parked', field='maps')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='cleanup', field='requested')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='cleanup', field='mapped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings (test_native_lifecycle_gate.NativeLifecycleGate) (stage='cleanup', field='maps')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 51, in test_packed_cleanup_rejects_live_bytes_or_unreleased_mappings
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_partial_packed_stage_inventory_cannot_hide_cleanup (test_native_lifecycle_gate.NativeLifecycleGate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 62, in test_partial_packed_stage_inventory_cannot_hide_cleanup
+    gate.validate_record(CASE, data)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+======================================================================
+ERROR: test_real_interleaved_pool_and_memory_records_validate_and_summarize (test_native_lifecycle_gate.NativeLifecycleGate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/tests/test_native_lifecycle_gate.py", line 28, in test_real_interleaved_pool_and_memory_records_validate_and_summarize
+    summary = gate.summarize(metadata, [dict(case_id=CASE["id"], iteration=0,
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 158, in summarize
+    validate_record(case, record["data"])
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/experiments/gate.py", line 87, in validate_record
+    require(stage["tracked_native_bytes"] == 0 and stage["mapped_allocator_bytes"] == 0,
+KeyError: 'tracked_native_bytes'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.002s
+
+FAILED (errors=12)

@@ -1,0 +1,32 @@
+test_degraded_samples_remain_visible_in_interval (test_load_census.CpuScope) ... ERROR
+test_even_matching_snapshots_do_not_measure_between_sample_processes (test_load_census.CpuScope) ... ERROR
+test_transient_processes_are_explicitly_unmeasured (test_load_census.CpuScope) ... ERROR
+
+======================================================================
+ERROR: test_degraded_samples_remain_visible_in_interval (test_load_census.CpuScope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_census.py", line 33, in test_degraded_samples_remain_visible_in_interval
+    self.assertEqual(result['unavailable_pids'], [2, 3])
+KeyError: 'unavailable_pids'
+
+======================================================================
+ERROR: test_even_matching_snapshots_do_not_measure_between_sample_processes (test_load_census.CpuScope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_census.py", line 39, in test_even_matching_snapshots_do_not_measure_between_sample_processes
+    self.assertFalse(result['complete_process_tree_accounting'])
+KeyError: 'complete_process_tree_accounting'
+
+======================================================================
+ERROR: test_transient_processes_are_explicitly_unmeasured (test_load_census.CpuScope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_census.py", line 25, in test_transient_processes_are_explicitly_unmeasured
+    self.assertEqual(result['unmatched_before_pids'], [2])
+KeyError: 'unmatched_before_pids'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+FAILED (errors=3)

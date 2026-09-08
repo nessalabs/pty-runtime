@@ -1,5 +1,5 @@
 use super::{
-    DEADLINE, Result, config::Config, fixture::unix_ns, observe::Observer, payload,
+    DEADLINE, Result, config::Config, fixture::monotonic_ns, observe::Observer, payload,
     population::Population, resources, wire::Frame,
 };
 use pty_runtime::{AttachPosition, LatencyKind, RuntimeDiagnostics, RuntimeError, TerminalSize};
@@ -10,6 +10,7 @@ use std::{
 pub struct PhaseResult {
     pub bytes: u64,
     pub seconds: f64,
+    pub completion_seconds: f64,
     pub fixture_rtt: std::sync::Arc<RuntimeDiagnostics>,
 }
 fn controls(
@@ -36,10 +37,32 @@ fn controls(
                     child.summary = frame.values;
                     assert_eq!(frame.values[6], 0, "fixture input/query errors");
                 }
-                b'e' => println!(
-                    "{{\"event\":\"producer_end\",\"producer\":{},\"phase\":{},\"elapsed_ns\":{},\"phase_bytes\":{}}}",
-                    child.producer, frame.values[0], frame.values[1], frame.values[2]
-                ),
+                b'e' => {
+                    child.window = [frame.values[3], frame.values[4], frame.values[2]];
+                    println!(
+                        "{{\"event\":\"producer_end\",\"producer\":{},\"phase\":{},\"elapsed_ns\":{},\"phase_bytes\":{},\"start_monotonic_ns\":{},\"end_monotonic_ns\":{}}}",
+                        child.producer,
+                        frame.values[0],
+                        frame.values[1],
+                        frame.values[2],
+                        frame.values[3],
+                        frame.values[4]
+                    );
+                }
+                b'w' => {
+                    child.writes = frame.values;
+                    println!(
+                        "{{\"event\":\"producer_writes\",\"producer\":{},\"phase\":{},\"write_syscall_ns\":{},\"max_write_ns\":{},\"eagain_count\":{},\"partial_write_count\":{},\"byte_cap\":{},\"cap_exhausted\":{}}}",
+                        child.producer,
+                        frame.values[0],
+                        frame.values[1],
+                        frame.values[2],
+                        frame.values[3],
+                        frame.values[4],
+                        frame.values[5],
+                        frame.values[6] != 0
+                    );
+                }
                 b'p' => {
                     child.total = frame.values[0];
                 }
@@ -61,9 +84,11 @@ pub async fn run(
     seconds: u64,
 ) -> Result<PhaseResult> {
     let before_bytes: u64 = population.children.iter().map(|child| child.total).sum();
-    let start = unix_ns() + 100_000_000;
+    let start = monotonic_ns() + 100_000_000;
     for child in &mut population.children {
         child.phase_done = false;
+        child.window = [0; 3];
+        child.writes = [0; 7];
         Frame::new(
             b'b',
             &[
@@ -72,6 +97,8 @@ pub async fn run(
                 config.rate_for(child.producer),
                 config.chunk as u64,
                 start,
+                u64::from(config.mode == "saturation" && child.producer < config.active),
+                config.producer_bytes,
             ],
         )
         .write(&mut child.socket)?;
@@ -96,7 +123,7 @@ pub async fn run(
         }
         if matches!(
             config.mode.as_str(),
-            "attached" | "dominant" | "stalled-sink" | "idle"
+            "attached" | "dominant" | "stalled-sink" | "idle" | "saturation"
         ) {
             for session in observers.iter_mut() {
                 for observer in session {
@@ -159,7 +186,15 @@ pub async fn run(
         }))
         .await;
     }
-    let elapsed = began.elapsed().as_secs_f64() - 0.1;
+    let completion_seconds = began.elapsed().as_secs_f64();
+    if population.children.iter().any(|child| child.writes[6] != 0) {
+        return Err(std::io::Error::other(
+            "producer byte cap exhausted; capacity trial is censored",
+        )
+        .into());
+    }
+    let measured = &population.children[..config.active.max(1)];
+    let elapsed = measurement_seconds(measured.iter().map(|child| child.window))?;
     // Producers have stopped, but PTY reads, parsing, replies and admitted input can still be in flight.
     let settle = Instant::now();
     loop {
@@ -200,23 +235,73 @@ pub async fn run(
     assert!(pending.is_empty());
     for child in &population.children {
         println!(
-            "{{\"event\":\"producer_done\",\"phase\":{phase},\"producer\":{},\"bytes_total\":{},\"query_replies\":{},\"write_blocked_ns\":{},\"max_write_ns\":{},\"write_calls\":{}}}",
+            "{{\"event\":\"producer_done\",\"phase\":{phase},\"producer\":{},\"bytes_total\":{},\"query_replies\":{},\"write_blocked_ns\":{},\"max_backpressure_wait_ns\":{},\"write_calls\":{},\"phase_bytes\":{},\"producer_bytes_per_second\":{}}}",
             child.producer,
             child.total,
             child.replies,
             child.summary[3],
             child.summary[4],
-            child.summary[5]
+            child.summary[5],
+            child.window[2],
+            child.window[2] as f64 * 1_000_000_000.0 / (child.window[1] - child.window[0]) as f64
         );
     }
-    Ok(PhaseResult {
-        bytes: population
+    let accepted = population
+        .children
+        .iter()
+        .map(|child| child.total)
+        .sum::<u64>()
+        - before_bytes;
+    assert_eq!(
+        accepted,
+        population
             .children
             .iter()
-            .map(|child| child.total)
-            .sum::<u64>()
-            - before_bytes,
+            .map(|child| child.window[2])
+            .sum::<u64>(),
+        "producer window byte accounting mismatch"
+    );
+    Ok(PhaseResult {
+        bytes: accepted,
         seconds: elapsed,
+        completion_seconds,
         fixture_rtt: rtt,
     })
+}
+
+fn measurement_seconds(windows: impl Iterator<Item = [u64; 3]>) -> Result<f64> {
+    let mut first = u64::MAX;
+    let mut last = 0;
+    for [start, end, _] in windows {
+        if start == 0 || end <= start {
+            return Err(
+                std::io::Error::other("missing or invalid producer measurement window").into(),
+            );
+        }
+        first = first.min(start);
+        last = last.max(end);
+    }
+    if last <= first {
+        return Err(std::io::Error::other("empty measurement window").into());
+    }
+    Ok((last - first) as f64 / 1_000_000_000.0)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn actual_window_includes_producer_start_skew() {
+        assert_eq!(
+            measurement_seconds(
+                [
+                    [1_000_000_000, 3_000_000_000, 10],
+                    [2_000_000_000, 4_000_000_000, 20]
+                ]
+                .into_iter()
+            )
+            .unwrap(),
+            3.0
+        );
+        assert!(measurement_seconds([[0, 0, 0]].into_iter()).is_err());
+    }
 }

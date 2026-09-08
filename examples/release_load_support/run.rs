@@ -6,7 +6,7 @@ use pty_runtime::{LatencyKind, RuntimeDiagnostics};
 use std::time::{Duration, Instant};
 pub async fn execute(config: Config) -> Result<()> {
     println!(
-        "{{\"event\":\"start\",\"pid\":{},\"configuration\":{:?},\"measurement_clock\":\"monotonic\",\"fixture_threads_per_child\":2,\"fixture_control_fds_per_child\":2,\"transient_cancel_sessions\":1}}",
+        "{{\"event\":\"start\",\"pid\":{},\"configuration\":{:?},\"measurement_clock\":\"monotonic\",\"fixture_threads_per_child\":2,\"fixture_control_fds_per_child\":2,\"fixture_output_fds_per_child\":1,\"transient_cancel_sessions\":1}}",
         std::process::id(),
         format!("{config:?}")
     );
@@ -48,17 +48,32 @@ pub async fn execute(config: Config) -> Result<()> {
     let result = phase::run(&mut population, &mut observers, &config, 1, config.seconds).await?;
     report::diagnostics(&diagnostics);
     let rtt = result.fixture_rtt.snapshot(LatencyKind::InputDispatch);
+    let number = |value: Option<u64>| value.map_or_else(|| "null".to_owned(), |v| v.to_string());
     println!(
-        "{{\"event\":\"fixture_rtt\",\"successes\":{},\"p50_us\":{:?},\"p99_us\":{:?},\"max_us\":{}}}",
+        "{{\"event\":\"fixture_rtt\",\"successes\":{},\"failures\":{},\"unavailable\":{},\"p50_us\":{},\"p95_us\":{},\"p99_us\":{},\"max_us\":{},\"bucket_width_us\":100,\"buckets\":{:?}}}",
         rtt.samples(),
-        rtt.percentile_upper_us(50).unwrap_or(0),
-        rtt.percentile_upper_us(99).unwrap_or(0),
-        rtt.maximum_us
+        rtt.failures,
+        rtt.unavailable,
+        number(rtt.percentile_upper_us(50)),
+        number(rtt.percentile_upper_us(95)),
+        number(rtt.percentile_upper_us(99)),
+        rtt.maximum_us,
+        rtt.buckets
     );
     println!(
-        "{{\"event\":\"throughput\",\"offered_bytes_per_second\":{},\"accepted_bytes\":{},\"driver_completion_seconds\":{},\"accepted_bytes_per_second\":{},\"target_seconds\":{}}}",
-        config.rate,
+        "{{\"event\":\"throughput\",\"offered_bytes_per_second\":{},\"producer_mode\":\"{}\",\"accepted_bytes\":{},\"driver_completion_seconds\":{},\"producer_window_seconds\":{},\"accepted_bytes_per_second\":{},\"target_seconds\":{}}}",
+        if config.mode == "saturation" {
+            "null".to_owned()
+        } else {
+            config.rate.to_string()
+        },
+        if config.mode == "saturation" {
+            "unpaced"
+        } else {
+            "paced"
+        },
         result.bytes,
+        result.completion_seconds,
         result.seconds,
         result.bytes as f64 / result.seconds,
         config.seconds

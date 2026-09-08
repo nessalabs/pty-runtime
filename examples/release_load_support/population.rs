@@ -21,6 +21,8 @@ pub struct Child {
     pub replies: u64,
     pub phase_done: bool,
     pub summary: [u64; 7],
+    pub window: [u64; 3],
+    pub writes: [u64; 7],
 }
 pub struct Population {
     pub runtime: Runtime,
@@ -120,6 +122,8 @@ impl Population {
             replies: 0,
             phase_done: false,
             summary: [0; 7],
+            window: [0; 3],
+            writes: [0; 7],
         })
     }
     pub async fn finish(&self, mut child: Child, cancel: bool) -> Result<()> {

@@ -1,0 +1,10 @@
+{
+  "source_state": "canonical after f9da4e1; frozen candidate unchanged",
+  "files": {
+    "scripts/release/load.py": "787ac84b331fbb06a1e060403ea6cbb8f08fa68f3c6843dbeb3865ef1aa74f30",
+    "scripts/release/load_support/reporting.py": "89fe0301e86cb5650804fa25520dd4fa57f6dc3c85d27de4a4ba768cf4c9c418",
+    "scripts/tests/test_load_targets.py": "aee87ae72e73f346c22060ceb7a95c1f26163e62c0373be87971d332efcf2b19",
+    "scripts/tests/test_load_diagnostics.py": "8169bcde9985da7d268d4530467795b6c6ed4cce37e82b50cfaa172fc6a07bdb",
+    "scripts/guardian/resources.py": "3566f9efc1f7681b9308134d8e6c20fe1ebedbbce8736ddbe0a92cfce62e0cbb"
+  }
+}

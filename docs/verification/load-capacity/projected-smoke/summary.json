@@ -1,0 +1,44 @@
+{
+  "smoke": true,
+  "repeats": 1,
+  "results": [
+    {
+      "case": "capacity-projected",
+      "trial": 1,
+      "passed": true,
+      "path": "capacity-projected-1.jsonl",
+      "latency_targets_applicable": true,
+      "latency_targets_passed": true,
+      "latency_targets_missing": [],
+      "idle_cpu_target_applicable": false,
+      "idle_cpu_target_passed": null,
+      "idle_cpu_acceptance_duration": null
+    }
+  ],
+  "full_matrix_executed": false,
+  "all_trials_passed": true,
+  "all_trials_passed_scope": "execution_and_correctness_accounting_only",
+  "target_rollup": {
+    "latency": {
+      "applicable_trials": 1,
+      "passed_trials": 1,
+      "failed_trials": 0,
+      "unmeasured_trials": 0,
+      "all_applicable_passed": true
+    },
+    "idle_cpu": {
+      "applicable_trials": 0,
+      "passed_trials": 0,
+      "failed_trials": 0,
+      "unmeasured_trials": 0,
+      "all_applicable_passed": null,
+      "acceptance_duration_trials": 0
+    }
+  },
+  "limitations": [
+    "C/OS allocator overhead is measured by RSS/PSS separately.",
+    "Darwin PSS and portable per-process wakeup counts are unavailable from this collector.",
+    "Rust requested allocation totals include fixture bookkeeping; they are not a standalone 4KiB control-metadata proof.",
+    "Exact raw byte/gap and processed-offset accounting does not replace canonical terminal reference tests."
+  ]
+}

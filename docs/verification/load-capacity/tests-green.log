@@ -1,0 +1,13 @@
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.36s
+     Running unittests examples/release_load.rs (work/load-capacity-test-target/debug/examples/release_load-4ecca46517febeba)
+
+running 5 tests
+test release_load_support::phase::tests::actual_window_includes_producer_start_skew ... ok
+test release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite ... ok
+test release_load_support::population::tests::readiness_waits_for_delayed_frame_on_inherited_nonblocking_socket ... ok
+test release_load_support::producer::tests::zero_rate_idle_is_distinct_from_unpaced_and_cap_is_explicit ... ok
+test release_load_support::producer::tests::stalled_output_has_bounded_deadline_and_exact_partial_ledger ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

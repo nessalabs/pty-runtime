@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests examples/release_load.rs (work/load-capacity-test-target/debug/examples/release_load-4ecca46517febeba)
+
+running 1 test
+test release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite ... FAILED
+
+failures:
+
+---- release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite stdout ----
+
+thread 'release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite' (17324501) panicked at examples/release_load_support/config.rs:79:9:
+assertion failed: parse(&["--mode", "saturation", "--rate", "0"]).is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--example release_load`
