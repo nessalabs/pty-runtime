@@ -1,16 +1,23 @@
 //! Shared build-script body for the infrastructure native terminal feature.
 use std::{env, path::PathBuf, process::Command};
+#[path = "../guardian/build.rs"]
+mod guardian_image;
 fn checked(command: &mut Command) {
     let status = command.status().expect("native compiler could not start");
     assert!(status.success(), "native compiler failed");
 }
 fn main() {
+    let root =
+        PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("manifest directory")).join("../..");
+    let out = PathBuf::from(env::var_os("OUT_DIR").expect("output directory"));
+    if let Err(error) = guardian_image::build(&root, &out) {
+        eprintln!("guardian image build failed: {error}");
+        std::process::exit(1);
+    }
     println!("cargo:rerun-if-env-changed=PTY_RUNTIME_GHOSTTY_SOURCE");
     if env::var_os("CARGO_FEATURE_GHOSTTY").is_none() {
         return;
     }
-    let root =
-        PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("manifest directory")).join("../..");
     let source = env::var_os("PTY_RUNTIME_GHOSTTY_SOURCE")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
@@ -19,9 +26,19 @@ fn main() {
     checked(
         Command::new("python3")
             .arg(root.join("scripts/native/verify_source.py"))
-            .arg(&source),
+            .arg(&source)
+            .arg("--built"),
     );
-    let out = PathBuf::from(env::var_os("OUT_DIR").expect("output directory"));
+    for name in ["verify_source.py", "patches/snapshot-pending-wrap.patch"] {
+        println!(
+            "cargo:rerun-if-changed={}",
+            root.join("scripts/native").join(name).display()
+        );
+    }
+    println!(
+        "cargo:rerun-if-changed={}",
+        source.join("experiment-build.json").display()
+    );
     let mut objects = Vec::new();
     for name in ["owner", "checkpoint", "view", "verification"] {
         let file = root.join(format!("scripts/native/{name}.c"));

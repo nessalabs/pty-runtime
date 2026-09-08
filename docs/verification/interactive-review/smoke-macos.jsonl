@@ -1,0 +1,7 @@
+{"action": "input-resize-exit", "passed": true, "exit_code": 7, "captured_bytes": 75, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "escape-cancel", "passed": true, "exit_code": 130, "captured_bytes": 44, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "external-term", "passed": true, "exit_code": 143, "captured_bytes": 44, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "child-interrupt", "passed": true, "exit_code": 130, "captured_bytes": 140, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "child-suspend", "passed": true, "exit_code": 7, "captured_bytes": 56, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "stalled-input-cancel", "passed": true, "exit_code": 130, "captured_bytes": 52, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}
+{"action": "spawn-failure", "passed": true, "exit_code": 1, "captured_bytes": 32, "termios_restored": true, "descriptor_flags_restored": true, "workload_reaped": true}

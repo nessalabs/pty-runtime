@@ -6,22 +6,51 @@ use pty_runtime_domain::{
 use std::{
     fs::File,
     os::{
-        fd::{AsRawFd, FromRawFd},
-        unix::process::CommandExt,
+        fd::{AsRawFd, FromRawFd, OwnedFd},
+        unix::{net::UnixStream, process::CommandExt},
     },
     path::PathBuf,
-    process::{Child, Command, Stdio},
+    process::{Command, Stdio},
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
 };
+static NEXT_GENERATION: AtomicU64 = AtomicU64::new(1);
 pub(super) fn launch(
     spec: &CommandSpec,
     size: TerminalSize,
     roots: &[LaunchRoot],
-) -> Result<(Child, File), ProcessError> {
+    image: &super::image::HelperImage,
+    grace: Duration,
+) -> Result<(super::guardian::Guardian, File), ProcessError> {
     let cwd = spec.cwd().canonicalize().map_err(error)?;
     let directory = open_directory(&cwd, roots)?;
-    let (host, child) = super::endpoints::open(size)?;
-    let mut command = Command::new(spec.executable());
-    command.args(spec.arguments());
+    let (mut host, child) = super::endpoints::open(size)?;
+    let cleanup_host = host.try_clone().map_err(error)?;
+    let generation = NEXT_GENERATION
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| ProcessError::Capacity)?;
+    let (owner_s, child_s) = UnixStream::pair().map_err(error)?;
+    let (owner_g, child_g) = UnixStream::pair().map_err(error)?;
+    let channels = [
+        super::protocol::Channel::new(owner_s, generation).map_err(error)?,
+        super::protocol::Channel::new(owner_g, generation).map_err(error)?,
+    ];
+    let copies = [
+        copy_fd(directory.as_raw_fd())?,
+        copy_fd(child_s.as_raw_fd())?,
+        copy_fd(child_g.as_raw_fd())?,
+        copy_fd(host.as_raw_fd())?,
+        copy_fd(child.as_raw_fd())?,
+    ];
+    let mut command = Command::new(image.path());
+    command
+        .arg("--pty-runtime-guardian-v1")
+        .arg(generation.to_string())
+        .arg(grace.as_millis().to_string())
+        .arg(spec.executable())
+        .args(spec.arguments());
     if spec.environment() == EnvironmentPolicy::Empty {
         command.env_clear();
     }
@@ -32,25 +61,52 @@ pub(super) fn launch(
         command.env(name, value);
     }
     command
-        .stdin(Stdio::from(child.try_clone().map_err(error)?))
-        .stdout(Stdio::from(child.try_clone().map_err(error)?))
-        .stderr(Stdio::from(child));
-    let dirfd = directory.as_raw_fd();
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let dirfd = copies[0].as_raw_fd();
+    let mapped = [
+        copies[1].as_raw_fd(),
+        copies[2].as_raw_fd(),
+        copies[3].as_raw_fd(),
+        copies[4].as_raw_fd(),
+    ];
     // SAFETY: the closure uses only async-signal-safe syscalls, no allocation or locks.
-    // Stdio remapping precedes pre_exec; fd 0 is the owned child PTY endpoint.
+    // All sources are above the fixed destinations, including the pinned cwd;
+    // stdio remapping and closed host fd 0/1/2 cannot overwrite those sources.
     unsafe {
         command.pre_exec(move || {
-            if libc::fchdir(dirfd) < 0
-                || libc::setsid() < 0
-                || libc::ioctl(0, libc::TIOCSCTTY as _, 0) < 0
-            {
+            if libc::fchdir(dirfd) < 0 {
                 return Err(std::io::Error::last_os_error());
+            }
+            for (index, source) in mapped.iter().enumerate() {
+                if libc::dup2(*source, 3 + index as i32) < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
             }
             Ok(())
         });
     }
-    let child = command.spawn().map_err(error)?;
-    Ok((child, host))
+    let sentinel = command.spawn().map_err(error)?;
+    // Parent copies of child channel endpoints would suppress EOF during failed
+    // admission. Close them before constructing the protocol cleanup owner.
+    drop(copies);
+    drop(child_s);
+    drop(child_g);
+    drop(child);
+    let mut guardian = super::guardian::Guardian::new(sentinel, channels, generation, cleanup_host);
+    guardian.admit(&mut host)?;
+    Ok((guardian, host))
+}
+fn copy_fd(fd: i32) -> Result<OwnedFd, ProcessError> {
+    // SAFETY: fd is borrowed live; fcntl returns a new exclusively owned
+    // close-on-exec duplicate outside the fixed helper/stdio mapping range.
+    let copy = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 16) };
+    if copy < 0 {
+        return Err(error(std::io::Error::last_os_error()));
+    }
+    // SAFETY: successful fcntl transferred ownership of this fresh descriptor.
+    Ok(unsafe { OwnedFd::from_raw_fd(copy) })
 }
 pub(super) struct LaunchRoot {
     path: PathBuf,

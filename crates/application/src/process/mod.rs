@@ -25,6 +25,19 @@ pub enum OutputAcceptance {
 pub trait IProcessEvents: Send + Sync {
     /// Atomically accept all bytes or none; replay eviction is not parser loss.
     fn output(&self, bytes: &[u8]) -> OutputAcceptance;
+    /// Shared opt-in counters; adapters may retain this fixed object without retaining events.
+    fn diagnostics(&self) -> Option<Arc<crate::diagnostics::RuntimeDiagnostics>> {
+        None
+    }
+    /// Deliver the actual monotonic host read-completion boundary. Preserve it across
+    /// Backpressure retries. The default maintains compatibility for custom event handlers.
+    fn output_observed(
+        &self,
+        bytes: &[u8],
+        _read_completed: Option<std::time::Instant>,
+    ) -> OutputAcceptance {
+        self.output(bytes)
+    }
     /// Wait for capacity or termination without polling; bounded by the adapter's shutdown policy.
     fn wait_for_capacity(&self, deadline: std::time::Instant);
     /// Report actual child exit independently from reader completion.
@@ -56,6 +69,18 @@ pub trait IProcessSession: Send + Sync {
     ) -> Result<ProcessOperation<WriteOutcome>, ProcessError>;
     /// Admit one coalesced cancellation sequence independently of the input queue.
     fn request_cancel(&self) -> Result<(), ProcessError>;
+    /// Carry an optional original ordered admission measurement to the OS boundary.
+    /// Custom adapters without instrumentation mark that measurement unavailable.
+    fn resize_timed(
+        &self,
+        size: TerminalSize,
+        timing: Option<crate::diagnostics::Timing>,
+    ) -> Result<ProcessOperation<Result<(), ProcessError>>, ProcessError> {
+        if let Some(timing) = timing {
+            timing.unavailable();
+        }
+        self.resize(size)
+    }
     /// Resize OS state, reporting the actual operation result.
     fn resize(
         &self,

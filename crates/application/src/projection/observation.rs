@@ -90,7 +90,7 @@ impl<T: Send + 'static> Ticket<T> {
             state.waker.take()
         };
         if let Some(wake) = wake {
-            wake.wake();
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| wake.wake()));
         }
     }
     pub fn cancelled(&self) -> bool {
@@ -101,25 +101,34 @@ struct Wait<T>(Arc<Ticket<T>>);
 impl<T: Send + 'static> Future for Wait<T> {
     type Output = Result<T, ProjectionError>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(result) = state.result.take() {
-            return Poll::Ready(result);
-        }
-        if state.complete {
-            return Poll::Ready(Err(ProjectionError::Closed));
-        }
-        state.waker = Some(cx.waker().clone());
-        Poll::Pending
+        let mut next_waker = Some(cx.waker().clone());
+        let (result, old_waker) = {
+            let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
+            let old_waker = state.waker.take();
+            let result = if let Some(result) = state.result.take() {
+                Poll::Ready(result)
+            } else if state.complete {
+                Poll::Ready(Err(ProjectionError::Closed))
+            } else {
+                state.waker = next_waker.take();
+                Poll::Pending
+            };
+            (result, old_waker)
+        };
+        drop(old_waker);
+        drop(next_waker);
+        result
     }
 }
 impl<T> Drop for Wait<T> {
     fn drop(&mut self) {
         self.0.cancelled.store(true, Ordering::Release);
         let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
-        state.waker = None;
+        let waker = state.waker.take();
         // Result destructors can release arbitrary caller/provider-owned data.
         let result = state.result.take();
         drop(state);
+        drop(waker);
         drop(result);
     }
 }

@@ -10,14 +10,14 @@ use std::{ffi::c_void, ptr::NonNull};
 #[derive(Debug, Default)]
 pub struct GhosttyTerminalFactory;
 /// Binary compatibility includes the exact upstream revision and adapter version.
-pub const COMPATIBILITY: &str = "ghostty-vt:82232ecde55405559dec29c5466cb9e39938cb41:runtime-1";
+pub const COMPATIBILITY: &str = "ghostty-vt:82232ecde55405559dec29c5466cb9e39938cb41:snapshot-wrap-84b1b7a84db7342a95a9cff941f2cb866f2370859c83daa25a8d106e06acc91d:runtime-1";
 
 impl ITerminalFactory for GhosttyTerminalFactory {
     fn capabilities(&self) -> TerminalCapabilities {
         TerminalCapabilities {
             checkpoints: true,
             incremental_restore: true,
-            mutation_during_restore: false,
+            mutation_during_restore: true,
             history_compression: true,
         }
     }
@@ -43,6 +43,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
             config,
             generation: 0,
             restoring: None,
+            skipped_pages: 0,
             failed: false,
         }))
     }
@@ -81,6 +82,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
             config,
             generation: checkpoint.descriptor.control_generation,
             restoring: Some(checkpoint),
+            skipped_pages: 0,
             failed: false,
         };
         let info = terminal.info()?;
@@ -97,6 +99,7 @@ pub struct GhosttyTerminal {
     config: TerminalConfig,
     generation: u64,
     restoring: Option<TerminalCheckpoint>,
+    skipped_pages: u64,
     failed: bool,
 }
 // SAFETY: No thread-local Ghostty state is used. Moving transfers the sole native

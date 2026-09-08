@@ -3,11 +3,38 @@ use crate::identity::ReplayCursor;
 /// Engine-neutral restoration milestone; usable state is not complete history.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RestorationProgress {
-    /// Active screens are observable; live mutation requires the engine capability
-    /// or completion of retained history.
+    /// Active screens are usable; older history remains to be decoded.
     Usable,
-    /// Retained history has also completed.
+    /// Every history unit from this source was validated and applied.
     Complete,
+    /// Active state is usable, but live mutation made some source history inapplicable.
+    UsableWithSkippedHistory {
+        /// Validated history pages that could no longer be applied, for this source.
+        skipped_pages: u64,
+    },
+    /// Source validation finished, but this is not complete history restoration.
+    FinishedWithSkippedHistory {
+        /// Validated history pages that could no longer be applied, for this source.
+        skipped_pages: u64,
+    },
+}
+
+impl RestorationProgress {
+    /// Whether the source has been fully consumed and validated, including skipped history.
+    pub fn is_finished(self) -> bool {
+        matches!(
+            self,
+            Self::Complete | Self::FinishedWithSkippedHistory { .. }
+        )
+    }
+    /// Number of history pages validated but not applied in this restoration.
+    pub fn skipped_pages(self) -> u64 {
+        match self {
+            Self::Usable | Self::Complete => 0,
+            Self::UsableWithSkippedHistory { skipped_pages }
+            | Self::FinishedWithSkippedHistory { skipped_pages } => skipped_pages,
+        }
+    }
 }
 
 /// Ordering and compatibility metadata kept separate from opaque encoded bytes.

@@ -13,7 +13,9 @@ spec.loader.exec_module(gate)
 class SizeGateTests(unittest.TestCase):
     def test_oversized_native_rust_c_and_header_are_rejected(self):
         original = Path.read_text
-        for name in ['scripts/native/build.rs', 'scripts/native/owner.c', 'scripts/native/bridge.h']:
+        for name in ['scripts/native/build.rs', 'scripts/native/owner.c', 'scripts/native/bridge.h',
+                     'helpers/guardian/src/main.rs', 'scripts/guardian/protocol.rs',
+                     'examples/event_stream_reconnect.rs', 'experiments/native/packed-pages.h']:
             target = ROOT / name
             with self.subTest(path=name):
                 def read(path, *args, **kwargs):

@@ -1,0 +1,15 @@
+{
+  "captured_at": "2026-09-08T16:15:35.692101+00:00",
+  "base_head": "52ad04c3519616e6cedea9ac8707406970a40ed7",
+  "manifest_sha256": "a198b56dbdd11a41d5644b882dfe6403638f3af1596b30d68026b67f6e9e293a",
+  "command": [
+    "cargo",
+    "metadata",
+    "--locked",
+    "--no-deps",
+    "--format-version",
+    "1"
+  ],
+  "exit_code": 0,
+  "source_state": "dirty concurrent loop4; native behavioral qualification pending"
+}

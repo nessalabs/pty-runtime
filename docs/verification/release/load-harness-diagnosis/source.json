@@ -1,0 +1,14 @@
+{
+  "source_state": "canonical dirty working tree; frozen candidate untouched",
+  "sha256": {
+    "work/coverage-matrix-1/docs/verification/release/load-attached-full-1/attached-1.jsonl": "96a3e821f41d195c1241546cf8ff7ee69d992c23ac63da1693be374b3dfe751a",
+    "work/coverage-matrix-1/docs/verification/release/load-attached-full-1/attached-2.jsonl": "529071f01ad58ea49d3fdb8014689a8a2ebafd428ce051ea21d6bf27e66dc915",
+    "work/coverage-matrix-1/docs/verification/release/load-attached-full-1/attached-3.jsonl": "823408cf6467f923778bd9152208e49a17fdfdca6eb92fa628ed44060fae81d5",
+    "work/coverage-matrix-1/docs/verification/release/load-attached-full-1/attached-4.jsonl": "9d4618d48b8fdcab2ae32f401a07c71aa87708172970c09740c108f1d13f70c7",
+    "work/coverage-matrix-1/docs/verification/release/load-attached-full-1/attached-5.jsonl": "bd2c8bec3f5a739a9848987b725ea121a541cbe577663307c87afd9371cdff67",
+    "scripts/release/load.py": "abb662d256a307c751a157fa08825a758b990452162b5d510117ff0eb397c79c",
+    "scripts/guardian/resources.py": "3566f9efc1f7681b9308134d8e6c20fe1ebedbbce8736ddbe0a92cfce62e0cbb",
+    "examples/release_load_support/population.rs": "7f19e29b9126ad22eccf33024aad2ffdd8cbaccf5291678399c928dc6063f839",
+    "scripts/tests/test_load_diagnostics.py": "adf9eff2e53538d77e81f0f2a82937bea8067954e92625224748cceb1727a05d"
+  }
+}

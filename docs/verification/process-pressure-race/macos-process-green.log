@@ -1,0 +1,42 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.61s
+     Running tests/process_contract.rs (target/debug/deps/process_contract-c3ca372cf1458c8a)
+
+running 7 tests
+test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+test cancellation_bypasses_full_input_and_escalates_once ... ok
+test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+test blocked_output_does_not_block_exit_or_shutdown ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests/process_foreground_switch.rs (target/debug/deps/process_foreground_switch-69f858eae6e4c048)
+
+running 3 tests
+test foreground_switch_fixture ... ok
+test cancellation_cleans_both_foreground_generations_and_preserves_outside_session ... ok
+test dispatch_ack_requires_a_distinct_verified_foreground_group ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/process_guardian_failures.rs (target/debug/deps/process_guardian_failures-0a72dabf36a280a3)
+
+running 2 tests
+test guardian_loss_reports_supervision_failure_without_fabricated_workload_exit ... ok
+test sentinel_loss_preserves_cleanup_and_reports_supervision_failure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/process_pressure.rs (target/debug/deps/process_pressure-2bbb8ac27871f4d2)
+
+running 4 tests
+test symlinks_cannot_escape_allowed_launch_roots ... ok
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+

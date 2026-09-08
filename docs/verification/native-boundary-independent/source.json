@@ -1,0 +1,11 @@
+{
+  "scripts/native/owner.c": "a12e77c84a5ada3c02a9516b2ddadc681c2d795f71a7d3dd614c3711bf3389b9",
+  "scripts/native/checkpoint.c": "0db1df90abc4d1d5bce7ca98a530a9513d3b6d8eb0ca96a9b9933ab0429ceba1",
+  "scripts/native/view.c": "1647edec00ad3d27cdc12785d9fbb53d4649ceddc4c1b5750e135cd659b33c11",
+  "scripts/native/verification.c": "2a01968543507d95e5c39dcd585ba277896c0f57ed8dfe94047c29d94523c185",
+  "scripts/native/tests/boundary-contract.c": "b3f9be79b5bc204542d2cd356696575fe33a01452df06c0a20ab1002dc366d47",
+  "scripts/native/tests/boundary-shim.c": "87d29f7917494c72fa3bcff42a339bce008af31715dbc9c7f1bea0c8a8ef00ce",
+  "scripts/native/tests/boundary-faults.h": "ecb443a4da1bbe3b916691415de43b585ea63a9ce85ae29cdc7c4c889da1cb43",
+  "scripts/native/tests/run_boundary_contract.py": "1c1d9f28be656ab225ca7aab1d7508c44e614196a7877d8714cea4f4871fb007",
+  "scripts/native/coverage.py": "eb1bd792c57ab5bd8c36b80beb75f903ea438315ba223f9839a673fd2b525295"
+}

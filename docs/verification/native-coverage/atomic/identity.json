@@ -1,0 +1,59 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "source_root": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-baseline",
+  "snapshot": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/source",
+  "environment_overrides": {
+    "PATH": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/Users/nessa/.codex/tmp/arg0/codex-arg0L3gGDc:/Users/nessa/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/nessa/.opencode/bin:/Users/nessa/.local/bin:/Users/nessa/.cargo/bin:/Users/nessa/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources",
+    "CARGO_TARGET_DIR": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/target",
+    "PTY_RUNTIME_GHOSTTY_SOURCE": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/native-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41",
+    "PTY_RUNTIME_GUARDIAN_IMAGE": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/pty-runtime-guardian-image",
+    "LLVM_PROFILE_FILE": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-atomic/profiles/build-%p-%m.profraw",
+    "RUSTFLAGS": "",
+    "CARGO_ENCODED_RUSTFLAGS": ""
+  },
+  "native_archive_sha256": "820d84e8cbc4be0ca26b9a1b71cfdc5befdc814c414bef7b0dbcf51069668c68",
+  "native_library_sha256": "9e952e7d8af3d474226e49ceb7c8855f286e3f7a1968713802ec31eed2dc09cb",
+  "native_build": {
+    "build_driver_sha256": "b435526ef2966e8b33d9a93a10057a88eb48a3ba262cbfcf0a5652fe8102d63b",
+    "build_options": [
+      "-Demit-lib-vt",
+      "-Demit-xcframework=false",
+      "-Doptimize=ReleaseFast",
+      "-Dcpu=baseline"
+    ],
+    "dependencies": {
+      "ghostty": {
+        "revision": "82232ecde55405559dec29c5466cb9e39938cb41",
+        "sha256": "820d84e8cbc4be0ca26b9a1b71cfdc5befdc814c414bef7b0dbcf51069668c68",
+        "url": "https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41"
+      },
+      "zig": {
+        "archives": {
+          "aarch64-linux": "ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17",
+          "aarch64-macos": "b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489",
+          "x86_64-linux": "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00",
+          "x86_64-macos": "0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7"
+        },
+        "version": "0.16.0"
+      }
+    },
+    "libc": [
+      "",
+      ""
+    ],
+    "library_sha256": "9e952e7d8af3d474226e49ceb7c8855f286e3f7a1968713802ec31eed2dc09cb",
+    "snapshot_patch_sha256": "0a945af64ff9636971fe89b88d1aca95eb5867ae4e61397b1e8b1e92f5e0c67b",
+    "source_verifier_sha256": "3398942330187972a87ba56c15a73669781d82e3142b18a0db1acf8101c2bf05",
+    "target": "aarch64-macos"
+  },
+  "guardian_image_sha256": "378b8dc3abacd200cd218da5afcfc7bf9246f9f568d69b90761a2386c40ff3eb",
+  "cc_wrapper": "#!/bin/sh\nexec /Library/Developer/CommandLineTools/usr/bin/clang \"$@\" -O0 -fprofile-instr-generate -fcoverage-mapping -fprofile-update=atomic\n",
+  "coverage_driver_sha256": "8b04ec35ead925aad74e4123abe77e9450fb5b18c02fc2fa47eff33f29541b93",
+  "denominator": [
+    "scripts/native/owner.c",
+    "scripts/native/checkpoint.c",
+    "scripts/native/view.c",
+    "scripts/native/verification.c"
+  ],
+  "scope": "Own C bridge only; Rust and pinned native engine are uninstrumented"
+}

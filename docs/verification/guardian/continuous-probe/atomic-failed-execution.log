@@ -1,0 +1,4 @@
+['cc', '-c', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/atomic/filename.c', '-o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/atomic/filename.o']
+['rustc', '--edition=2024', '-C', 'instrument-coverage', '-C', 'llvm-args=-instrprof-atomic-counter-update-all', '-C', 'link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/atomic/filename.o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs', '-o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/atomic/probe']
+['/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/atomic/probe']
+LLVM Profile Error: Counters section not page-aligned (start = 0x104560310, pagesz = 16384).

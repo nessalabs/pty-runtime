@@ -1,0 +1,25 @@
+{
+  "base_evidence": "../view-edges",
+  "base_work": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges",
+  "boundary_binary_sha256": "ee673b844267428f05d919ec9ded5531907ac4e25d9ad0efed1ba9b8029b54da",
+  "source_sha256": {
+    "scripts/native/bootstrap.py": "495b7d973bd95c63aabab10571dda11d3dd0a7ccee4e6ae35873ff807196f8ef",
+    "scripts/native/verify_source.py": "3398942330187972a87ba56c15a73669781d82e3142b18a0db1acf8101c2bf05",
+    "scripts/native/bridge.h": "d74253dcbfd471e74fbd25734af1973f496c8c33529cc0457d557d1f30c01a0d",
+    "scripts/native/verification.c": "2a01968543507d95e5c39dcd585ba277896c0f57ed8dfe94047c29d94523c185",
+    "scripts/native/build.rs": "9f9c4399caf9cd7a866752b17df18a61c5dc2e6c9fcda3ff7c4e4d4c668f2260",
+    "scripts/native/owner.c": "a12e77c84a5ada3c02a9516b2ddadc681c2d795f71a7d3dd614c3711bf3389b9",
+    "scripts/native/README.md": "1bef189385f5e97d1b61dce05a3fb3049d0abc57af88f4d6810f34f9cf10a12a",
+    "scripts/native/checkpoint.c": "0db1df90abc4d1d5bce7ca98a530a9513d3b6d8eb0ca96a9b9933ab0429ceba1",
+    "scripts/native/view.c": "1647edec00ad3d27cdc12785d9fbb53d4649ceddc4c1b5750e135cd659b33c11",
+    "scripts/native/patches/README.md": "16c2d11bae10cb572282fd8fb823866a42092e93e0e5a35e04cbd7eb0a2f16ba",
+    "scripts/native/patches/snapshot-pending-wrap.patch": "0a945af64ff9636971fe89b88d1aca95eb5867ae4e61397b1e8b1e92f5e0c67b",
+    "scripts/native/tests/boundary-faults.h": "ecb443a4da1bbe3b916691415de43b585ea63a9ce85ae29cdc7c4c889da1cb43",
+    "scripts/native/tests/run_allocator_contract.py": "1e0b324780f8af5a0aa2119b9e2f46d1ce8c185c96a384490b4331e1ea8417cd",
+    "scripts/native/tests/allocator-contract.c": "267e481bdf2d2b9026bf865b1226c801db35887a96d5d52b6fac5256c8ee34d4",
+    "scripts/native/tests/run_boundary_contract.py": "1c1d9f28be656ab225ca7aab1d7508c44e614196a7877d8714cea4f4871fb007",
+    "scripts/native/tests/boundary-shim.c": "87d29f7917494c72fa3bcff42a339bce008af31715dbc9c7f1bea0c8a8ef00ce",
+    "scripts/native/tests/boundary-contract.c": "2934ded3b561a85a0dcb8fc3d629aeca3aa685fb575fa3d0933e35de61bf50a2"
+  },
+  "scope": "Own four C bridge files; prior real-engine profiles plus explicit synthetic external-call faults"
+}

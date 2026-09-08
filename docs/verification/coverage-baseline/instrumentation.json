@@ -1,0 +1,6 @@
+{
+  "purpose": "Rust workspace coverage with uninstrumented helper; helper coverage requires separate measurement",
+  "helper_path": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-baseline/target/guardian-uninstrumented/release/pty-runtime-guardian",
+  "helper_sha256": "b708602cf89551c17e88693c0ba14e06ff772396a2724a45d60f63043d822f96",
+  "environment_override": "PTY_RUNTIME_GUARDIAN_IMAGE"
+}

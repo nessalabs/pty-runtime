@@ -1,0 +1,517 @@
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/owner.c:
+    1|       |#ifndef _POSIX_C_SOURCE
+    2|       |#define _POSIX_C_SOURCE 200112L
+    3|       |#endif
+    4|       |#include "bridge.h"
+    5|       |#include <limits.h>
+    6|       |
+    7|       |/* Allocator context and native handles share one exclusive owner. No callback
+    8|       | * escapes a native call or accesses Rust. Denial is sticky until destruction. */
+    9|  4.05k|static void *bounded_alloc(void *ctx, size_t n, uint8_t alignment, uintptr_t ra) {
+   10|  4.05k|  (void)ra;
+   11|  4.05k|  RuntimeTerminal *o = ctx;
+   12|       |  /* The pinned Zig adapter passes log2(alignment). Compression also requests
+   13|       |   * alignments greater than malloc's guarantee, so honor them explicitly. */
+   14|  4.05k|  if (alignment >= sizeof(size_t) * CHAR_BIT || n > o->limit - o->used) {
+  ------------------
+  |  Branch (14:7): [True: 1, False: 4.04k]
+  |  Branch (14:49): [True: 5, False: 4.04k]
+  ------------------
+   15|      6|    o->denied = true; return NULL;
+   16|      6|  }
+   17|  4.04k|  size_t alignment_bytes = (size_t)1 << alignment;
+   18|  4.04k|  if (alignment_bytes > o->limit) { o->denied = true; return NULL; }
+  ------------------
+  |  Branch (18:7): [True: 1, False: 4.04k]
+  ------------------
+   19|  4.04k|  void *p = NULL;
+   20|  4.04k|  if (alignment_bytes <= _Alignof(max_align_t)) p = malloc(n);
+  ------------------
+  |  Branch (20:7): [True: 3.90k, False: 139]
+  ------------------
+   21|    139|  else if (posix_memalign(&p, alignment_bytes, n) != 0) p = NULL;
+  ------------------
+  |  Branch (21:12): [True: 1, False: 138]
+  ------------------
+   22|  4.04k|  if (!p) { o->denied = true; return NULL; }
+  ------------------
+  |  Branch (22:7): [True: 3, False: 4.04k]
+  ------------------
+   23|  4.04k|  o->used += n;
+   24|  4.04k|  return p;
+   25|  4.04k|}
+   26|      8|static bool no_resize(void *ctx, void *p, size_t n, uint8_t a, size_t next, uintptr_t ra) {
+   27|      8|  (void)ctx; (void)p; (void)n; (void)a; (void)next; (void)ra; return false;
+   28|      8|}
+   29|    678|static void *no_remap(void *ctx, void *p, size_t n, uint8_t a, size_t next, uintptr_t ra) {
+   30|    678|  (void)ctx; (void)p; (void)n; (void)a; (void)next; (void)ra; return NULL;
+   31|    678|}
+   32|  4.04k|static void bounded_free(void *ctx, void *p, size_t n, uint8_t a, uintptr_t ra) {
+   33|  4.04k|  (void)a; (void)ra;
+   34|  4.04k|  RuntimeTerminal *o = ctx;
+   35|  4.04k|  o->used -= n;
+   36|       |  /* The allocation may contain terminal contents. */
+   37|  4.04k|  volatile uint8_t *wipe = p;
+   38|  8.76M|  for (size_t i = 0; i < n; i++) wipe[i] = 0;
+  ------------------
+  |  Branch (38:22): [True: 8.76M, False: 4.04k]
+  ------------------
+   39|  4.04k|  free(p);
+   40|  4.04k|}
+   41|       |static const GhosttyAllocatorVtable allocator_vtable = {
+   42|       |  bounded_alloc, no_resize, no_remap, bounded_free
+   43|       |};
+   44|    147|RuntimeTerminal *rt_owner(size_t limit) {
+   45|    147|  RuntimeTerminal *o = calloc(1, sizeof(*o));
+   46|    147|  if (!o) return NULL;
+  ------------------
+  |  Branch (46:7): [True: 3, False: 144]
+  ------------------
+   47|    144|  o->limit = limit;
+   48|    144|  o->allocator = (GhosttyAllocator){o, &allocator_vtable};
+   49|    144|  return o;
+   50|    147|}
+   51|    145|void rt_free(RuntimeTerminal *o) {
+   52|    145|  if (!o) return;
+  ------------------
+  |  Branch (52:7): [True: 1, False: 144]
+  ------------------
+   53|    144|  if (o->decoder) ghostty_snapshot_decoder_free(o->decoder);
+  ------------------
+  |  Branch (53:7): [True: 54, False: 90]
+  ------------------
+   54|    144|  if (o->terminal) ghostty_terminal_free(o->terminal);
+  ------------------
+  |  Branch (54:7): [True: 132, False: 12]
+  ------------------
+   55|    144|  memset(o, 0, sizeof(*o));
+   56|    144|  free(o);
+   57|    144|}
+   58|     18|static void capture_reply(GhosttyTerminal t, void *ctx, const uint8_t *p, size_t n) {
+   59|     18|  (void)t;
+   60|     18|  RuntimeTerminal *o = ctx;
+   61|     18|  if (n > o->reply_cap - o->reply_len) { o->reply_overflow = true; return; }
+  ------------------
+  |  Branch (61:7): [True: 2, False: 16]
+  ------------------
+   62|     16|  if (n) memcpy(o->reply + o->reply_len, p, n);
+  ------------------
+  |  Branch (62:7): [True: 15, False: 1]
+  ------------------
+   63|     16|  o->reply_len += n;
+   64|     16|}
+   65|    111|int rt_configure(RuntimeTerminal *o, size_t history, size_t continuation) {
+   66|    111|  size_t images = 0;
+   67|    111|  bool no = false;
+   68|    111|  if (ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_SCROLLBACK_MAX_BYTES, &history) ||
+  ------------------
+  |  Branch (68:7): [True: 1, False: 110]
+  ------------------
+   69|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_CONTINUATION_MAX_BYTES, &continuation) ||
+  ------------------
+  |  Branch (69:7): [True: 1, False: 109]
+  ------------------
+   70|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_KITTY_IMAGE_STORAGE_LIMIT, &images) ||
+  ------------------
+  |  Branch (70:7): [True: 1, False: 108]
+  ------------------
+   71|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_KITTY_IMAGE_MEDIUM_FILE, &no) ||
+  ------------------
+  |  Branch (71:7): [True: 1, False: 107]
+  ------------------
+   72|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_KITTY_IMAGE_MEDIUM_TEMP_FILE, NULL) ||
+  ------------------
+  |  Branch (72:7): [True: 1, False: 106]
+  ------------------
+   73|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_KITTY_IMAGE_MEDIUM_SHARED_MEM, &no) ||
+  ------------------
+  |  Branch (73:7): [True: 1, False: 105]
+  ------------------
+   74|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_USERDATA, o) ||
+  ------------------
+  |  Branch (74:7): [True: 1, False: 104]
+  ------------------
+   75|    111|      ghostty_terminal_set(o->terminal, GHOSTTY_TERMINAL_OPT_WRITE_PTY, (const void *)capture_reply)) return -1;
+  ------------------
+  |  Branch (75:7): [True: 2, False: 102]
+  ------------------
+   76|    102|  return 0;
+   77|    111|}
+   78|     59|RuntimeTerminal *rt_new(uint16_t cols, uint16_t rows, size_t history, size_t continuation, size_t limit) {
+   79|     59|  RuntimeTerminal *o = rt_owner(limit);
+   80|     59|  if (!o) return NULL;
+  ------------------
+  |  Branch (80:7): [True: 1, False: 58]
+  ------------------
+   81|     58|  if (ghostty_terminal_new(&o->allocator, &o->terminal, cols, rows) || rt_configure(o, history, continuation)) {
+  ------------------
+  |  Branch (81:7): [True: 2, False: 56]
+  |  Branch (81:72): [True: 8, False: 48]
+  ------------------
+   82|     10|    rt_free(o); return NULL;
+   83|     10|  }
+   84|     48|  return o;
+   85|     58|}
+   86|   133k|int rt_feed(RuntimeTerminal *o, const uint8_t *p, size_t n, uint8_t *reply, size_t cap, size_t *len) {
+   87|   133k|  o->reply = reply; o->reply_cap = cap; o->reply_len = 0; o->reply_overflow = false;
+   88|   133k|  ghostty_terminal_vt_write(o->terminal, p, n);
+   89|   133k|  *len = o->reply_len;
+   90|   133k|  o->reply = NULL; o->reply_cap = 0;
+   91|   133k|  bool error = false;
+   92|   133k|  if (ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_VT_PROCESSING_ERROR, &error)) return -1;
+  ------------------
+  |  Branch (92:7): [True: 1, False: 133k]
+  ------------------
+   93|   133k|  if (o->denied || o->reply_overflow) return -2;
+  ------------------
+  |  Branch (93:7): [True: 1, False: 133k]
+  |  Branch (93:20): [True: 2, False: 133k]
+  ------------------
+   94|   133k|  return error ? -1 : 0;
+  ------------------
+  |  Branch (94:10): [True: 1, False: 133k]
+  ------------------
+   95|   133k|}
+   96|     19|int rt_resize(RuntimeTerminal *o, uint16_t cols, uint16_t rows) {
+   97|     19|  int r = ghostty_terminal_resize(o->terminal, cols, rows, 8, 16);
+   98|     19|  return o->denied ? -2 : (r ? -1 : 0);
+  ------------------
+  |  Branch (98:10): [True: 1, False: 18]
+  |  Branch (98:28): [True: 1, False: 17]
+  ------------------
+   99|     19|}
+  100|      5|int rt_compress(RuntimeTerminal *o) {
+  101|      5|  GhosttyTerminalCompressionResult result;
+  102|      5|  if (ghostty_terminal_compress(o->terminal, GHOSTTY_TERMINAL_COMPRESSION_MODE_INCREMENTAL, &result)) return -1;
+  ------------------
+  |  Branch (102:7): [True: 1, False: 4]
+  ------------------
+  103|      4|  if (o->denied) return -2;
+  ------------------
+  |  Branch (103:7): [True: 1, False: 3]
+  ------------------
+  104|      3|  switch (result) {
+  105|      1|    case GHOSTTY_TERMINAL_COMPRESSION_RESULT_UNSUPPORTED: return -3;
+  ------------------
+  |  Branch (105:5): [True: 1, False: 2]
+  ------------------
+  106|      1|    case GHOSTTY_TERMINAL_COMPRESSION_RESULT_PENDING: return 0;
+  ------------------
+  |  Branch (106:5): [True: 1, False: 2]
+  ------------------
+  107|      1|    default: return 1;
+  ------------------
+  |  Branch (107:5): [True: 1, False: 2]
+  ------------------
+  108|      3|  }
+  109|      3|}
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/checkpoint.c:
+    1|       |#include "bridge.h"
+    2|       |
+    3|       |typedef struct { uint8_t *bytes; size_t used, cap; bool overflow; } Writer;
+    4|  2.14k|static bool write_bounded(void *ctx, const uint8_t *p, size_t n) {
+    5|  2.14k|  Writer *w = ctx;
+    6|  2.14k|  if (n > w->cap - w->used) { w->overflow = true; return false; }
+  ------------------
+  |  Branch (6:7): [True: 2, False: 2.14k]
+  ------------------
+    7|  2.14k|  memcpy(w->bytes + w->used, p, n); w->used += n;
+    8|  2.14k|  return true;
+    9|  2.14k|}
+   10|     81|int rt_checkpoint(RuntimeTerminal *o, uint8_t *bytes, size_t cap, size_t *len) {
+   11|     81|  Writer w = {bytes, 0, cap, false};
+   12|     81|  int r = ghostty_snapshot_encode(o->terminal, (GhosttyWriter){write_bounded, &w});
+   13|     81|  *len = w.used;
+   14|     81|  if (o->denied || w.overflow) return -2;
+  ------------------
+  |  Branch (14:7): [True: 1, False: 80]
+  |  Branch (14:20): [True: 1, False: 79]
+  ------------------
+   15|     79|  return r ? -1 : 0;
+  ------------------
+  |  Branch (15:10): [True: 2, False: 77]
+  ------------------
+   16|     81|}
+   17|       |/* The caller retains bytes until rt_history finishes or rt_free destroys the
+   18|       | * decoder. READY transfers terminal ownership to this wrapper. */
+   19|       |RuntimeTerminal *rt_restore(const uint8_t *bytes, size_t len, size_t continuation,
+   20|     61|                            size_t history, size_t limit, int *error) {
+   21|     61|  *error = -1;
+   22|     61|  RuntimeTerminal *o = rt_owner(limit);
+   23|     61|  if (!o) { *error = -2; return NULL; }
+  ------------------
+  |  Branch (23:7): [True: 1, False: 60]
+  ------------------
+   24|     61|  bool retain = true;
+   25|     60|  if (ghostty_snapshot_decoder_new_buf(&o->allocator, &o->decoder, bytes, len) ||
+  ------------------
+  |  Branch (25:7): [True: 1, False: 59]
+  ------------------
+   26|     60|      ghostty_snapshot_decoder_set(o->decoder, GHOSTTY_SNAPSHOT_DECODER_OPT_MAX_CONTINUATION_BYTES, &continuation) ||
+  ------------------
+  |  Branch (26:7): [True: 1, False: 58]
+  ------------------
+   27|     60|      ghostty_snapshot_decoder_set(o->decoder, GHOSTTY_SNAPSHOT_DECODER_OPT_RETAIN_CONTINUATION, &retain) ||
+  ------------------
+  |  Branch (27:7): [True: 1, False: 57]
+  ------------------
+   28|     60|      ghostty_snapshot_decoder_ready(o->decoder, &o->terminal) ||
+  ------------------
+  |  Branch (28:7): [True: 2, False: 55]
+  ------------------
+   29|     60|      rt_configure(o, history, continuation)) {
+  ------------------
+  |  Branch (29:7): [True: 1, False: 54]
+  ------------------
+   30|      6|    if (o->denied) *error = -2;
+  ------------------
+  |  Branch (30:9): [True: 1, False: 5]
+  ------------------
+   31|      6|    rt_free(o); return NULL;
+   32|      6|  }
+   33|     54|  o->source_len = len;
+   34|     54|  *error = 0;
+   35|     54|  return o;
+   36|     60|}
+   37|    229|int rt_history(RuntimeTerminal *o, size_t *rows) {
+   38|    229|  *rows = 0;
+   39|    229|  if (!o->decoder) return 1;
+  ------------------
+  |  Branch (39:7): [True: 1, False: 228]
+  ------------------
+   40|    228|  int r = ghostty_snapshot_decoder_next(o->decoder);
+   41|    228|  if (r == GHOSTTY_NO_VALUE) {
+  ------------------
+  |  Branch (41:7): [True: 29, False: 199]
+  ------------------
+   42|     29|    size_t offset = 0;
+   43|     29|    if (ghostty_snapshot_decoder_get(o->decoder, GHOSTTY_SNAPSHOT_DECODER_DATA_SOURCE_OFFSET, &offset) ||
+  ------------------
+  |  Branch (43:9): [True: 1, False: 28]
+  ------------------
+   44|     29|        offset != o->source_len) return -1;
+  ------------------
+  |  Branch (44:9): [True: 1, False: 27]
+  ------------------
+   45|     27|    ghostty_snapshot_decoder_free(o->decoder); o->decoder = NULL; return 1;
+   46|     29|  }
+   47|    199|  if (o->denied) return -2;
+  ------------------
+  |  Branch (47:7): [True: 1, False: 198]
+  ------------------
+   48|    198|  if (r != GHOSTTY_SUCCESS || ghostty_snapshot_decoder_get(o->decoder,
+  ------------------
+  |  Branch (48:7): [True: 3, False: 195]
+  |  Branch (48:31): [True: 1, False: 194]
+  ------------------
+   49|    195|      GHOSTTY_SNAPSHOT_DECODER_DATA_PROGRESS_ROWS, rows)) return -1;
+   50|    194|  return 0;
+   51|    198|}
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/view.c:
+    1|       |#include "bridge.h"
+    2|    943|#define GET(key, out) do { if (ghostty_terminal_get(o->terminal, key, out)) return -1; } while (0)
+  ------------------
+  |  Branch (2:32): [True: 1, False: 108]
+  |  Branch (2:97): [Folded, False: 108]
+  |  Branch (2:32): [True: 1, False: 107]
+  |  Branch (2:97): [Folded, False: 107]
+  |  Branch (2:32): [True: 1, False: 106]
+  |  Branch (2:97): [Folded, False: 106]
+  |  Branch (2:32): [True: 1, False: 105]
+  |  Branch (2:97): [Folded, False: 105]
+  |  Branch (2:32): [True: 1, False: 104]
+  |  Branch (2:97): [Folded, False: 104]
+  |  Branch (2:32): [True: 1, False: 103]
+  |  Branch (2:97): [Folded, False: 103]
+  |  Branch (2:32): [True: 1, False: 102]
+  |  Branch (2:97): [Folded, False: 102]
+  |  Branch (2:32): [True: 1, False: 101]
+  |  Branch (2:97): [Folded, False: 101]
+  |  Branch (2:32): [True: 1, False: 98]
+  |  Branch (2:97): [Folded, False: 98]
+  ------------------
+    3|    202|static bool mode(RuntimeTerminal *o, GhosttyMode value) {
+    4|    202|  GhosttyTerminalModeConfig m = {value, false};
+    5|    202|  return !ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_MODE, &m) && m.value;
+  ------------------
+  |  Branch (5:10): [True: 200, False: 2]
+  |  Branch (5:80): [True: 10, False: 190]
+  ------------------
+    6|    202|}
+    7|    109|int rt_info(RuntimeTerminal *o, RuntimeInfo *out) {
+    8|    109|  bool visible, pending, mouse;
+    9|    109|  GhosttyTerminalScreen screen;
+   10|    109|  GET(GHOSTTY_TERMINAL_DATA_COLS, &out->cols);
+   11|    108|  GET(GHOSTTY_TERMINAL_DATA_ROWS, &out->rows);
+   12|    107|  GET(GHOSTTY_TERMINAL_DATA_CURSOR_X, &out->x);
+   13|    106|  GET(GHOSTTY_TERMINAL_DATA_CURSOR_Y, &out->y);
+   14|    105|  GET(GHOSTTY_TERMINAL_DATA_CURSOR_VISIBLE, &visible);
+   15|    104|  GET(GHOSTTY_TERMINAL_DATA_CURSOR_PENDING_WRAP, &pending);
+   16|    103|  GET(GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, &screen);
+   17|    102|  GET(GHOSTTY_TERMINAL_DATA_MOUSE_TRACKING, &mouse);
+   18|    101|  out->visible = visible; out->pending_wrap = pending; out->mouse = mouse;
+   19|    101|  out->alternate = screen == GHOSTTY_TERMINAL_SCREEN_ALTERNATE;
+   20|    101|  out->paste = mode(o, GHOSTTY_MODE_BRACKETED_PASTE);
+   21|    101|  out->application_cursor = mode(o, GHOSTTY_MODE_DECCKM);
+   22|    101|  GhosttyColorRgb foreground = {0}, background = {0}, cursor, palette[256];
+   23|    101|  int fr = ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_COLOR_FOREGROUND, &foreground);
+   24|    101|  int br = ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_COLOR_BACKGROUND, &background);
+   25|    101|  if ((fr && fr != GHOSTTY_NO_VALUE) || (br && br != GHOSTTY_NO_VALUE)) return -1;
+  ------------------
+  |  Branch (25:8): [True: 99, False: 2]
+  |  Branch (25:14): [True: 1, False: 98]
+  |  Branch (25:42): [True: 99, False: 1]
+  |  Branch (25:48): [True: 1, False: 98]
+  ------------------
+   26|     99|  out->has_foreground = fr == GHOSTTY_SUCCESS; out->has_background = br == GHOSTTY_SUCCESS;
+   27|     99|  GET(GHOSTTY_TERMINAL_DATA_COLOR_PALETTE, &palette);
+   28|     98|  int cursor_result = ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_COLOR_CURSOR, &cursor);
+   29|     98|  if (cursor_result != GHOSTTY_SUCCESS && cursor_result != GHOSTTY_NO_VALUE) return -1;
+  ------------------
+  |  Branch (29:7): [True: 97, False: 1]
+  |  Branch (29:43): [True: 1, False: 96]
+  ------------------
+   30|     97|  out->has_cursor_color = cursor_result == GHOSTTY_SUCCESS;
+   31|     97|  if (out->has_cursor_color) {
+  ------------------
+  |  Branch (31:7): [True: 1, False: 96]
+  ------------------
+   32|      1|    out->cursor_color[0] = cursor.r; out->cursor_color[1] = cursor.g; out->cursor_color[2] = cursor.b;
+   33|      1|  }
+   34|     97|  out->foreground[0] = foreground.r; out->foreground[1] = foreground.g; out->foreground[2] = foreground.b;
+   35|     97|  out->background[0] = background.r; out->background[1] = background.g; out->background[2] = background.b;
+   36|  24.9k|  for (size_t i = 0; i < 256; i++) {
+  ------------------
+  |  Branch (36:22): [True: 24.8k, False: 97]
+  ------------------
+   37|  24.8k|    out->palette[i][0] = palette[i].r; out->palette[i][1] = palette[i].g; out->palette[i][2] = palette[i].b;
+   38|  24.8k|  }
+   39|     97|  return 0;
+   40|     98|}
+   41|   252k|static RuntimeColor color(GhosttyStyleColor c) {
+   42|   252k|  switch (c.tag) {
+   43|   252k|    case GHOSTTY_STYLE_COLOR_NONE: return (RuntimeColor){0,0,0,0};
+  ------------------
+  |  Branch (43:5): [True: 252k, False: 30]
+  ------------------
+   44|      9|    case GHOSTTY_STYLE_COLOR_PALETTE: return (RuntimeColor){1,c.value.palette,0,0};
+  ------------------
+  |  Branch (44:5): [True: 9, False: 252k]
+  ------------------
+   45|     20|    case GHOSTTY_STYLE_COLOR_RGB: return (RuntimeColor){2,c.value.rgb.r,c.value.rgb.g,c.value.rgb.b};
+  ------------------
+  |  Branch (45:5): [True: 20, False: 252k]
+  ------------------
+   46|      1|    default: return (RuntimeColor){255,0,0,0};
+  ------------------
+  |  Branch (46:5): [True: 1, False: 252k]
+  ------------------
+   47|   252k|  }
+   48|   252k|}
+   49|       |int rt_cell(RuntimeTerminal *o, uint16_t x, uint16_t y, uint32_t *text,
+   50|  84.1k|            size_t cap, size_t *len, RuntimeStyle *out) {
+   51|  84.1k|  GhosttyGridRef ref = {.size = sizeof(ref)};
+   52|  84.1k|  GhosttyPoint point = {.tag = GHOSTTY_POINT_TAG_ACTIVE, .value.coordinate = {x,y}};
+   53|  84.1k|  GhosttyStyle s = {.size = sizeof(s)};
+   54|  84.1k|  GhosttyCell cell;
+   55|  84.1k|  GhosttyCellWide wide;
+   56|  84.1k|  if (ghostty_terminal_grid_ref(o->terminal, point, &ref) ||
+  ------------------
+  |  Branch (56:7): [True: 1, False: 84.1k]
+  ------------------
+   57|  84.1k|      ghostty_grid_ref_style(&ref, &s) || ghostty_grid_ref_cell(&ref, &cell) ||
+  ------------------
+  |  Branch (57:7): [True: 1, False: 84.1k]
+  |  Branch (57:43): [True: 1, False: 84.1k]
+  ------------------
+   58|  84.1k|      ghostty_cell_get(cell, GHOSTTY_CELL_DATA_WIDE, &wide)) return -1;
+  ------------------
+  |  Branch (58:7): [True: 1, False: 84.1k]
+  ------------------
+   59|  84.1k|  int r = ghostty_grid_ref_graphemes(&ref, text, cap, len);
+   60|  84.1k|  if (r) return r == GHOSTTY_OUT_OF_SPACE ? -2 : -1;
+  ------------------
+  |  Branch (60:7): [True: 3, False: 84.1k]
+  |  Branch (60:17): [True: 2, False: 1]
+  ------------------
+   61|  84.1k|  out->foreground = color(s.fg_color); out->background = color(s.bg_color);
+   62|  84.1k|  out->underline_color = color(s.underline_color);
+   63|  84.1k|  out->flags = s.bold | s.italic << 1 | s.faint << 2 | s.blink << 3 |
+   64|  84.1k|    s.inverse << 4 | s.invisible << 5 | s.strikethrough << 6 | s.overline << 7;
+   65|  84.1k|  out->underline = s.underline;
+   66|  84.1k|  switch (wide) {
+   67|  84.0k|    case GHOSTTY_CELL_WIDE_NARROW: out->width = 1; break;
+  ------------------
+  |  Branch (67:5): [True: 84.0k, False: 48]
+  ------------------
+   68|     24|    case GHOSTTY_CELL_WIDE_WIDE: out->width = 2; break;
+  ------------------
+  |  Branch (68:5): [True: 24, False: 84.0k]
+  ------------------
+   69|     24|    default: out->width = 0;
+  ------------------
+  |  Branch (69:5): [True: 24, False: 84.0k]
+  ------------------
+   70|  84.1k|  }
+   71|  84.1k|  return 0;
+   72|  84.1k|}
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/verification.c:
+    1|       |/* Independent contract oracle. Tests decode opaque checkpoints and compare the
+    2|       | * upstream canonical VT formatter including history and extra terminal state.
+    3|       | * Binary page layout may change after mutation without changing semantics. */
+    4|       |#include "bridge.h"
+    5|       |typedef struct { uint8_t *bytes; size_t used, cap; } VerificationWriter;
+    6|  3.64k|static bool verify_write(void *ctx, const uint8_t *p, size_t n) {
+    7|  3.64k|  VerificationWriter *w = ctx;
+    8|  3.64k|  if (n > w->cap - w->used) return false;
+  ------------------
+  |  Branch (8:7): [True: 1, False: 3.64k]
+  ------------------
+    9|  3.64k|  memcpy(w->bytes + w->used, p, n); w->used += n; return true;
+   10|  3.64k|}
+   11|     24|int rt_verify_format(const uint8_t *p, size_t n, uint8_t *out, size_t cap, size_t *len) {
+   12|     24|  RuntimeTerminal *o = rt_owner(256 * 1024 * 1024);
+   13|     24|  if (!o) return -1;
+  ------------------
+  |  Branch (13:7): [True: 1, False: 23]
+  ------------------
+   14|     23|  GhosttyFormatter formatter = NULL;
+   15|     23|  int result = -1;
+   16|     23|  if (ghostty_snapshot_decoder_new_buf(&o->allocator, &o->decoder, p, n) ||
+  ------------------
+  |  Branch (16:7): [True: 1, False: 22]
+  ------------------
+   17|     23|      ghostty_snapshot_decoder_decode(o->decoder, &o->terminal)) goto done;
+  ------------------
+  |  Branch (17:7): [True: 1, False: 21]
+  ------------------
+   18|     21|  GhosttyFormatterTerminalOptions options = {
+   19|     21|    .size = sizeof(options), .emit = GHOSTTY_FORMATTER_FORMAT_VT, .unwrap = true, .trim = true
+   20|     21|  };
+   21|     21|  options.extra = (GhosttyFormatterTerminalExtra){
+   22|     21|    .size = sizeof(options.extra), .palette = true, .modes = true,
+   23|     21|    .scrolling_region = true, .tabstops = true, .pwd = true, .keyboard = true
+   24|     21|  };
+   25|     21|  options.extra.screen = (GhosttyFormatterScreenExtra){
+   26|     21|    .size = sizeof(options.extra.screen), .cursor = true, .style = true,
+   27|     21|    .hyperlink = true, .protection = true, .kitty_keyboard = true, .charsets = true
+   28|     21|  };
+   29|     21|  if (ghostty_formatter_terminal_new(&o->allocator, &formatter, o->terminal, options)) goto done;
+  ------------------
+  |  Branch (29:7): [True: 1, False: 20]
+  ------------------
+   30|     20|  VerificationWriter writer = {out, 0, cap};
+   31|     20|  result = ghostty_formatter_format(formatter, (GhosttyWriter){verify_write, &writer});
+   32|     20|  *len = writer.used;
+   33|     23|done:
+   34|     23|  if (formatter) ghostty_formatter_free(formatter);
+  ------------------
+  |  Branch (34:7): [True: 20, False: 3]
+  ------------------
+   35|     23|  rt_free(o);
+   36|     23|  return result;
+   37|     20|}
+

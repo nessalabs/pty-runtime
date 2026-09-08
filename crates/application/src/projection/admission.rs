@@ -25,12 +25,13 @@ impl ProjectionCoordinator {
             )?)
         };
         Ok(StagingLease {
+            timing: None,
             bytes,
             slots: Some(slots),
             signal: self.services()?.capacity,
         })
     }
-    fn ticket<T: Send + 'static>(
+    pub(super) fn ticket<T: Send + 'static>(
         &self,
     ) -> Result<(Arc<Ticket<T>>, ProjectionOperation<T>), ProjectionError> {
         let lease = Lease::pair(
@@ -43,6 +44,18 @@ impl ProjectionCoordinator {
     /// Admit an entire reader chunk once. Rejection neither copies nor advances positions.
     /// Replay publication must follow Accepted; evictable replay never backs this queue.
     pub fn stage_output(&self, bytes: &[u8]) -> OutputAcceptance {
+        self.stage_output_observed(bytes, None)
+    }
+    /// Preserve an actual read-completion timestamp through accepted parser staging.
+    /// Rejected chunks retain no timer and must be retried with the original timestamp.
+    pub fn stage_output_observed(
+        &self,
+        bytes: &[u8],
+        observed: Option<(
+            Arc<crate::diagnostics::RuntimeDiagnostics>,
+            std::time::Instant,
+        )>,
+    ) -> OutputAcceptance {
         let Ok(services) = self.services() else {
             return OutputAcceptance::Closed;
         };
@@ -55,13 +68,16 @@ impl ProjectionCoordinator {
         ) {
             return OutputAcceptance::Closed;
         }
+        if core.output_drain.is_some() {
+            return OutputAcceptance::Closed;
+        }
         if bytes.is_empty() {
             return OutputAcceptance::Accepted;
         }
         if bytes.len() > self.options.terminal.feed_bytes {
             return OutputAcceptance::Backpressure;
         }
-        let Ok(lease) = self.staging(bytes.len()) else {
+        let Ok(mut lease) = self.staging(bytes.len()) else {
             return OutputAcceptance::Backpressure;
         };
         let mut owned = Vec::new();
@@ -76,6 +92,13 @@ impl ProjectionCoordinator {
         {
             return OutputAcceptance::Closed;
         }
+        lease.timing = observed.map(|(diagnostics, started)| {
+            crate::diagnostics::Timing::new(
+                diagnostics,
+                crate::diagnostics::LatencyKind::ProjectedOutput,
+                started,
+            )
+        });
         core.queue.push_back(Event::Output(owned, lease));
         drop(core);
         // Accepted staging is never rolled back after ownership transfer, even if
@@ -91,12 +114,24 @@ impl ProjectionCoordinator {
         &self,
         size: TerminalSize,
     ) -> Result<ProjectionOperation<ResizeOutcome>, ProjectionError> {
+        self.resize_timed(size, None)
+    }
+    /// Preserve optional resize admission timing through the ordered queue.
+    pub fn resize_timed(
+        &self,
+        size: TerminalSize,
+        timing: Option<crate::diagnostics::Timing>,
+    ) -> Result<ProjectionOperation<ResizeOutcome>, ProjectionError> {
         let services = self.services()?;
         let (ticket, wait) = self.ticket()?;
-        let lease = self.staging(0)?;
+        let mut lease = self.staging(0)?;
         let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
         self.accepting(&core)?;
+        if core.output_drain.is_some() {
+            return Err(ProjectionError::Closed);
+        }
         core.policy.activity(services.clock.now())?;
+        lease.timing = timing;
         core.queue.push_back(Event::Resize(size, ticket, lease));
         drop(core);
         if let Err(error) = self.wake() {
@@ -125,7 +160,10 @@ impl ProjectionCoordinator {
         let lease = self.staging(0)?;
         let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
         self.accepting(&core)?;
-        core.queue.push_back(Event::Checkpoint(ticket, lease));
+        core.queue.push_back(Event::Checkpoint(
+            super::snapshot::SnapshotRequest::Checkpoint(ticket),
+            lease,
+        ));
         drop(core);
         if let Err(error) = self.wake() {
             self.fail(error);
@@ -153,6 +191,7 @@ impl ProjectionCoordinator {
             }
             let rejected = std::mem::take(&mut core.queue);
             drop(core);
+            self.journal.close();
             for event in rejected {
                 event.fail(ProjectionError::Closed);
             }
@@ -163,7 +202,7 @@ impl ProjectionCoordinator {
         }
         pair.map(|(_, wait)| wait)
     }
-    fn accepting(&self, core: &super::state::Core) -> Result<(), ProjectionError> {
+    pub(super) fn accepting(&self, core: &super::state::Core) -> Result<(), ProjectionError> {
         let status = core.policy.status();
         if matches!(status.residency, Residency::Closing | Residency::Closed) {
             return Err(ProjectionError::Closed);

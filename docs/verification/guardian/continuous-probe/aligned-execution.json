@@ -1,0 +1,70 @@
+[
+  {
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/filename.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/filename.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rustc",
+      "--edition=2024",
+      "-C",
+      "instrument-coverage",
+      "-C",
+      "llvm-args=-instrprof-atomic-counter-update-all",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_cnts,0x4000",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_bits,0x4000",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_data,0x4000",
+      "-C",
+      "link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/filename.o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/probe"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/probe"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "merge",
+      "-sparse",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/helper-84032.profraw",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/probe.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "export",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/probe",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/aligned/probe.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"data\":[{\"files\":[{\"branches\":[],\"expansions\":[],\"filename\":\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs\",\"mcdc_records\":[],\"segments\":[[2,18,1,true,true,false],[2,33,0,false,false,false],[2,36,1,true,true,false],[2,56,0,false,false,false],[2,62,1,true,true,false],[2,63,0,false,false,false],[3,18,1,true,true,false],[3,34,0,false,false,false],[3,37,1,true,true,false],[3,57,0,false,false,false],[3,63,1,true,true,false],[3,64,0,false,false,false],[4,1,1,true,true,false],[4,10,0,false,false,false],[4,26,1,true,true,false],[4,29,0,false,false,false],[4,30,1,true,true,false],[4,34,0,false,false,false],[4,38,1,true,true,false],[4,45,0,false,false,false],[4,46,1,true,true,false],[4,52,0,false,false,false],[4,58,2,true,true,false],[4,64,0,false,false,false],[4,67,1,true,true,false],[4,77,0,false,false,false],[4,81,1,true,true,false],[4,86,0,false,false,false],[4,91,1,true,true,false],[4,92,0,false,false,false],[4,93,1,true,true,false],[4,104,0,false,false,false],[4,112,1,true,true,false],[4,122,0,false,false,false],[4,123,1,true,true,false],[4,124,0,false,false,false],[4,126,1,true,true,false],[4,136,0,false,false,false],[4,137,1,true,true,false],[4,144,0,false,false,false],[4,145,1,true,true,false],[4,148,0,false,false,false],[4,149,1,true,true,false],[4,160,0,false,false,false],[4,170,1,true,true,false],[4,180,0,false,false,false],[4,194,1,true,true,false],[4,195,0,false,false,false]],\"summary\":{\"branches\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"functions\":{\"count\":3,\"covered\":3,\"percent\":100},\"instantiations\":{\"count\":3,\"covered\":3,\"percent\":100},\"lines\":{\"count\":3,\"covered\":3,\"percent\":100},\"mcdc\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"regions\":{\"count\":24,\"covered\":24,\"notcovered\":0,\"percent\":100}}}],\"functions\":[{\"branches\":[],\"count\":1,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe10child_only\",\"regions\":[[2,18,2,33,1,0,0,0],[2,36,2,56,1,0,0,0],[2,62,2,63,1,0,0,0]]},{\"branches\":[],\"count\":1,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe11parent_only\",\"regions\":[[3,18,3,34,1,0,0,0],[3,37,3,57,1,0,0,0],[3,63,3,64,1,0,0,0]]},{\"branches\":[],\"count\":1,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe4main\",\"regions\":[[4,1,4,10,1,0,0,0],[4,26,4,29,1,0,0,0],[4,30,4,34,1,0,0,0],[4,38,4,45,1,0,0,0],[4,46,4,52,1,0,0,0],[4,58,4,64,2,0,0,0],[4,67,4,77,1,0,0,0],[4,81,4,86,1,0,0,0],[4,91,4,92,1,0,0,0],[4,93,4,104,1,0,0,0],[4,112,4,122,1,0,0,0],[4,123,4,124,1,0,0,0],[4,126,4,136,1,0,0,0],[4,137,4,144,1,0,0,0],[4,145,4,148,1,0,0,0],[4,149,4,160,1,0,0,0],[4,170,4,180,1,0,0,0],[4,194,4,195,1,0,0,0]]}],\"totals\":{\"branches\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"functions\":{\"count\":3,\"covered\":3,\"percent\":100},\"instantiations\":{\"count\":3,\"covered\":3,\"percent\":100},\"lines\":{\"count\":3,\"covered\":3,\"percent\":100},\"mcdc\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"regions\":{\"count\":24,\"covered\":24,\"notcovered\":0,\"percent\":100}}}],\"type\":\"llvm.coverage.json.export\",\"version\":\"3.1.0\"}",
+    "stderr": ""
+  }
+]

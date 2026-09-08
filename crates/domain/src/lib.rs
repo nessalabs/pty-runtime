@@ -15,3 +15,6 @@ pub mod session;
 pub mod checkpoint;
 
 pub mod projection;
+
+#[cfg(test)]
+mod redaction_tests;

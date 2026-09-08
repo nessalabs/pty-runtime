@@ -41,8 +41,10 @@ pub trait ITerminal: Send {
     ) -> Result<TerminalCheckpoint, TerminalError>;
     /// Current restoration milestone.
     fn restoration_progress(&self) -> RestorationProgress;
-    /// Restore at most one native history unit, allowing observations between steps.
-    /// Engines may reject mutations until Complete to preserve complete retained history.
+    /// Restore at most one history unit, allowing supported live mutations between steps.
+    /// Report validated but inapplicable pages; source completion does not imply
+    /// every original history page was restored.
+    /// Engines without mutation_during_restore may reject mutations until finished.
     fn restore_history_step(&mut self) -> Result<RestorationProgress, TerminalError>;
     /// Perform one bounded unit of optional resident-history compression.
     /// Returns true if no further work remains.

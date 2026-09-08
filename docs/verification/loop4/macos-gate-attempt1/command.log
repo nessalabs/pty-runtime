@@ -1,0 +1,482 @@
++ python3 -m unittest discover -s scripts/tests -v
+test_actual_workspace_is_accepted (test_gate.ArchitectureGateTests) ... ok
+test_correctly_named_dependency_pointing_elsewhere_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_external_core_dependencies_in_all_declaration_kinds_are_rejected (test_gate.ArchitectureGateTests) ... ok
+test_infrastructure_to_facade_reverse_edge_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_missing_each_required_package_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_registry_dependency_impersonating_domain_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_relocated_package_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_renamed_alias_does_not_hide_wrong_path (test_gate.ArchitectureGateTests) ... ok
+test_renamed_core_package_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_required_nonmember_is_rejected (test_gate.ArchitectureGateTests) ... ok
+test_valid_domain_alias_remains_allowed (test_gate.ArchitectureGateTests) ... ok
+test_existing_evidence_is_never_overwritten (test_performance.PerformanceEvidence) ... ok
+test_timeout_preserves_raw_and_metadata (test_performance.PerformanceEvidence) ... Evidence directory: /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/tmpfpgxa9jf/evidence
+ok
+test_oversized_native_rust_c_and_header_are_rejected (test_sizes.SizeGateTests) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.197s
+
+OK
+partial test output
++ cargo test --locked -p pty-runtime-domain --no-default-features
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-53f1a539f3ca9b2a)
+
+running 22 tests
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+test projection::tests::skipped_history_progress_cannot_regress_into_complete_history ... ok
+test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+test projection::transfer_tests::applied_controls_advance_sequence_without_advancing_original_bytes ... ok
+test projection::transfer_tests::identity_future_and_evicted_ranges_have_distinct_failures ... ok
+test projection::transfer_tests::terminal_prefix_is_immutable_and_domain_forbids_late_mutations ... ok
+test projection::transfer_tests::unavailable_transfer_cannot_be_reopened_or_extended ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/replay_model.rs (target/debug/deps/replay_model-7d47b4b21cc3a474)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+   Doc-tests pty_runtime_domain
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo test --locked -p pty-runtime-application --no-default-features
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-fe125b4250f4aa0f)
+
+running 39 tests
+test diagnostics::histogram::tests::boundary_rounding_overflow_and_failed_samples_remain_explicit ... ok
+test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+test projection::tests::ordered_review::cancelled_projection_wait_drops_reentrant_waker_outside_ticket_lock ... ok
+test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+test projection::tests::ordered_review::observation_requests_do_not_delay_the_final_applied_prefix ... ok
+test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+test projection::tests::ordered_review::failed_end_stays_immutable_when_an_inflight_native_feed_returns_success ... ok
+test projection::tests::ordered_review::replacing_a_pending_waker_drops_its_observer_outside_the_journal_lock ... ok
+test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+test projection::tests::ordered_review::parked_snapshot_io_does_not_delay_an_existing_observers_end ... ok
+test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+test projection::tests::ready::drain_end_waits_for_history_validation_and_retains_corrupt_source ... ok
+test projection::tests::ready::ready_interleaves_live_bytes_and_controls_without_releasing_source_before_finish ... ok
+test projection::tests::transfer::cancelled_wait_removes_waker_and_final_observer_releases_retention ... ok
+test projection::tests::transfer::no_observers_allocate_no_continuation_storage_and_new_transfer_skips_no_applied_state ... ok
+test projection::tests::transfer::drain_is_sealed_but_end_waits_for_parser_and_failure_ends_only_the_valid_prefix ... ok
+test projection::tests::ready::skipped_history_is_visible_and_lifetime_count_survives_the_next_park ... ok
+test projection::tests::transfer::observer_admission_cancel_and_snapshot_pins_release_independently ... ok
+test projection::tests::transfer::foreign_future_and_evicted_cursors_are_distinct_and_readers_are_independent ... ok
+test projection::tests::transfer::retained_payload_and_control_slots_force_explicit_holes_until_consumers_drop ... ok
+test projection::tests::transfer::parked_transfer_precedes_staged_mutation_and_rejected_io_releases_observer_permit ... ok
+test projection::tests::transfer::snapshot_boundary_and_independent_byte_control_order_are_exact ... ok
+test runtime::context_tests::poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pty_runtime_application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo fmt --all --check
++ cargo fmt --manifest-path helpers/guardian/Cargo.toml --check
++ cargo clippy --manifest-path helpers/guardian/Cargo.toml --locked --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
++ cargo test --manifest-path helpers/guardian/Cargo.toml --locked
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/main.rs (helpers/guardian/target/debug/deps/pty_runtime_guardian-2601b25f566097a9)
+
+running 3 tests
+test protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ python3 scripts/native/bootstrap.py
++ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+    Checking pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
++ cargo test --locked --workspace --all-targets --all-features
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.48s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime-46add6baaedc01b7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests tests/fixtures/pty_fixture.rs (target/debug/deps/pty_runtime_fixture-177a1a3f82695c8c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ddd_spawn_failure.rs (target/debug/deps/ddd_spawn_failure-389988bebb7bf720)
+
+running 1 test
+test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/default_parking.rs (target/debug/deps/default_parking-418c4ede3c32c92e)
+
+running 1 test
+test default_policy_parks_at_sixty_seconds_and_keeps_process_alive ... ignored, explicit real-clock sixty-second parking qualification
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/event_stream_failures.rs (target/debug/deps/event_stream_failures-16e82981263884dd)
+
+running 3 tests
+test contradictory_store_cursor_cannot_acknowledge_a_different_completion_event ... ok
+test cancelled_sink_wait_retries_same_id_before_and_after_commit ... ok
+test exact_pending_identity_survives_rejection_uncertain_commit_and_invalid_receipts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+
+     Running tests/event_stream_isolation.rs (target/debug/deps/event_stream_isolation-2626853e214766ab)
+
+running 4 tests
+test cancelling_before_source_read_keeps_cursor_and_observer_reusable ... ok
+test stalled_sink_does_not_block_parser_input_resize_or_cancel_and_later_reports_gap ... ok
+test panicking_publisher_waker_does_not_suppress_another_observer_or_pty_output ... ok
+test cancelled_publication_drops_a_reentrant_source_waker_without_locking_the_session ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/event_stream_reconnect.rs (target/debug/deps/event_stream_reconnect-47d5cfe5016c2359)
+
+running 2 tests
+test real_store_subscription_reconnect_and_interleaved_writer_keep_distinct_cursors ... ok
+test actual_memory_store_full_and_stale_incarnation_preserve_pending_without_eviction ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/input_reservation.rs (target/debug/deps/input_reservation-883ce8fabc232061)
+
+running 1 test
+test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ordered_transfer_runtime.rs (target/debug/deps/ordered_transfer_runtime-57c3e1920273499b)
+
+running 1 test
+test two_parked_snapshot_consumers_replay_original_bytes_and_resizes_to_identical_final_models ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/process_handle_resources.rs (target/debug/deps/process_handle_resources-60988184418c3b08)
+
+running 1 test
+test completed_old_handles_do_not_keep_process_wake_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/projected_runtime.rs (target/debug/deps/projected_runtime-0fa5d18aeb561e1f)
+
+running 2 tests
+test real_query_reply_is_sent_once_with_multiple_observers ... ok
+test detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/projection_cleanup_outcome.rs (target/debug/deps/projection_cleanup_outcome-a65d6da3791611d8)
+
+running 2 tests
+test domain_session_validation_rejects_incompatible_projection_admission ... ok
+test forget_preserves_delete_and_uncertain_commit_failures_including_repeated_calls ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/projection_correctness.rs (target/debug/deps/projection_correctness-c6922da5b68e9a79)
+
+running 4 tests
+test impossible_global_parser_budgets_reject_before_child_launch ... ok
+test shutdown_closes_model_with_completed_request_wait_retained ... ok
+test process_future_panic_does_not_strand_runtime_shutdown ... ok
+test resize_panic_during_close_keeps_cleanup_scheduled ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_adversarial.rs (target/debug/deps/raw_adversarial-c0ddcb9aa5051d35)
+
+running 1 test
+test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/raw_child_contract.rs (target/debug/deps/raw_child_contract-7f527e6ad8d9d3d3)
+
+running 2 tests
+test merged_stdout_stderr_preserves_binary_bytes_through_public_observer ... ok
+test explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/raw_completion.rs (target/debug/deps/raw_completion-8de38b52bf9073d9)
+
+running 1 test
+test signal_death_and_descendant_drain_never_become_fabricated_success ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/raw_registration.rs (target/debug/deps/raw_registration-140c18976817550a)
+
+running 1 test
+test simultaneous_duplicate_calls_launch_once_even_after_completion_until_forgetting ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/raw_runtime.rs (target/debug/deps/raw_runtime-08a7959568a4533b)
+
+running 4 tests
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/ready_projection.rs (target/debug/deps/ready_projection-9ee6d2be04ac52bf)
+
+running 1 test
+test ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/runtime_diagnostics.rs (target/debug/deps/runtime_diagnostics-78df78af188829d0)
+
+running 4 tests
+test raw_measurements_count_admission_actual_io_and_rejected_input_separately ... ok
+test projected_samples_finish_after_native_feed_and_ordered_resize ... ok
+test cancellation_dispatch_requires_acknowledged_workload_and_verified_groups ... ok
+test aggregate_gauges_follow_completed_handles_and_exact_replay_gaps ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/runtime_performance.rs (target/debug/deps/runtime_performance-a3af99ce330101b9)
+
+running 1 test
+test projected_real_pty_producers ... ignored, scoped release performance measurement: scripts/performance.py
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/event_stream_reconnect.rs (target/debug/examples/event_stream_reconnect-68a9ad7aa0437d1c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/release_load.rs (target/debug/examples/release_load-cde436778b5acc3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/release_stress.rs (target/debug/examples/release_stress-d207b1ce2b93bb0e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-fe125b4250f4aa0f)
+
+running 39 tests
+test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+test diagnostics::histogram::tests::boundary_rounding_overflow_and_failed_samples_remain_explicit ... ok
+test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+test projection::tests::ordered_review::cancelled_projection_wait_drops_reentrant_waker_outside_ticket_lock ... ok
+test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+test projection::tests::ordered_review::failed_end_stays_immutable_when_an_inflight_native_feed_returns_success ... ok
+test projection::tests::ordered_review::parked_snapshot_io_does_not_delay_an_existing_observers_end ... ok
+test projection::tests::ordered_review::observation_requests_do_not_delay_the_final_applied_prefix ... ok
+test projection::tests::ordered_review::replacing_a_pending_waker_drops_its_observer_outside_the_journal_lock ... ok
+test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+test projection::tests::ready::drain_end_waits_for_history_validation_and_retains_corrupt_source ... ok
+test projection::tests::ready::ready_interleaves_live_bytes_and_controls_without_releasing_source_before_finish ... ok
+test projection::tests::transfer::cancelled_wait_removes_waker_and_final_observer_releases_retention ... ok
+test projection::tests::ready::skipped_history_is_visible_and_lifetime_count_survives_the_next_park ... ok
+test projection::tests::transfer::drain_is_sealed_but_end_waits_for_parser_and_failure_ends_only_the_valid_prefix ... ok
+test projection::tests::transfer::foreign_future_and_evicted_cursors_are_distinct_and_readers_are_independent ... ok
+test projection::tests::transfer::no_observers_allocate_no_continuation_storage_and_new_transfer_skips_no_applied_state ... ok
+test projection::tests::transfer::observer_admission_cancel_and_snapshot_pins_release_independently ... ok
+test projection::tests::transfer::parked_transfer_precedes_staged_mutation_and_rejected_io_releases_observer_permit ... ok
+test projection::tests::transfer::retained_payload_and_control_slots_force_explicit_holes_until_consumers_drop ... ok
+test projection::tests::transfer::snapshot_boundary_and_independent_byte_control_order_are_exact ... ok
+test runtime::context_tests::poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_domain-53f1a539f3ca9b2a)
+
+running 22 tests
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+test projection::tests::skipped_history_progress_cannot_regress_into_complete_history ... ok
+test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+test projection::transfer_tests::applied_controls_advance_sequence_without_advancing_original_bytes ... ok
+test projection::transfer_tests::identity_future_and_evicted_ranges_have_distinct_failures ... ok
+test projection::transfer_tests::terminal_prefix_is_immutable_and_domain_forbids_late_mutations ... ok
+test projection::transfer_tests::unavailable_transfer_cannot_be_reopened_or_extended ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/replay_model.rs (target/debug/deps/replay_model-7d47b4b21cc3a474)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-724137e3fdbfca24)
+
+running 15 tests
+test process::protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test process::protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test event_stream::tests::gap_and_range_boundaries_are_checked_in_both_directions ... ok
+test process::protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+test event_stream::tests::completion_preserves_actual_exit_and_all_portable_failure_categories ... ok
+test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test event_stream::tests::maximum_binary_page_roundtrips_without_payload_diagnostics_and_rejects_corruption ... ok
+test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+test event_stream::tests::independently_constructed_completion_wire_rejects_malformed_fields_and_truncation ... ok
+test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/checkpoint_adversarial.rs (target/debug/deps/checkpoint_adversarial-8accdeeff07d70e4)
+
+running 4 tests
+test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+test drop_does_not_remove_foreign_replacement_directory ... ok
+test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_contract.rs (target/debug/deps/checkpoint_contract-46e0ba57a7639691)
+
+running 5 tests
+test injected_provider_same_contract ... ok
+test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+test real_disk_contract_private_permissions_and_cleanup ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/checkpoint_crash_cleanup.rs (target/debug/deps/checkpoint_crash_cleanup-6abbc93b1a6bd5a7)
+
+running 8 tests
+test checkpoint_crash_fixture ... ok
+test direct_namespace_initialization_cannot_race_a_held_maintenance_lock ... FAILED
+test interrupted_empty_construction_is_reclaimed_but_foreign_arena_entries_remain ... ok
+test namespace_and_arena_symlinks_are_rejected_without_traversal ... ok
+test live_prefix_cannot_hide_abandoned_data_and_admit_repeated_owners ... ok
+test cleanup_budget_reports_partial_work_and_blocks_known_abandoned_admission ... ok
+test dead_owner_is_reclaimed_while_live_owner_and_its_ciphertext_survive ... ok
+test symlinks_hardlinks_and_unrecognized_objects_are_never_deleted ... ok
+
+failures:
+
+---- direct_namespace_initialization_cannot_race_a_held_maintenance_lock stdout ----
+
+thread 'direct_namespace_initialization_cannot_race_a_held_maintenance_lock' (16584959) panicked at crates/infrastructure/tests/checkpoint_crash_cleanup.rs:249:5:
+assertion `left == right` failed
+  left: -1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    direct_namespace_initialization_cannot_race_a_held_maintenance_lock
+
+test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `-p pty-runtime-infrastructure --test checkpoint_crash_cleanup`
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/gate.py", line 84, in <module>
+    main()
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/gate.py", line 70, in main
+    run('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/gate.py", line 13, in run
+    subprocess.run(args, cwd=ROOT, env=env, check=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 528, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')' returned non-zero exit status 101.

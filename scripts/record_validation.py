@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -13,10 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def source_manifest():
     files = [ROOT / name for name in ('Cargo.toml', 'Cargo.lock', 'coding_standards.md', 'AGENTS.md')]
-    for folder in ['src', 'crates', 'scripts', 'tests', '.github', 'experiments']:
-        files.extend(path for path in (ROOT / folder).rglob('*')
-                     if path.is_file() and not {'target', '__pycache__'} & set(path.parts)
-                     and path.suffix in {'.rs', '.c', '.h', '.py', '.toml', '.lock', '.yml', '.yaml'} )
+    for folder in ['src', 'crates', 'scripts', 'tests', '.github', 'experiments', 'helpers', 'examples']:
+        for directory, children, names in os.walk(ROOT / folder):
+            children[:] = [name for name in children if name not in {'target', '__pycache__', '.git', 'work'}]
+            files.extend(Path(directory) / name for name in names
+                         if Path(name).suffix in {'.rs', '.c', '.h', '.py', '.toml', '.lock', '.yml', '.yaml', '.json', '.zig', '.patch', '.sh'})
     return {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(set(files))}
 

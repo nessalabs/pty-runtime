@@ -1,0 +1,10 @@
+
+running 5 tests
+test checkpoint_and_native_allocations_are_bounded ... ok
+test chunk_admission_does_not_mutate_and_reply_overflow_invalidates_projection ... ok
+test corrupted_and_truncated_snapshots_never_complete_successfully ... ok
+test rejects_invalid_dimensions_config_and_incompatible_checkpoints ... ok
+test view_and_parser_continuation_have_explicit_budgets ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

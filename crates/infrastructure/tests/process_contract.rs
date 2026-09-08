@@ -197,10 +197,8 @@ fn descendant_endpoint_has_bounded_drain_separate_from_exit() {
     let state = events.state.lock().unwrap();
     assert_eq!(state.exit, Some(ExitStatus::Code(23)));
     assert_eq!(state.bytes, b"final");
-    #[cfg(target_os = "linux")]
+    // The independent session leader preserves descendant output on both OSes.
     assert_eq!(state.drain, Some(DrainOutcome::Truncated));
-    #[cfg(target_os = "macos")]
-    assert_eq!(state.drain, Some(DrainOutcome::Eof));
     drop(state);
     owner.shutdown();
 }

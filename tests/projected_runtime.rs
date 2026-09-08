@@ -137,11 +137,26 @@ fn detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes
         session.projection_status().unwrap().unwrap().residency,
         Residency::Closed
     );
-    assert_eq!(
-        std::fs::read_dir(&parent).unwrap().count(),
-        0,
-        "old session handles must not retain default storage namespace"
+    let entries: Vec<_> = std::fs::read_dir(&parent)
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert_eq!(entries.len(), 1, "only the shared private arena may remain");
+    let arena = &entries[0];
+    assert!(arena.file_type().unwrap().is_dir());
+    assert!(
+        arena
+            .file_name()
+            .to_str()
+            .unwrap()
+            .starts_with(".pty-runtime-checkpoints-v1-")
     );
+    assert_eq!(
+        std::fs::read_dir(arena.path()).unwrap().count(),
+        0,
+        "old session handles must not retain an owner namespace or ciphertext"
+    );
+    std::fs::remove_dir(arena.path()).unwrap();
     std::fs::remove_dir(parent).unwrap();
 }
 #[test]

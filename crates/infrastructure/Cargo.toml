@@ -14,9 +14,11 @@ futures-channel = "0.3"
 chacha20poly1305 = "=0.10.1"
 getrandom = "=0.2.16"
 zeroize = "=1.9.0"
+event-stream = { git = "https://github.com/nessalabs/event-stream", rev = "66ba7525260040d6265276692088dca6dae0737e", optional = true }
 
 [lints]
 workspace = true
 
 [features]
 ghostty = []
+event-stream = ["dep:event-stream"]

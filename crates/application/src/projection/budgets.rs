@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 /// One runtime's projection reservations, independent of replay and provider quotas.
 pub struct ProjectionBudgets {
     pub(super) limits: ProjectionLimits,
+    pub(super) journal_bytes: Arc<Quota>,
+    pub(super) journal_slots: Arc<Quota>,
+    pub(super) transfer_observers: Arc<Quota>,
     pub(super) staging_bytes: Arc<Quota>,
     pub(super) staging_slots: Arc<Quota>,
     pub(super) resident: Arc<Quota>,
@@ -16,6 +19,22 @@ pub struct ProjectionBudgets {
     pub(super) requests: Arc<Quota>,
 }
 impl ProjectionBudgets {
+    /// Copy current shared admission reservations without enumerating sessions.
+    pub fn resources(&self) -> crate::diagnostics::ProjectionResources {
+        crate::diagnostics::ProjectionResources {
+            journal_bytes: self.journal_bytes.usage(),
+            journal_slots: self.journal_slots.usage(),
+            transfer_observers: self.transfer_observers.usage(),
+            staging_bytes: self.staging_bytes.usage(),
+            staging_slots: self.staging_slots.usage(),
+            native_reservations: self.resident.usage(),
+            checkpoint_buffers: self.checkpoints.usage(),
+            stored_bytes: self.stored.usage(),
+            stored_slots: self.stored_slots.usage(),
+            views: self.views.usage(),
+            requests: self.requests.usage(),
+        }
+    }
     /// Validate finite global limits. Each result/pin keeps its reservation until dropped.
     pub fn new(limits: ProjectionLimits) -> Result<Arc<Self>, ProjectionError> {
         let limits = limits.validate()?;
@@ -25,6 +44,9 @@ impl ProjectionBudgets {
             .map_err(|_| ProjectionError::Capacity)?;
         Ok(Arc::new(Self {
             limits,
+            journal_bytes: Arc::new(Quota::new(limits.journal_bytes)),
+            journal_slots: Arc::new(Quota::new(limits.journal_slots)),
+            transfer_observers: Arc::new(Quota::new(limits.transfer_observers)),
             staging_bytes: Arc::new(Quota::new(limits.staging_bytes)),
             staging_slots: Arc::new(Quota::new(limits.staging_slots)),
             resident: Arc::new(Quota::new(limits.resident_bytes)),
@@ -127,6 +149,7 @@ impl Drop for Lease {
     }
 }
 pub(super) struct StagingLease {
+    pub timing: Option<crate::diagnostics::Timing>,
     pub bytes: Option<Lease>,
     pub slots: Option<Lease>,
     pub signal: Arc<dyn ICapacitySignal>,

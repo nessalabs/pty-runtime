@@ -1,0 +1,3 @@
+   Compiling libc v0.2.189
+   Compiling pty-runtime-guardian v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.78s

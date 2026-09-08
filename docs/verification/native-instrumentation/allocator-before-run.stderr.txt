@@ -1,0 +1,1 @@
+Assertion failed: (unsupported == NULL && owner->denied && owner->used == 0), function main, file allocator-contract.c, line 19.

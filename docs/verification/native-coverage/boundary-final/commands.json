@@ -1,0 +1,92 @@
+[
+  {
+    "name": "merge-profiles",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-profdata",
+      "merge",
+      "-sparse",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/profiles/run-allocator-75445-15781337399064545413_0.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/profiles/run-terminal_bounds-75421-17048376760708657755_0.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/profiles/run-terminal_contract-75422-17048461433843511899_0.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/profiles/run-terminal_live_restore-75420-17048376760708657755_0.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/profiles/run-terminal_view_edges-75413-17048376747822707291_0.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/run-boundary-82131-17048820093706859099_0.profraw",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/bridge.profdata"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "coverage-report",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-cov",
+      "report",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_view_edges-db15cb57b8868b15",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_live_restore-f232e143a927bf7a",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_bounds-4929709e2a2e2997",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_contract-f2a70ac40af86072",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/allocator-contract",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/boundary-contract",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/bridge.profdata",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/owner.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/checkpoint.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/view.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/verification.c"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "coverage-export",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-cov",
+      "export",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_view_edges-db15cb57b8868b15",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_live_restore-f232e143a927bf7a",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_bounds-4929709e2a2e2997",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_contract-f2a70ac40af86072",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/allocator-contract",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/boundary-contract",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/bridge.profdata",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/owner.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/checkpoint.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/view.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/verification.c"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "coverage-annotated",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-cov",
+      "show",
+      "-show-branches=count",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_view_edges-db15cb57b8868b15",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_live_restore-f232e143a927bf7a",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_bounds-4929709e2a2e2997",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/target/debug/deps/terminal_contract-f2a70ac40af86072",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/allocator-contract",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/boundary-contract",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/boundary-final/bridge.profdata",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/owner.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/checkpoint.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/view.c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/native-coverage-view-edges/source/scripts/native/verification.c"
+    ],
+    "exit_code": 0
+  }
+]

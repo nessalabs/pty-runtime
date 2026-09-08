@@ -1,0 +1,144 @@
+ M .github/workflows/experiments.yml
+ M .github/workflows/runtime.yml
+ M Cargo.lock
+ M Cargo.toml
+ M README.md
+ M crates/application/src/lib.rs
+ M crates/application/src/process/mod.rs
+ M crates/application/src/projection/admission.rs
+ M crates/application/src/projection/budgets.rs
+ M crates/application/src/projection/completion.rs
+ M crates/application/src/projection/coordinator.rs
+ M crates/application/src/projection/io.rs
+ M crates/application/src/projection/mod.rs
+ M crates/application/src/projection/native.rs
+ M crates/application/src/projection/observation.rs
+ M crates/application/src/projection/state.rs
+ M crates/application/src/projection/teardown.rs
+ M crates/application/src/projection/tests/mod.rs
+ M crates/application/src/projection/tests/terminal.rs
+ M crates/application/src/projection/worker.rs
+ M crates/application/src/runtime/attachment.rs
+ M crates/application/src/runtime/context.rs
+ M crates/application/src/runtime/mod.rs
+ M crates/application/src/runtime/owner.rs
+ M crates/application/src/runtime/projected.rs
+ M crates/application/src/runtime/quota.rs
+ M crates/application/src/runtime/session.rs
+ M crates/application/src/runtime/session_projection.rs
+ M crates/application/src/terminal/mod.rs
+ M crates/domain/src/checkpoint/mod.rs
+ M crates/domain/src/projection/mod.rs
+ M crates/domain/src/projection/options.rs
+ M crates/domain/src/projection/policy.rs
+ M crates/domain/src/projection/tests.rs
+ M crates/domain/src/terminal/checkpoint.rs
+ M crates/domain/src/terminal/mod.rs
+ M crates/infrastructure/Cargo.toml
+ M crates/infrastructure/src/checkpoint/file.rs
+ M crates/infrastructure/src/checkpoint/filesystem.rs
+ M crates/infrastructure/src/checkpoint/mod.rs
+ M crates/infrastructure/src/lib.rs
+ M crates/infrastructure/src/process/backend.rs
+ M crates/infrastructure/src/process/io.rs
+ M crates/infrastructure/src/process/lifecycle.rs
+ M crates/infrastructure/src/process/mod.rs
+ M crates/infrastructure/src/process/registration.rs
+ M crates/infrastructure/src/process/session.rs
+ M crates/infrastructure/src/process/signals.rs
+ M crates/infrastructure/src/process/spawn.rs
+ M crates/infrastructure/src/process/spawner.rs
+ M crates/infrastructure/src/process/supervisor.rs
+ M crates/infrastructure/src/terminal/ffi.rs
+ M crates/infrastructure/src/terminal/mod.rs
+ M crates/infrastructure/src/terminal/state.rs
+ M crates/infrastructure/tests/fixtures/process_spawn_barrier.rs
+ M crates/infrastructure/tests/process_contract.rs
+ M crates/infrastructure/tests/terminal_contract.rs
+ M docs/README.md
+ M docs/verification/ci-portability/README.md
+ M experiments/native/native-memory.c
+ M experiments/run.py
+ M experiments/tests/test_native_build.py
+ M scripts/gate.py
+ M scripts/native/README.md
+ M scripts/native/build.rs
+ M scripts/native/checkpoint.c
+ M scripts/native/verify_source.py
+ M scripts/performance.py
+ M scripts/record_validation.py
+ M scripts/tests/test_sizes.py
+ M src/lib.rs
+ M src/runtime.rs
+ M tests/projected_runtime.rs
+ M tests/raw_completion.rs
+?? THIRD_PARTY_NOTICES.md
+?? crates/application/src/diagnostics/
+?? crates/application/src/projection/journal.rs
+?? crates/application/src/projection/snapshot.rs
+?? crates/application/src/projection/stream_end.rs
+?? crates/application/src/projection/tests/ordered_review.rs
+?? crates/application/src/projection/tests/ready.rs
+?? crates/application/src/projection/tests/transfer.rs
+?? crates/application/src/projection/transfer.rs
+?? crates/application/src/runtime/context_tests.rs
+?? crates/domain/src/checkpoint/cleanup.rs
+?? crates/domain/src/projection/transfer.rs
+?? crates/domain/src/projection/transfer_tests.rs
+?? crates/infrastructure/examples/
+?? crates/infrastructure/src/checkpoint/arena.rs
+?? crates/infrastructure/src/checkpoint/cleanup.rs
+?? crates/infrastructure/src/checkpoint/inventory.rs
+?? crates/infrastructure/src/event_stream/
+?? crates/infrastructure/src/process/guardian.rs
+?? crates/infrastructure/src/process/image.rs
+?? crates/infrastructure/tests/checkpoint_crash_cleanup.rs
+?? crates/infrastructure/tests/fixtures/checkpoint_crash.rs
+?? crates/infrastructure/tests/process_foreground_switch.rs
+?? crates/infrastructure/tests/process_guardian_failures.rs
+?? crates/infrastructure/tests/terminal_cursor_roundtrip.rs
+?? crates/infrastructure/tests/terminal_live_restore.rs
+?? docs/examples/
+?? docs/reviews/checkpoint-crash-cleanup-independent.md
+?? docs/reviews/event-stream-architecture.md
+?? docs/reviews/event-stream-correctness.md
+?? docs/reviews/guardian-architecture.md
+?? docs/reviews/guardian-correctness.md
+?? docs/reviews/guardian-production-design-review.md
+?? docs/reviews/interactive-correctness.md
+?? docs/reviews/ordered-transfer-correctness.md
+?? docs/reviews/ordered-transfer-organization.md
+?? docs/reviews/packed-pages-prototype.md
+?? docs/reviews/ready-restoration-correctness.md
+?? docs/reviews/runtime-diagnostics-architecture.md
+?? docs/reviews/runtime-diagnostics-process-review.md
+?? docs/reviews/terminal-resize-roundtrip.md
+?? docs/usage.md
+?? docs/verification/checkpoint-crash-cleanup.md
+?? docs/verification/ci-portability/github-experiments-52ad04c.json
+?? docs/verification/ci-portability/github-experiments-52ad04c.log
+?? docs/verification/ci-portability/github-runtime-52ad04c.json
+?? docs/verification/ci-portability/github-runtime-52ad04c.log
+?? docs/verification/guardian/
+?? docs/verification/interactive-review/
+?? docs/verification/interactive/
+?? docs/verification/loop4/
+?? docs/verification/native-instrumentation/
+?? docs/verification/packed-pages/
+?? docs/verification/release-gap-audit.md
+?? docs/verification/third-party-notice-inventory.json
+?? examples/
+?? experiments/native/packed-pages-test.c
+?? experiments/native/packed-pages.h
+?? helpers/
+?? scripts/guardian/
+?? scripts/native/patches/
+?? scripts/release/
+?? scripts/tests/test_native_source.py
+?? tests/event_stream_failures.rs
+?? tests/event_stream_isolation.rs
+?? tests/event_stream_reconnect.rs
+?? tests/ordered_transfer_runtime.rs
+?? tests/ready_projection.rs
+?? tests/runtime_diagnostics.rs
+?? tests/support/event_store.rs

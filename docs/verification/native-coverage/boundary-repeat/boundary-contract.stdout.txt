@@ -1,0 +1,1 @@
+C boundary fault contracts passed (synthetic failures; real handle ownership).

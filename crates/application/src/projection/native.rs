@@ -1,6 +1,5 @@
 use super::{
-    PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionError, Residency,
-    ResizeOutcome,
+    ProjectedView, ProjectionCoordinator, ProjectionError, Residency, ResizeOutcome,
     budgets::Lease,
     state::{Engine, Event, Reply, Resizing},
 };
@@ -87,8 +86,12 @@ impl ProjectionCoordinator {
                     if model.is_ok() {
                         engine.config.size = resize.size;
                         let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                        if let Err(error) = core.policy.controlled(resize.generation) {
-                            core.policy.fail(error);
+                        let controlled = core.policy.controlled(resize.generation);
+                        drop(core);
+                        if let Err(error) = controlled {
+                            self.fail(error);
+                        } else {
+                            self.journal.resized(resize.size, resize.generation);
                         }
                     } else if os.is_ok() {
                         if let Err(error) = model {
@@ -108,7 +111,7 @@ impl ProjectionCoordinator {
     }
     pub(super) fn native_event(&self, engine: &mut Engine, event: Event) -> WorkSchedule {
         match event {
-            Event::Output(bytes, staging) => {
+            Event::Output(bytes, mut staging) => {
                 let memory = match Lease::one(self.budgets.views.clone(), engine.config.reply_bytes)
                 {
                     Ok(memory) => memory,
@@ -135,6 +138,11 @@ impl ProjectionCoordinator {
                                 .processed(bytes.len());
                             if let Err(error) = processed {
                                 self.fail(error);
+                            } else {
+                                self.journal.output(bytes, self.status().processed);
+                                if let Some(timing) = staging.timing.take() {
+                                    timing.finish(true);
+                                }
                             }
                             if !effects.0.is_empty() {
                                 engine.reply = Some(Reply {
@@ -154,7 +162,7 @@ impl ProjectionCoordinator {
                     }
                 }
             }
-            Event::Resize(size, ticket, staging) => {
+            Event::Resize(size, ticket, mut staging) => {
                 let process = self
                     .process
                     .lock()
@@ -169,7 +177,7 @@ impl ProjectionCoordinator {
                     self.fail(ProjectionError::Capacity);
                     return WorkSchedule::Dormant;
                 };
-                match process.resize(size) {
+                match process.resize_timed(size, staging.timing.take()) {
                     Ok(operation) => {
                         engine.resize = Some(Resizing {
                             size,
@@ -220,40 +228,7 @@ impl ProjectionCoordinator {
                     );
                 }
             }
-            Event::Checkpoint(ticket, _) => {
-                if !ticket.cancelled() {
-                    let result = Lease::one(
-                        self.budgets.checkpoints.clone(),
-                        engine.config.checkpoint_bytes,
-                    )
-                    .and_then(|lease| {
-                        let descriptor = self.descriptor();
-                        let terminal = engine.terminal.as_mut().ok_or(ProjectionError::Closed)?;
-                        let checkpoint =
-                            self.native_call(|| terminal.checkpoint(descriptor.clone()))?;
-                        if checkpoint.descriptor != descriptor {
-                            return Err(ProjectionError::InvalidConfiguration);
-                        }
-                        if checkpoint.bytes.capacity() > engine.config.checkpoint_bytes {
-                            return Err(ProjectionError::Capacity);
-                        }
-                        Ok(PinnedCheckpoint {
-                            checkpoint,
-                            _lease: lease,
-                        })
-                    });
-                    ticket.complete(
-                        if matches!(
-                            self.status().residency,
-                            Residency::Closing | Residency::Closed
-                        ) {
-                            Err(ProjectionError::Closed)
-                        } else {
-                            result
-                        },
-                    );
-                }
-            }
+            Event::Checkpoint(request, _) => self.snapshot(engine, request),
         }
         WorkSchedule::After(Duration::ZERO)
     }

@@ -9,3 +9,6 @@ pub mod checkpoint;
 pub mod scheduling;
 
 pub mod projection;
+
+/// Explicit bounded internal latency measurements for release qualification.
+pub mod diagnostics;

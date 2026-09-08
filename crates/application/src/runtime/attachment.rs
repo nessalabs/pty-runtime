@@ -69,7 +69,16 @@ impl Attachment {
     }
     fn advance(&mut self, event: &OutputEvent) {
         match event {
-            OutputEvent::Replay(ReplayPage::Gap { to, .. }) => self.cursor = *to,
+            OutputEvent::Replay(ReplayPage::Gap { from, to }) => {
+                if let Some(diagnostics) = &self.context.diagnostics {
+                    diagnostics.count(crate::diagnostics::CounterKind::ObserverGaps, 1);
+                    diagnostics.count(
+                        crate::diagnostics::CounterKind::ObserverGapBytes,
+                        to.offset - from.offset,
+                    );
+                }
+                self.cursor = *to;
+            }
             OutputEvent::Replay(ReplayPage::Bytes { next, .. }) => self.cursor = *next,
             _ => (),
         }
@@ -89,30 +98,34 @@ impl Future for NextOutput<'_> {
     type Output = Result<OutputEvent, RuntimeError>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
+        let mut next_waker = Some(cx.waker().clone());
+        let mut old_waker = None;
         let result = {
             let Ok(mut state) = this.attachment.context.state.lock() else {
                 return Poll::Ready(Err(RuntimeError::Internal));
             };
-            match SessionContext::read(
+            let result = SessionContext::read(
                 &state,
                 this.attachment.cursor,
                 this.attachment.context.page_bytes,
-            ) {
-                Ok(None) => {
-                    if let Some(slot) = state.watchers.get_mut(&this.attachment.id) {
-                        *slot = Some(cx.waker().clone());
-                    }
-                    return Poll::Pending;
+            );
+            if let Some(slot) = state.watchers.get_mut(&this.attachment.id) {
+                old_waker = slot.take();
+                if matches!(result, Ok(None)) {
+                    *slot = next_waker.take();
                 }
-                other => other,
             }
+            result
         };
+        // Arbitrary RawWaker clone/drop callbacks never run under session state.
+        drop(old_waker);
+        drop(next_waker);
         match result {
             Ok(Some(event)) => {
                 this.attachment.advance(&event);
                 Poll::Ready(Ok(event))
             }
-            Err(e) => Poll::Ready(Err(e)),
+            Err(error) => Poll::Ready(Err(error)),
             Ok(None) => Poll::Pending,
         }
     }

@@ -26,33 +26,61 @@ struct State {
 /// Storage operations serialize on a dedicated store mutex, never a native model lock.
 /// Quota counts logical ciphertext bytes in temporary and committed files exactly once;
 /// it excludes filesystem block rounding/cache and caller-owned encryption buffers.
-/// Drop deletes owned objects best-effort; crash recovery is deliberately unsupported.
+/// Drop deletes owned objects best-effort. Temporary arenas support bounded abandoned
+/// namespace reclamation; reading snapshots across owner/key restart remains unsupported.
 pub struct FileCheckpointStore {
     directory: Directory,
     limit: usize,
     state: Mutex<State>,
+    cleanup: CheckpointCleanupReport,
 }
 impl FileCheckpointStore {
-    /// Create an opaque fresh namespace under the supplied parent or OS temporary
-    /// directory. The parent must satisfy the same trust condition as `new`.
-    /// At most eight random-name collisions are retried; no existing path is reused.
+    /// Create a fresh namespace inside this adapter's private versioned arena under
+    /// `parent` or the OS temporary directory, with default bounded crash cleanup.
+    /// Live namespaces are never reclaimed. See `temporary_with_cleanup` for bounds.
     pub fn temporary(parent: Option<&Path>, limit_bytes: usize) -> Result<Self, CheckpointError> {
+        Self::temporary_with_cleanup(parent, limit_bytes, CheckpointCleanupLimits::default())
+    }
+    /// Reclaim bounded abandoned data, then create a fresh locked namespace. The
+    /// arena lock is acquired within one second or CapacityExceeded is returned.
+    /// Every incomplete scan returns CapacityExceeded, including live-owner prefixes.
+    /// Increase finite scan limits or reduce the live population before retrying.
+    /// The parent/arena must remain trusted against concurrent hostile replacement.
+    pub fn temporary_with_cleanup(
+        parent: Option<&Path>,
+        limit_bytes: usize,
+        limits: CheckpointCleanupLimits,
+    ) -> Result<Self, CheckpointError> {
         if limit_bytes == 0 {
             return Err(CheckpointError::InvalidConfiguration);
         }
-        let parent = parent
-            .map(Path::to_path_buf)
-            .unwrap_or_else(std::env::temp_dir);
-        for _ in 0..8 {
-            let mut random = [0; 16];
-            getrandom::getrandom(&mut random).map_err(|_| CheckpointError::EntropyUnavailable)?;
-            let name = format!("pty-runtime-{:032x}", u128::from_ne_bytes(random));
-            match Self::new(parent.join(name), limit_bytes) {
-                Err(CheckpointError::AlreadyExists) => continue,
-                result => return result,
-            }
+        limits.validate()?;
+        let arena = super::arena::Arena::open(parent)?;
+        let cleanup = super::cleanup::reclaim(&arena, limits)?;
+        if let Some(error) = cleanup.failure {
+            return Err(error);
         }
-        Err(CheckpointError::AlreadyExists)
+        if !cleanup.scan_complete || cleanup.abandoned_incomplete {
+            return Err(CheckpointError::CapacityExceeded);
+        }
+        let directory = arena.create_namespace()?;
+        Ok(Self::from_directory(directory, limit_bytes, cleanup))
+    }
+    /// Perform one explicit bounded cleanup pass in the adapter's arena. No live
+    /// owner or foreign/legacy directory is removed. Results describe examined work
+    /// only; callers may repeat/increase budgets after partial cleanup. Typed setup
+    /// errors and per-namespace report failures never claim successful reclamation.
+    pub fn cleanup_abandoned(
+        parent: Option<&Path>,
+        limits: CheckpointCleanupLimits,
+    ) -> Result<CheckpointCleanupReport, CheckpointError> {
+        limits.validate()?;
+        let arena = super::arena::Arena::open(parent)?;
+        super::cleanup::reclaim(&arena, limits)
+    }
+    /// Startup maintenance observations; unexamined data is never counted as free.
+    pub fn cleanup_report(&self) -> CheckpointCleanupReport {
+        self.cleanup
     }
     /// Create a new private directory at `path`; parent must already exist and remain
     /// trusted against concurrent name replacement through this store's lifetime.
@@ -65,9 +93,21 @@ impl FileCheckpointStore {
         }
         let path = path.as_ref().to_owned();
         let directory = Directory::create(&path)?;
-        Ok(Self {
+        Ok(Self::from_directory(
+            directory,
+            limit_bytes,
+            CheckpointCleanupReport::default(),
+        ))
+    }
+    fn from_directory(
+        directory: Directory,
+        limit_bytes: usize,
+        cleanup: CheckpointCleanupReport,
+    ) -> Self {
+        Self {
             directory,
             limit: limit_bytes,
+            cleanup,
             state: Mutex::new(State {
                 entries: HashMap::new(),
                 committed: 0,
@@ -76,7 +116,7 @@ impl FileCheckpointStore {
                 sequence: 0,
                 orphans: Vec::new(),
             }),
-        })
+        }
     }
     fn commit_with(
         &self,

@@ -3,7 +3,6 @@ use super::{
     state::{Engine, Event},
 };
 use crate::scheduling::{IScheduledWork, WorkSchedule};
-use pty_runtime_domain::terminal::RestorationProgress;
 use std::time::Duration;
 impl IScheduledWork for ProjectionCoordinator {
     fn run(&self) -> WorkSchedule {
@@ -25,6 +24,7 @@ impl IScheduledWork for ProjectionCoordinator {
         if self.status().failure.is_some() {
             return self.failed_work(&mut engine);
         }
+        self.finish_stream(&engine);
         if engine.terminal.is_none() {
             if engine.io.is_some() {
                 return WorkSchedule::Dormant;
@@ -42,24 +42,34 @@ impl IScheduledWork for ProjectionCoordinator {
             return self.start_read(&mut engine, transfer);
         }
         if status.residency == Residency::Usable {
-            let view = {
+            let event = {
                 let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                if matches!(core.queue.front(), Some(Event::View(..))) {
+                let allowed = match core.queue.front() {
+                    Some(Event::View(..)) => true,
+                    Some(Event::Output(..) | Event::Resize(..)) => {
+                        services.terminal.capabilities().mutation_during_restore
+                    }
+                    _ => false,
+                };
+                if allowed && !engine.history_due {
                     core.queue.pop_front()
                 } else {
                     None
                 }
             };
-            if let Some(view) = view {
-                return self.native_event(&mut engine, view);
+            if let Some(event) = event {
+                // One admitted operation then one history unit: neither a flood
+                // nor observation churn can starve source validation indefinitely.
+                engine.history_due = true;
+                return self.native_event(&mut engine, event);
             }
             let result = match &mut engine.terminal {
                 Some(terminal) => self.native_call(|| terminal.restore_history_step()),
                 None => return WorkSchedule::Dormant,
             };
+            engine.history_due = false;
             match result {
-                Ok(RestorationProgress::Complete) => self.restored(&mut engine),
-                Ok(RestorationProgress::Usable) => (),
+                Ok(progress) => self.history_progress(&mut engine, progress),
                 Err(error) => self.fail(error),
             }
             return WorkSchedule::After(Duration::ZERO);
@@ -125,7 +135,9 @@ impl ProjectionCoordinator {
                 rejected.push(event);
             }
         }
+        let drain = core.output_drain;
         drop(core);
+        self.journal.end(drain, Some(error));
         for event in rejected {
             event.fail(error);
         }

@@ -1,0 +1,565 @@
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling getrandom v0.4.3
+   Compiling pty-runtime-domain v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-matrix-1/crates/domain)
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling opaque-debug v0.3.1
+   Compiling pin-project-lite v0.2.17
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-matrix-1/crates/infrastructure)
+   Compiling futures-core v0.3.34
+   Compiling futures-channel v0.3.34
+   Compiling generic-array v0.14.7
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-matrix-1/crates/application)
+   Compiling syn v3.0.5
+   Compiling getrandom v0.2.16
+   Compiling uuid v1.26.0
+   Compiling rand_core v0.6.4
+   Compiling crypto-common v0.1.7
+   Compiling inout v0.1.4
+   Compiling universal-hash v0.5.1
+   Compiling aead v0.5.2
+   Compiling cipher v0.4.4
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling tokio-macros v2.7.2
+   Compiling async-trait v0.1.92
+   Compiling tokio v1.53.1
+   Compiling event-stream v0.1.0 (https://github.com/nessalabs/event-stream?rev=66ba7525260040d6265276692088dca6dae0737e#66ba7525)
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-matrix-1)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.64s
+     Running unittests src/lib.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/pty_runtime-e67027bc37882f2e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests tests/fixtures/pty_fixture.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/pty_runtime_fixture-ebfdc64e0eeaa1f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ddd_spawn_failure.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/ddd_spawn_failure-6ad0519d576ae9f9)
+
+running 1 test
+test lookup_handle_obtained_during_failed_spawn_reaches_terminal_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/default_parking.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/default_parking-105a9f36ef82ec2c)
+
+running 1 test
+test default_policy_parks_at_sixty_seconds_and_keeps_process_alive ... ignored, explicit real-clock sixty-second parking qualification
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/event_stream_decode_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/event_stream_decode_contract-95613b312667c682)
+
+running 2 tests
+test contradictory_ranges_and_incomplete_or_unknown_completion_fields_are_rejected ... ok
+test every_truncation_trailing_byte_and_invalid_envelope_is_rejected ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests/event_stream_failures.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/event_stream_failures-927aa7f680104075)
+
+running 3 tests
+test contradictory_store_cursor_cannot_acknowledge_a_different_completion_event ... ok
+test cancelled_sink_wait_retries_same_id_before_and_after_commit ... ok
+test exact_pending_identity_survives_rejection_uncertain_commit_and_invalid_receipts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+     Running tests/event_stream_isolation.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/event_stream_isolation-e8e29673c4f62d04)
+
+running 4 tests
+test stalled_sink_does_not_block_parser_input_resize_or_cancel_and_later_reports_gap ... ok
+test panicking_publisher_waker_does_not_suppress_another_observer_or_pty_output ... ok
+test cancelling_before_source_read_keeps_cursor_and_observer_reusable ... ok
+test cancelled_publication_drops_a_reentrant_source_waker_without_locking_the_session ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/event_stream_reconnect.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/event_stream_reconnect-62a37e86f42e0d6c)
+
+running 2 tests
+test actual_memory_store_full_and_stale_incarnation_preserve_pending_without_eviction ... ok
+test real_store_subscription_reconnect_and_interleaved_writer_keep_distinct_cursors ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/input_reservation.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/input_reservation-e4ac71dae412f71d)
+
+running 1 test
+test global_bytes_and_slots_survive_abandoned_wait_and_release_on_adapter_completion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ordered_transfer_runtime.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/ordered_transfer_runtime-122c2e52ef355f38)
+
+running 1 test
+test two_parked_snapshot_consumers_replay_original_bytes_and_resizes_to_identical_final_models ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/process_handle_resources.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_handle_resources-e39bce0792457ed0)
+
+running 1 test
+test completed_old_handles_do_not_keep_process_wake_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/projected_runtime.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/projected_runtime-c9bef98794b9d71f)
+
+running 2 tests
+test real_query_reply_is_sent_once_with_multiple_observers ... ok
+test detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/projection_cleanup_outcome.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/projection_cleanup_outcome-d771d693f17d253e)
+
+running 2 tests
+test domain_session_validation_rejects_incompatible_projection_admission ... ok
+test forget_preserves_delete_and_uncertain_commit_failures_including_repeated_calls ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/projection_correctness.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/projection_correctness-369580fb87b2da06)
+
+running 4 tests
+test impossible_global_parser_budgets_reject_before_child_launch ... ok
+test shutdown_closes_model_with_completed_request_wait_retained ... ok
+test resize_panic_during_close_keeps_cleanup_scheduled ... ok
+test process_future_panic_does_not_strand_runtime_shutdown ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_adversarial.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/raw_adversarial-ef3c8ae94b4660dc)
+
+running 1 test
+test dropping_polled_pending_waits_releases_admission_and_preserves_cursor ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/raw_child_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/raw_child_contract-1bae51fedd0d5f74)
+
+running 3 tests
+test merged_stdout_stderr_preserves_binary_bytes_through_public_observer ... ok
+test empty_environment_is_exact_at_uninstrumented_exec_boundary ... ok
+test explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/raw_completion.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/raw_completion-af30fa467e36b138)
+
+running 1 test
+test signal_death_and_descendant_drain_never_become_fabricated_success ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/raw_registration.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/raw_registration-c5b61767aafd8400)
+
+running 1 test
+test simultaneous_duplicate_calls_launch_once_even_after_completion_until_forgetting ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/raw_runtime.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/raw_runtime-5a97817ab907c1d5)
+
+running 4 tests
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/ready_projection.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/ready_projection-64dce5758218dcfc)
+
+running 1 test
+test ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests/runtime_diagnostics.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/runtime_diagnostics-71f659bbb12d0674)
+
+running 4 tests
+test raw_measurements_count_admission_actual_io_and_rejected_input_separately ... ok
+test aggregate_gauges_follow_completed_handles_and_exact_replay_gaps ... ok
+test cancellation_dispatch_requires_acknowledged_workload_and_verified_groups ... ok
+test projected_samples_finish_after_native_feed_and_ordered_resize ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+     Running tests/runtime_performance.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/runtime_performance-f3cf0cfa750469e3)
+
+running 1 test
+test projected_real_pty_producers ... ignored, scoped release performance measurement: scripts/performance.py
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/event_stream_reconnect.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/event_stream_reconnect-738400e55bb2af85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/guardian_owner_death.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/guardian_owner_death-6f44378cd81ecb6c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/interactive.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/interactive-963fcf457efe7ed8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/release_load.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/release_load-d366f338d754c3b0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/release_stress.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/release_stress-284a2053f50d956b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/pty_runtime_application-1bda850b10068bc3)
+
+running 46 tests
+test diagnostics::histogram::tests::boundary_rounding_overflow_and_failed_samples_remain_explicit ... ok
+test projection::tests::cleanup::close_progresses_with_every_normal_request_slot_held ... ok
+test projection::tests::cleanup::close_during_pending_commit_deletes_late_result_and_releases_services ... ok
+test diagnostics::tests::untimed_replacement_adapter_reports_unavailable_without_false_success_or_failure ... ok
+test projection::tests::cleanup::rejected_blocking_admission_schedules_bounded_retry_without_losing_model ... ok
+test projection::tests::acceptance::cancelled_parked_transfer_keeps_inflight_memory_charged_until_close_drains_read ... ok
+test projection::tests::cleanup::failed_storage_has_finite_retries_and_retains_original_live_model ... ok
+test projection::tests::cleanup::authentication_failure_retains_only_source_and_close_releases_pool_handles ... ok
+test projection::tests::cleanup::permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledger ... ok
+test projection::tests::cleanup::scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services ... ok
+test projection::tests::cleanup::failed_restore_retains_source_and_bounded_unprocessed_output_without_empty_model ... ok
+test projection::tests::ordered_review::cancelled_projection_wait_drops_reentrant_waker_outside_ticket_lock ... ok
+test projection::tests::ordered_review::observation_requests_do_not_delay_the_final_applied_prefix ... ok
+test projection::tests::parking::idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply ... ok
+test projection::tests::cleanup::uncertain_commits_stay_charged_and_report_failure_on_every_close ... ok
+test projection::tests::ordered_review::parked_snapshot_io_does_not_delay_an_existing_observers_end ... ok
+test projection::tests::parking::parked_transfer_pin_uses_saved_source_without_native_restore ... ok
+test projection::tests::ordered_review::failed_end_stays_immutable_when_an_inflight_native_feed_returns_success ... ok
+test projection::tests::parking::output_during_commit_retains_model_and_cleanup_does_not_block_feed ... ok
+test projection::tests::ordered_review::replacing_a_pending_waker_drops_its_observer_outside_the_journal_lock ... ok
+test projection::tests::parking::ready_view_captures_its_own_history_and_exact_order_boundary ... ok
+test projection::tests::parking::output_during_encode_is_bounded_and_stale_commit_never_releases_live_model ... ok
+test projection::tests::pressure::copied_views_retain_global_memory_admission_until_consumer_drop ... ok
+test projection::tests::pressure::generated_reply_waits_for_single_writer_admission_without_refeeding_or_duplicate_send ... ok
+test projection::tests::pressure::global_parser_capacity_released_by_another_session_wakes_waiter ... ok
+test projection::tests::pressure::independent_parser_admission_is_all_or_none_and_early_capacity_notice_survives ... ok
+test projection::tests::pressure::partial_generated_reply_fails_projection_and_is_never_resent ... ok
+test projection::tests::pressure::native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operations ... ok
+test projection::tests::ready::drain_end_waits_for_history_validation_and_retains_corrupt_source ... ok
+test projection::tests::pressure::resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smaller ... ok
+test projection::tests::ready::ready_interleaves_live_bytes_and_controls_without_releasing_source_before_finish ... ok
+test projection::tests::shutdown::shutdown_with_lost_commit_completion_keeps_uncertain_disk_reservation ... ok
+test projection::tests::shutdown::shutdown_with_lost_delete_completion_does_not_release_sole_source_charge ... ok
+test projection::tests::shutdown::shutdown_with_lost_transfer_read_settles_caller_and_releases_observer ... ok
+test projection::tests::shutdown::shutdown_with_lost_restore_completion_releases_live_memory_but_keeps_source ... ok
+test projection::tests::shutdown::shutdown_without_scheduler_rejects_queued_views_and_controls_and_releases_staging ... ok
+test projection::tests::transfer::cancelled_wait_removes_waker_and_final_observer_releases_retention ... ok
+test projection::tests::ready::skipped_history_is_visible_and_lifetime_count_survives_the_next_park ... ok
+test projection::tests::transfer::foreign_future_and_evicted_cursors_are_distinct_and_readers_are_independent ... ok
+test projection::tests::transfer::drain_is_sealed_but_end_waits_for_parser_and_failure_ends_only_the_valid_prefix ... ok
+test projection::tests::transfer::no_observers_allocate_no_continuation_storage_and_new_transfer_skips_no_applied_state ... ok
+test projection::tests::transfer::observer_admission_cancel_and_snapshot_pins_release_independently ... ok
+test projection::tests::transfer::retained_payload_and_control_slots_force_explicit_holes_until_consumers_drop ... ok
+test projection::tests::transfer::snapshot_boundary_and_independent_byte_control_order_are_exact ... ok
+test projection::tests::transfer::parked_transfer_precedes_staged_mutation_and_rejected_io_releases_observer_permit ... ok
+test runtime::context_tests::poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges ... ok
+
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/pty_runtime_domain-0df3d86413ac1f6c)
+
+running 24 tests
+test identity::tests::accepted_identity_discards_excess_owned_capacity_and_redacts ... ok
+test projection::tests::close_rejects_late_commit_and_usable_completion_cannot_revive ... ok
+test process::tests::deadline_and_allocation_extremes_are_rejected ... ok
+test identity::tests::identity_equality_is_literal_and_lifetimes_include_both_parts ... ok
+test identity::tests::identity_enforces_byte_limit_and_control_policy ... ok
+test projection::tests::failed_retries_are_bounded_until_real_mutation ... ok
+test projection::tests::invalid_policy_and_out_of_order_processed_controls_are_rejected ... ok
+test process::tests::environment_keys_validate_and_overrides_remain_last ... ok
+test projection::tests::mutation_invalidates_parking_without_advancing_unprocessed_position ... ok
+test process::tests::commands_are_literal_bounded_and_redacted ... ok
+test projection::tests::restoration_rejects_unadmitted_sources_and_preserves_failures ... ok
+test projection::tests::skipped_history_progress_cannot_regress_into_complete_history ... ok
+test projection::tests::successful_parking_does_not_consume_failed_retry_budget ... ok
+test projection::transfer_tests::applied_controls_advance_sequence_without_advancing_original_bytes ... ok
+test projection::transfer_tests::identity_future_and_evicted_ranges_have_distinct_failures ... ok
+test projection::transfer_tests::terminal_prefix_is_immutable_and_domain_forbids_late_mutations ... ok
+test projection::transfer_tests::unavailable_transfer_cannot_be_reopened_or_extended ... ok
+test redaction_tests::opaque_checkpoints_hide_payload_and_adapter_metadata_in_debug ... ok
+test redaction_tests::replay_and_cell_debug_redact_content_while_retaining_safe_position_and_style ... ok
+test replay::tests::eviction_reports_gap_before_exact_suffix_and_reads_do_not_advance ... ok
+test replay::tests::identities_and_future_positions_are_validated_even_when_empty ... ok
+test replay::tests::offset_overflow_is_atomic_and_debug_redacts_content ... ok
+test replay::tests::zero_retention_and_global_eviction_keep_stream_position ... ok
+test replay::tests::chunking_matches_reference_suffix_across_capacities ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/replay_model.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/replay_model-278205f44cd60ae6)
+
+running 1 test
+test seeded_interleavings_match_an_append_only_ledger ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running unittests src/lib.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/pty_runtime_infrastructure-5d50c3dd208d0eb7)
+
+running 17 tests
+test event_stream::tests::gap_and_range_boundaries_are_checked_in_both_directions ... ok
+test process::protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control ... ok
+test process::protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test process::protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof ... ok
+test event_stream::tests::completion_preserves_actual_exit_and_all_portable_failure_categories ... ok
+test process::protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test process::protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+test scheduling::blocking::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test scheduling::pool::tests::shutdown_joins_all_workers_and_releases_worker_state ... ok
+test event_stream::tests::maximum_binary_page_roundtrips_without_payload_diagnostics_and_rejects_corruption ... ok
+test checkpoint::file::tests::concurrent_commit_reservation_cannot_exceed_quota ... ok
+test event_stream::tests::independently_constructed_completion_wire_rejects_malformed_fields_and_truncation ... ok
+test checkpoint::file::tests::failed_orphan_cleanup_retains_a_distinct_quota_charge ... ok
+test checkpoint::file::tests::renamed_namespace_drop_does_not_remove_unrelated_replacement ... ok
+test checkpoint::file::tests::partial_failed_writes_full_disk_and_zero_writes_clean_temporary_state ... ok
+test process::spawn_barrier_tests::blocked_and_failed_spawn_does_not_delay_existing_controls_or_reaping ... ok
+test process::spawn_barrier_tests::immediate_shutdown_reaps_existing_child_before_stalled_launch_finishes ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/checkpoint_adversarial.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/checkpoint_adversarial-1162a51c4e675355)
+
+running 4 tests
+test repeated_protection_uses_distinct_nonces_and_remains_authentic ... ok
+test drop_does_not_remove_foreign_replacement_directory ... ok
+test failed_namespace_construction_rolls_back_under_restrictive_umask ... ok
+test permission_or_hardlink_change_rejects_read_without_exposing_payload ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/checkpoint_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/checkpoint_contract-ed5065cadd0c5835)
+
+running 5 tests
+test injected_provider_same_contract ... ok
+test ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected ... ok
+test existing_or_symlink_root_rejected_without_cleanup_of_foreign_content ... ok
+test real_disk_quota_short_reads_symlinks_and_corrupt_files ... ok
+test real_disk_contract_private_permissions_and_cleanup ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/checkpoint_crash_cleanup.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/checkpoint_crash_cleanup-0d77b6c7520d9762)
+
+running 9 tests
+test checkpoint_crash_fixture ... ok
+test interrupted_empty_construction_is_reclaimed_but_foreign_arena_entries_remain ... ok
+test namespace_and_arena_symlinks_are_rejected_without_traversal ... ok
+test live_prefix_cannot_hide_abandoned_data_and_admit_repeated_owners ... ok
+test cleanup_budget_reports_partial_work_and_blocks_known_abandoned_admission ... ok
+test dead_owner_is_reclaimed_while_live_owner_and_its_ciphertext_survive ... ok
+test symlinks_hardlinks_and_unrecognized_objects_are_never_deleted ... ok
+test direct_namespace_initialization_cannot_race_a_held_maintenance_lock ... ok
+test inherited_maintenance_lock_blocks_admission_until_fork_child_releases_it ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running tests/checkpoint_opaque_envelope.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/checkpoint_opaque_envelope-af9a256bcca7a779)
+
+running 1 test
+test storage_roundtrips_short_opaque_envelope_without_cipher_assumptions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/process_adversarial.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_adversarial-27a86342cac319e6)
+
+running 1 test
+test failed_reader_terminates_long_lived_child_without_owner_shutdown ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/process_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_contract-9d9bc0698e5d116d)
+
+running 7 tests
+test cancellation_bypasses_full_input_and_escalates_once ... ok
+test resize_and_quiet_reader_shutdown_are_interruptible ... ok
+test blocked_output_does_not_block_exit_or_shutdown ... ok
+test descendant_endpoint_has_bounded_drain_separate_from_exit ... ok
+test literal_arguments_empty_environment_overrides_and_canonical_roots ... ok
+test failed_spawn_releases_admission_and_drop_reaps_child ... ok
+test controlling_terminal_echo_off_ordered_input_and_real_exit ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+     Running tests/process_failure_isolation.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_failure_isolation-0a69da184f4a8d69)
+
+running 2 tests
+test sentinel_loss_reclaims_known_descendants_and_preserves_another_session ... ok
+test guardian_loss_reclaims_known_descendants_and_preserves_another_session ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/process_foreground_switch.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_foreground_switch-5cb4cb149e50fe41)
+
+running 3 tests
+test foreground_switch_fixture ... ok
+test cancellation_cleans_both_foreground_generations_and_preserves_outside_session ... ok
+test dispatch_ack_requires_a_distinct_verified_foreground_group ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests/process_guardian_failures.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_guardian_failures-2bb55b22eafa4277)
+
+running 2 tests
+test sentinel_loss_preserves_cleanup_and_reports_supervision_failure ... ok
+test guardian_loss_reports_supervision_failure_without_fabricated_workload_exit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/process_handle_teardown.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_handle_teardown-0d28756cb11ae40b)
+
+running 1 test
+test retained_closed_handles_release_all_wake_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/process_host_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_host_contract-58d338e0636b8910)
+
+running 4 tests
+test sigchld_policy_fixture ... ignored, runs only inside the isolated host-policy subprocess
+test constructor_rejects_auto_reaping_policies_in_isolated_hosts ... ok
+test unexpected_reader_failure_kills_long_lived_child_without_grace_delay ... ok
+test backend_drop_ignores_twenty_four_hour_grace_and_reaps ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/process_pressure.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/process_pressure-3ef65578ba7a8b36)
+
+running 4 tests
+test symlinks_cannot_escape_allowed_launch_roots ... ok
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... ok
+test callback_panics_do_not_orphan_children_or_break_other_sessions ... ok
+test stalled_input_times_out_with_partial_ack_and_retains_no_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/scheduling_adversarial.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/scheduling_adversarial-765ba1be4cbb8c0c)
+
+running 4 tests
+test excessive_worker_counts_are_rejected_before_thread_creation ... ok
+test impossible_blocking_queue_bound_returns_error_without_panicking ... ok
+test impossible_registration_bounds_return_errors_without_panicking ... ok
+test callback_owner_destructor_panic_does_not_destroy_worker_capacity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_blocking.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/scheduling_blocking-feca96ea019b1221)
+
+running 3 tests
+test capacity_generation_preserves_early_notifications ... ok
+test blocked_job_admission_is_bounded_and_shutdown_drains_accepted_jobs ... ok
+test job_panic_does_not_kill_worker_and_drop_joins_work ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduling_pool.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/scheduling_pool-10c1f0c13b734845)
+
+running 5 tests
+test callback_can_request_shutdown_without_self_join ... ok
+test registration_caps_handle_drop_and_weak_drop_reclaim_slots ... ok
+test running_wakes_coalesce_without_overlap_and_close_releases_after_run ... ok
+test panic_reports_failure_and_other_work_continues ... ok
+test timer_fires_without_external_wake_and_finished_closes_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/terminal_bounds.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/terminal_bounds-eb144185a9e90920)
+
+running 5 tests
+test chunk_admission_does_not_mutate_and_reply_overflow_invalidates_projection ... ok
+test view_and_parser_continuation_have_explicit_budgets ... ok
+test checkpoint_and_native_allocations_are_bounded ... ok
+test rejects_invalid_dimensions_config_and_incompatible_checkpoints ... ok
+test corrupted_and_truncated_snapshots_never_complete_successfully ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/terminal_contract.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/terminal_contract-38725cbd9d916059)
+
+running 6 tests
+test palette_and_default_color_overrides_are_domain_values ... ok
+test incremental_text_styles_modes_cursor_and_ordered_resize ... ok
+test compression_preserves_wide_combining_text_and_full_history ... ok
+test terminal_owner_can_move_threads_and_drop_with_pending_history ... ok
+test checkpoints_preserve_parser_continuation_and_uninterrupted_state ... ok
+test ready_accepts_live_output_while_preserving_one_hundred_thousand_history_lines ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+
+     Running tests/terminal_cursor_roundtrip.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/terminal_cursor_roundtrip-bf345b3091743df2)
+
+running 9 tests
+test alternate_pending_wrap_survives_snapshot_after_widening ... ok
+test saved_cursor_pending_wrap_at_custom_margin_survives_snapshot ... ok
+test primary_wrapped_rows_survive_restore_before_nonreflow_growth_and_later_reflow ... ok
+test full_width_pending_wrap_retains_existing_behavior ... ok
+test custom_right_margin_pending_wrap_survives_snapshot ... ok
+test nonreflow_shrink_clips_wide_glyph_before_checkpoint_and_later_input ... ok
+test nonreflow_shrink_clips_styled_hyperlinked_wide_grapheme ... ok
+test restored_inactive_viewport_pin_does_not_push_live_text_into_history_on_shrink ... ok
+test alternate_wrapped_rows_survive_restore_before_nonreflow_growth ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/terminal_live_restore.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/terminal_live_restore-490e5a7ba852b63f)
+
+running 3 tests
+test skipped_history_still_requires_valid_finish_and_rejects_future_mutation ... ok
+test restored_live_feed_keeps_continuation_callbacks_and_reply_bounds ... ok
+test live_resize_and_quota_pressure_report_validated_but_inapplicable_history ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/terminal_view_edges.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/deps/terminal_view_edges-cf0b44aee7bb07d7)
+
+running 2 tests
+test osc_palette_overrides_and_reset_preserve_optional_default_and_cursor_colors ... ok
+test long_grapheme_retries_copy_with_exact_codepoints_and_respects_view_budget ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/guardian_resources.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/guardian_resources-b3ecafc6096b9abb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/terminal_corpus.rs (work/coverage-run-1kz52fyc/workspace/llvm-cov-target/debug/examples/terminal_corpus-3ed1c38d2fc8dc3b)
+
+running 2 tests
+test runner::tests::alternate_wrap_roundtrip_after_width_change ... ok
+test runner::tests::restored_history_survives_later_resize ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

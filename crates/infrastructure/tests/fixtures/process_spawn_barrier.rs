@@ -54,6 +54,7 @@ fn blocked_owner(
                 vec![std::env::temp_dir()],
                 3,
                 spawner::Options {
+                    bundled: None,
                     hook: Some(hook),
                     after_launch: Some(after_launch),
                 },

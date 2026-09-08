@@ -98,6 +98,6 @@ unsafe extern "C" {
         limit: usize,
         error: *mut i32,
     ) -> *mut c_void;
-    pub fn rt_history(owner: *mut c_void) -> i32;
+    pub fn rt_history(owner: *mut c_void, rows: *mut usize) -> i32;
     pub fn rt_compress(owner: *mut c_void) -> i32;
 }

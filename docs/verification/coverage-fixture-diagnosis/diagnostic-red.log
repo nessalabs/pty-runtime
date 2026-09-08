@@ -1,0 +1,27 @@
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running tests/raw_child_contract.rs (target/llvm-cov-target/debug/deps/raw_child_contract-1bae51fedd0d5f74)
+
+running 2 tests
+test explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child ... FAILED
+test merged_stdout_stderr_preserves_binary_bytes_through_public_observer ... ok
+
+failures:
+
+---- explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child stdout ----
+
+thread 'explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child' (16871995) panicked at tests/raw_child_contract.rs:51:9:
+assertion `left == right` failed
+  left: "failed-checks:[\"environment\"];llvm-profile-present:false;unexpected-env-count:1\n"
+ right: "contract-ok|size:25 81\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+error: test failed, to rerun pass `--test raw_child_contract`
+error: process didn't exit successfully: `/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --manifest-path /Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-baseline/Cargo.toml --target-dir /Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-baseline/target/llvm-cov-target --test raw_child_contract --locked --all-features` (exit status: 101)

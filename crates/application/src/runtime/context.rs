@@ -18,11 +18,13 @@ pub(crate) struct State {
     pub status: SessionStatus,
     pub watchers: BTreeMap<u64, Option<Waker>>,
     pub next_watcher: u64,
+    metric_active: bool,
 }
 
 /// Stable application context stored by an injected repository.
 /// Domain state and live process collaborators have separate ownership.
 pub struct SessionContext {
+    pub(crate) diagnostics: Option<Arc<crate::diagnostics::RuntimeDiagnostics>>,
     pub(crate) lifetime: SessionLifetime,
     pub(crate) options: SessionOptions,
     pub(crate) state: Mutex<State>,
@@ -45,12 +47,14 @@ impl SessionContext {
         input_slots: Arc<Quota>,
     ) -> Self {
         Self {
+            diagnostics: None,
             lifetime,
             state: Mutex::new(State {
                 replay: ReplayBuffer::new(lifetime, options.replay_bytes),
                 status: SessionStatus::default(),
                 watchers: BTreeMap::new(),
                 next_watcher: 0,
+                metric_active: false,
             }),
             options,
             process: Mutex::new(None),
@@ -61,6 +65,28 @@ impl SessionContext {
             input_bytes,
             input_slots,
         }
+    }
+    pub(crate) fn with_diagnostics(
+        mut self,
+        diagnostics: Option<Arc<crate::diagnostics::RuntimeDiagnostics>>,
+    ) -> Self {
+        if let Some(diagnostics) = &diagnostics {
+            diagnostics.session_activity(true);
+        }
+        self.state
+            .get_mut()
+            .unwrap_or_else(|error| error.into_inner())
+            .metric_active = diagnostics.is_some();
+        self.diagnostics = diagnostics;
+        self
+    }
+    pub(crate) fn timing(
+        &self,
+        kind: crate::diagnostics::LatencyKind,
+    ) -> Option<crate::diagnostics::Timing> {
+        self.diagnostics.as_ref().map(|diagnostics| {
+            crate::diagnostics::Timing::new(diagnostics.clone(), kind, std::time::Instant::now())
+        })
     }
     /// Runtime-issued identity used for atomic repository comparisons.
     pub fn lifetime(&self) -> SessionLifetime {
@@ -99,18 +125,24 @@ impl SessionContext {
         result
     }
     pub(crate) fn remove_watcher(&self, id: u64) {
-        if let Ok(mut state) = self.state.lock() {
-            if state.watchers.remove(&id).is_some() {
-                self.observers.release(1);
-            }
+        let removed = self
+            .state
+            .lock()
+            .ok()
+            .and_then(|mut state| state.watchers.remove(&id));
+        if removed.is_some() {
+            self.observers.release(1);
         }
+        // Wakers may own another observer and reenter this same session on Drop.
+        drop(removed);
     }
     pub(crate) fn clear_waker(&self, id: u64) {
-        if let Ok(mut state) = self.state.lock() {
-            if let Some(slot) = state.watchers.get_mut(&id) {
-                *slot = None;
-            }
-        }
+        let old = self
+            .state
+            .lock()
+            .ok()
+            .and_then(|mut state| state.watchers.get_mut(&id).and_then(Option::take));
+        drop(old);
     }
     pub(crate) fn read(
         state: &State,
@@ -129,6 +161,12 @@ impl SessionContext {
     pub(crate) fn record(&self, change: impl FnOnce(&mut State)) {
         let wakers = if let Ok(mut state) = self.state.lock() {
             change(&mut state);
+            if state.metric_active && state.status.completion().is_some() {
+                state.metric_active = false;
+                if let Some(diagnostics) = &self.diagnostics {
+                    diagnostics.session_activity(false);
+                }
+            }
             state
                 .watchers
                 .values_mut()
@@ -138,7 +176,7 @@ impl SessionContext {
             Vec::new()
         };
         for waker in wakers {
-            waker.wake();
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| waker.wake()));
         }
     }
     pub(crate) fn projection(&self) -> Result<Option<Arc<ProjectionCoordinator>>, RuntimeError> {
@@ -159,16 +197,38 @@ impl SessionContext {
 }
 impl Drop for SessionContext {
     fn drop(&mut self) {
-        if let Ok(state) = self.state.get_mut() {
-            self.replay_quota.release(state.replay.allocated_bytes());
-            self.observers.release(state.watchers.len());
+        // Drop owns the context exclusively; poison does not invalidate its
+        // allocations. Release reservations even after a collaborator panic.
+        let state = self
+            .state
+            .get_mut()
+            .unwrap_or_else(|error| error.into_inner());
+        self.replay_quota.release(state.replay.allocated_bytes());
+        self.observers.release(state.watchers.len());
+        if let Some(diagnostics) = &self.diagnostics {
+            if state.metric_active {
+                diagnostics.session_activity(false);
+            }
+            diagnostics.replay_retention(state.replay.len(), 0);
         }
     }
 }
 
 pub(crate) struct Events(pub std::sync::Weak<SessionContext>);
 impl IProcessEvents for Events {
+    fn diagnostics(&self) -> Option<Arc<crate::diagnostics::RuntimeDiagnostics>> {
+        self.0
+            .upgrade()
+            .and_then(|context| context.diagnostics.clone())
+    }
     fn output(&self, bytes: &[u8]) -> OutputAcceptance {
+        self.output_observed(bytes, None)
+    }
+    fn output_observed(
+        &self,
+        bytes: &[u8],
+        read_completed: Option<std::time::Instant>,
+    ) -> OutputAcceptance {
         let Some(context) = self.0.upgrade() else {
             return OutputAcceptance::Closed;
         };
@@ -180,11 +240,13 @@ impl IProcessEvents for Events {
             Err(_) => return OutputAcceptance::Closed,
         };
         if let Some(projection) = projection {
-            match projection.stage_output(bytes) {
+            let observed = context.diagnostics.clone().zip(read_completed);
+            match projection.stage_output_observed(bytes, observed) {
                 OutputAcceptance::Accepted => (),
                 other => return other,
             }
         }
+        let retained_before = state.replay.len();
         let capacity = state.replay.allocated_bytes();
         let needed = state
             .replay
@@ -216,14 +278,28 @@ impl IProcessEvents for Events {
         if state.replay.append_with_limit(bytes, allowed).is_err() {
             return OutputAcceptance::Closed;
         }
+        if let Some(diagnostics) = &context.diagnostics {
+            diagnostics.replay_retention(retained_before, state.replay.len());
+            diagnostics.count(
+                crate::diagnostics::CounterKind::PublishedBytes,
+                bytes.len() as u64,
+            );
+        }
         let wakers = state
             .watchers
             .values_mut()
             .filter_map(Option::take)
             .collect::<Vec<_>>();
         drop(state);
+        if let (Some(diagnostics), Some(read_completed)) = (&context.diagnostics, read_completed) {
+            diagnostics.record(
+                crate::diagnostics::LatencyKind::RawOutput,
+                read_completed.elapsed(),
+                true,
+            );
+        }
         for waker in wakers {
-            waker.wake();
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| waker.wake()));
         }
         OutputAcceptance::Accepted
     }
@@ -250,10 +326,18 @@ impl IProcessEvents for Events {
                     state.status.record_failure(ProcessError::Internal);
                 }
             });
+            // Raw completion is independent of parser catchup. Seal projection only
+            // after releasing the raw state lock, preserving cancellation isolation.
+            if let Ok(Some(projection)) = context.projection() {
+                projection.notify_output_drained(outcome);
+            }
         }
     }
     fn supervision_failed(&self, error: ProcessError) {
         if let Some(context) = self.0.upgrade() {
+            if let Some(diagnostics) = &context.diagnostics {
+                diagnostics.count(crate::diagnostics::CounterKind::FailedOperations, 1);
+            }
             context.record(|state| {
                 state.status.record_failure(error);
             });

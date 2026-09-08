@@ -1,0 +1,52 @@
+{
+  "native_build": {
+    "build_driver_sha256": "b435526ef2966e8b33d9a93a10057a88eb48a3ba262cbfcf0a5652fe8102d63b",
+    "build_options": [
+      "-Demit-lib-vt",
+      "-Demit-xcframework=false",
+      "-Doptimize=ReleaseFast",
+      "-Dcpu=baseline"
+    ],
+    "dependencies": {
+      "ghostty": {
+        "revision": "82232ecde55405559dec29c5466cb9e39938cb41",
+        "sha256": "820d84e8cbc4be0ca26b9a1b71cfdc5befdc814c414bef7b0dbcf51069668c68",
+        "url": "https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41"
+      },
+      "zig": {
+        "archives": {
+          "aarch64-linux": "ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17",
+          "aarch64-macos": "b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489",
+          "x86_64-linux": "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00",
+          "x86_64-macos": "0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7"
+        },
+        "version": "0.16.0"
+      }
+    },
+    "libc": [
+      "",
+      ""
+    ],
+    "library_sha256": "f7b084a6cfe83b58803109b3329641a4b53c76c66b5cb053f41c427886eacea2",
+    "snapshot_patch_sha256": "c50f296f19e488833dc1c57a16a3f2c631546bb2e1070343d33763b1b2e3c1f0",
+    "source_verifier_sha256": "1fe8920cde5c2cfc92e64b74ff76a03e056becfb3575736d919fc9737c26ab60",
+    "target": "aarch64-macos"
+  },
+  "library_sha256": "f7b084a6cfe83b58803109b3329641a4b53c76c66b5cb053f41c427886eacea2",
+  "bridge_and_test_sha256": {
+    "scripts/native/bootstrap.py": "495b7d973bd95c63aabab10571dda11d3dd0a7ccee4e6ae35873ff807196f8ef",
+    "scripts/native/verify_source.py": "1fe8920cde5c2cfc92e64b74ff76a03e056becfb3575736d919fc9737c26ab60",
+    "scripts/native/bridge.h": "d74253dcbfd471e74fbd25734af1973f496c8c33529cc0457d557d1f30c01a0d",
+    "scripts/native/verification.c": "2a01968543507d95e5c39dcd585ba277896c0f57ed8dfe94047c29d94523c185",
+    "scripts/native/coverage.py": "ac34f76a3e1258e9a5840a1f5b322eca32c73d64a4b78f8ecc88cd65332fe404",
+    "scripts/native/owner.c": "a12e77c84a5ada3c02a9516b2ddadc681c2d795f71a7d3dd614c3711bf3389b9",
+    "scripts/native/checkpoint.c": "0db1df90abc4d1d5bce7ca98a530a9513d3b6d8eb0ca96a9b9933ab0429ceba1",
+    "scripts/native/view.c": "1647edec00ad3d27cdc12785d9fbb53d4649ceddc4c1b5750e135cd659b33c11",
+    "scripts/native/tests/boundary-faults.h": "ecb443a4da1bbe3b916691415de43b585ea63a9ce85ae29cdc7c4c889da1cb43",
+    "scripts/native/tests/run_allocator_contract.py": "445f4f914697b6974e62d2a1e510a9ec3cabd943595f94b3c158ba9429e71dac",
+    "scripts/native/tests/allocator-contract.c": "267e481bdf2d2b9026bf865b1226c801db35887a96d5d52b6fac5256c8ee34d4",
+    "scripts/native/tests/run_boundary_contract.py": "1c1d9f28be656ab225ca7aab1d7508c44e614196a7877d8714cea4f4871fb007",
+    "scripts/native/tests/boundary-shim.c": "87d29f7917494c72fa3bcff42a339bce008af31715dbc9c7f1bea0c8a8ef00ce",
+    "scripts/native/tests/boundary-contract.c": "2934ded3b561a85a0dcb8fc3d629aeca3aa685fb575fa3d0933e35de61bf50a2"
+  }
+}

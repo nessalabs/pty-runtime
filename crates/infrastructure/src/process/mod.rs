@@ -1,8 +1,12 @@
-//! Unix PTY ownership with bounded dedicated readers and shared supervision.
+//! Unix PTY ownership with dedicated readers and independently supervised helpers.
 mod backend;
 mod endpoints;
+mod guardian;
+mod image;
 mod io;
 mod lifecycle;
+#[path = "../../../../scripts/guardian/protocol.rs"]
+mod protocol;
 mod registration;
 mod session;
 mod signals;

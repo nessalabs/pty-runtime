@@ -1,0 +1,722 @@
+experiments (macos-15)	Set up job	﻿2026-09-08T15:15:26.0108950Z Current runner version: '2.337.0'
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0127610Z ##[group]Runner Image Provisioner
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0128390Z Hosted Compute Agent
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0128870Z Version: 20260828.587
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0129430Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0130050Z Build Date: 2026-08-28T16:44:25Z
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0130620Z Worker ID: {3e488944-a99e-40cf-9a76-a66a25339754}
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0131160Z Azure Region: westus
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0131600Z ##[endgroup]
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0132870Z ##[group]Operating System
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0133280Z macOS
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0133640Z 15.7.9
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0134050Z 24G830
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0134500Z ##[endgroup]
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0135010Z ##[group]Runner Image
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0135510Z Image: macos-15-arm64
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0135960Z Version: 20260829.0321.1
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0136780Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20260829.0321/images/macos/macos-15-arm64-Readme.md
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0138000Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20260829.0321
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0138670Z ##[endgroup]
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0139410Z ##[group]GITHUB_TOKEN Permissions
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0140690Z Contents: read
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0141050Z Metadata: read
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0141420Z ##[endgroup]
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0143140Z Secret source: Actions
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0143910Z Prepare workflow directory
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0631300Z Prepare all required actions
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.0666140Z Getting action download info
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.3972320Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.6089720Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.6845840Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.7503860Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+experiments (macos-15)	Set up job	2026-09-08T15:15:26.8968830Z Complete job name: experiments (macos-15)
+experiments (macos-15)	Run actions/checkout@v4	﻿2026-09-08T15:15:26.9351680Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9357600Z ##[group]Run actions/checkout@v4
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9358050Z with:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9358360Z   repository: nessalabs/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9360790Z   token: ***
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9361080Z   ssh-strict: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9361380Z   ssh-user: git
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9361680Z   persist-credentials: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9362010Z   clean: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9362310Z   sparse-checkout-cone-mode: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9362660Z   fetch-depth: 1
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9363000Z   fetch-tags: false
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9363310Z   show-progress: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9363610Z   lfs: false
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9363890Z   submodules: false
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9364220Z   set-safe-directory: true
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9364580Z   allow-unsafe-pr-checkout: false
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9365020Z env:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9365300Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9365640Z   PROFILE: smoke
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:26.9365950Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2287040Z Syncing repository: nessalabs/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2288450Z ##[group]Getting Git version info
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2289030Z Working directory is '/Users/runner/work/pty-runtime/pty-runtime'
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2289830Z [command]/opt/homebrew/bin/git version
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2808840Z git version 2.55.0
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2820960Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2826670Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/503939d3-8350-429f-b812-2ee9029c7e93/.gitconfig'
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2833020Z Temporarily overriding HOME='/Users/runner/work/_temp/503939d3-8350-429f-b812-2ee9029c7e93' before making global git config changes
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2833990Z Adding repository directory to the temporary git global config as a safe directory
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2836270Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/pty-runtime/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2958770Z Deleting the contents of '/Users/runner/work/pty-runtime/pty-runtime'
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2959880Z ##[group]Initializing the repository
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.2960710Z [command]/opt/homebrew/bin/git init /Users/runner/work/pty-runtime/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3112470Z hint: Using 'master' as the name for the initial branch. This default branch name
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3113640Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3114480Z hint: to use in all of your new repositories, which will suppress this warning,
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3130140Z hint: call:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3130540Z hint:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3130950Z hint: 	git config --global init.defaultBranch <name>
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3131440Z hint:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3131910Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3132580Z hint: 'development'. The just-created branch can be renamed via this command:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3133120Z hint:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3133450Z hint: 	git branch -m <name>
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3133810Z hint:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3134350Z hint: Disable this message with "git config set advice.defaultBranchName false"
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3135280Z Initialized empty Git repository in /Users/runner/work/pty-runtime/pty-runtime/.git/
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3136970Z [command]/opt/homebrew/bin/git remote add origin https://github.com/nessalabs/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3189110Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3189930Z ##[group]Disabling automatic garbage collection
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3191380Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3250970Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3251630Z ##[group]Setting up auth
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3255210Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.3311870Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.4090570Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.4136860Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.4754290Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.4815560Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.5378770Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.5606540Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.5608400Z ##[group]Fetching the repository
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:27.5610000Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +52ad04c3519616e6cedea9ac8707406970a40ed7:refs/remotes/origin/main
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1670140Z From https://github.com/nessalabs/pty-runtime
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1671320Z  * [new ref]         52ad04c3519616e6cedea9ac8707406970a40ed7 -> origin/main
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1840300Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1841270Z ##[group]Determining the checkout info
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1842160Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1842770Z [command]/opt/homebrew/bin/git sparse-checkout disable
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1844420Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1847140Z ##[group]Checking out the ref
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.1847970Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.2207170Z Switched to a new branch 'main'
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.2214350Z branch 'main' set up to track 'origin/main'.
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.2219640Z ##[endgroup]
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.2286330Z [command]/opt/homebrew/bin/git log -1 --format=%H
+experiments (macos-15)	Run actions/checkout@v4	2026-09-08T15:15:28.2336820Z 52ad04c3519616e6cedea9ac8707406970a40ed7
+experiments (macos-15)	Run actions/setup-python@v5	﻿2026-09-08T15:15:28.2554270Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2557340Z ##[group]Run actions/setup-python@v5
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2557820Z with:
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2558140Z   python-version: 3.12
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2558530Z   check-latest: false
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2564180Z   token: ***
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2564560Z   update-environment: true
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2565020Z   allow-prereleases: false
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2565470Z   freethreaded: false
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2565860Z env:
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2566200Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2566640Z   PROFILE: smoke
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.2566990Z ##[endgroup]
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.3624140Z ##[group]Installed versions
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.3727170Z (node:1463) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.3728690Z Successfully set up CPython (3.12.10)
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.3778190Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (macos-15)	Run actions/setup-python@v5	2026-09-08T15:15:28.3779530Z ##[endgroup]
+experiments (macos-15)	Prepare Rust tools	﻿2026-09-08T15:15:28.3868030Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3869710Z ^[[36;1mrustup toolchain install stable --profile minimal --component rustfmt --component clippy^[[0m
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3922570Z shell: /bin/bash -e {0}
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3923090Z env:
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3923450Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3923910Z   PROFILE: smoke
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3924540Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3925620Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3926650Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3927590Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3928550Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.3929300Z ##[endgroup]
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.7165220Z info: syncing channel updates for stable-aarch64-apple-darwin
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9138850Z info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9253520Z info: removing previous version of component clippy
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9275580Z info: removing previous version of component rustfmt
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9289670Z info: removing previous version of component cargo
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9343220Z info: removing previous version of component rust-std
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9425730Z info: removing previous version of component rustc
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:28.9494290Z info: downloading 5 components
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:34.5607860Z 
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:34.5932310Z   stable-aarch64-apple-darwin updated - rustc 1.98.1 (48a229cea 2026-09-01) (from rustc 1.98.0 (88d9e12ae 2026-08-18))
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:34.5933220Z info: self-update is disabled for this build of rustup
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:34.5933560Z 
+experiments (macos-15)	Prepare Rust tools	2026-09-08T15:15:34.5965020Z info: any updates to rustup will need to be fetched with your system package manager
+experiments (macos-15)	Run actions/cache@v4	﻿2026-09-08T15:15:35.0267470Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0440400Z ##[group]Run actions/cache@v4
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0440670Z with:
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0440900Z   path: work/experiment-cache
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0441450Z   key: experiments-baseline-v2-macOS-ARM64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0442060Z   enableCrossOsArchive: false
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0442370Z   fail-on-cache-miss: false
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0442640Z   lookup-only: false
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0442870Z   save-always: false
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0443070Z env:
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0443270Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0443530Z   PROFILE: smoke
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0443810Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0444520Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0444990Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0445450Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0445840Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.0446290Z ##[endgroup]
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.1804390Z (node:1539) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.1815100Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (macos-15)	Run actions/cache@v4	2026-09-08T15:15:35.3451010Z Cache not found for input keys: experiments-baseline-v2-macOS-ARM64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (macos-15)	Check runner and Rust fixture	﻿2026-09-08T15:15:35.3563420Z ##[group]Run python3 -m unittest discover -s experiments/tests -v
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3563920Z ^[[36;1mpython3 -m unittest discover -s experiments/tests -v^[[0m
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3564360Z ^[[36;1mcargo fmt --manifest-path experiments/pty/Cargo.toml --check^[[0m
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3564890Z ^[[36;1mcargo clippy --manifest-path experiments/pty/Cargo.toml --locked --all-targets -- -D warnings^[[0m
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3599800Z shell: /bin/bash -e {0}
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3600020Z env:
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3600200Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3600390Z   PROFILE: smoke
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3600650Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3601070Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3601490Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3601860Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3602220Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.3602520Z ##[endgroup]
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8775600Z test_descriptor_leak_is_rejected (test_gate.GateTests.test_descriptor_leak_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8812820Z test_different_platform_is_rejected (test_gate.GateTests.test_different_platform_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8819220Z test_different_workload_is_rejected (test_gate.GateTests.test_different_workload_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8830270Z test_duplicate_result_is_rejected (test_gate.GateTests.test_duplicate_result_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8840180Z test_extra_worker_is_rejected (test_gate.GateTests.test_extra_worker_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.8841110Z test_failed_result_cannot_be_omitted (test_gate.GateTests.test_failed_result_cannot_be_omitted) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9846580Z test_fixture_timeout_is_reported_and_reaped (test_gate.GateTests.test_fixture_timeout_is_reported_and_reaped) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9907710Z test_identical_baseline_passes (test_gate.GateTests.test_identical_baseline_passes) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9915930Z Building pinned libghostty-vt for x86_64-linux...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9916870Z test_memory_regression_fails (test_gate.GateTests.test_memory_regression_fails) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9917640Z test_missing_latency_samples_are_rejected (test_gate.GateTests.test_missing_latency_samples_are_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9918450Z test_missing_metric_cannot_pass_comparison (test_gate.GateTests.test_missing_metric_cannot_pass_comparison) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9919280Z test_missing_repetition_is_rejected (test_gate.GateTests.test_missing_repetition_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9920030Z test_nonfinite_measurement_is_rejected (test_gate.GateTests.test_nonfinite_measurement_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9920800Z test_results_are_revalidated_from_raw_records (test_gate.GateTests.test_results_are_revalidated_from_raw_records) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9921500Z test_small_noise_passes (test_gate.GateTests.test_small_noise_passes) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9922210Z test_smoke_run_cannot_become_a_performance_baseline (test_gate.GateTests.test_smoke_run_cannot_become_a_performance_baseline) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9923330Z test_throughput_regression_fails (test_gate.GateTests.test_throughput_regression_fails) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9923950Z test_wrong_byte_total_is_rejected (test_gate.GateTests.test_wrong_byte_total_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9924560Z test_wrong_os_memory_counter_is_rejected (test_gate.GateTests.test_wrong_os_memory_counter_is_rejected) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9933980Z Building pinned libghostty-vt for x86_64-linux...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9943500Z Building pinned libghostty-vt for x86_64-linux...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9952230Z Building pinned libghostty-vt for x86_64-linux...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9961670Z test_linux_build_and_cache_include_baseline_cpu_and_driver (test_native_build.NativeBuildContract.test_linux_build_and_cache_include_baseline_cpu_and_driver) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9972830Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9988740Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:35.9997380Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0005320Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0013980Z test_macos_build_and_cache_include_baseline_cpu_and_driver (test_native_build.NativeBuildContract.test_macos_build_and_cache_include_baseline_cpu_and_driver) ... ok
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0014580Z 
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0014730Z ----------------------------------------------------------------------
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0015020Z Ran 21 tests in 0.124s
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0015150Z 
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.0015220Z OK
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.2715470Z     Updating crates.io index
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.4452420Z  Downloading crates ...
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5053050Z   Downloaded zmij v1.0.23
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5106670Z   Downloaded itoa v1.0.18
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5182630Z   Downloaded serde_core v1.0.229
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5291380Z   Downloaded memchr v2.8.3
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5385910Z   Downloaded serde_json v1.0.151
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.5508260Z   Downloaded libc v0.2.189
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.6425920Z    Compiling serde_core v1.0.229
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.6427740Z    Compiling zmij v1.0.23
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:36.6428010Z    Compiling serde_json v1.0.151
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:38.6354620Z    Compiling libc v0.2.189
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:38.8524830Z     Checking memchr v2.8.3
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:38.8672010Z     Checking itoa v1.0.18
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:39.9510560Z     Checking pty-experiment-harness v0.1.0 (/Users/runner/work/pty-runtime/pty-runtime/experiments/pty)
+experiments (macos-15)	Check runner and Rust fixture	2026-09-08T15:15:40.1311970Z     Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.92s
+experiments (macos-15)	Measure current revision and apply gate	﻿2026-09-08T15:15:40.1414880Z ##[group]Run comparison_args=()
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1415170Z ^[[36;1mcomparison_args=()^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1415460Z ^[[36;1mif [[ -f "$RUNNER_TEMP/pty-baseline.json" ]]; then^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1415910Z ^[[36;1m  comparison_args+=(--baseline "$RUNNER_TEMP/pty-baseline.json")^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1416340Z ^[[36;1mfi^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1417130Z ^[[36;1mpython3 experiments/run.py run --profile "$PROFILE" --output work/current-results "${comparison_args[@]}"^[[0m
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1449500Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1449780Z env:
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1449930Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1450130Z   PROFILE: smoke
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1450400Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1450830Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1451340Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1451740Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1452140Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.1452490Z ##[endgroup]
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:40.2206680Z Building the locked Rust PTY fixture...
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:43.6692930Z Downloading pinned dependency: https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:15:57.0888400Z Downloading pinned dependency: https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:16:01.5032490Z Building pinned libghostty-vt for aarch64-macos...
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:32.1881180Z [1/29] pty-idle-n1-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:32.7236610Z [2/29] pty-idle-n1-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:33.2796370Z [3/29] pty-idle-n1-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:33.8341960Z [4/29] pty-idle-n1-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:34.3795300Z [5/29] pty-idle-n16-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:34.7990920Z [6/29] pty-idle-n16-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:35.3444910Z [7/29] pty-idle-n16-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:35.8344380Z [8/29] pty-idle-n16-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:36.4056060Z [9/29] pty-serial-n16-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:36.6543210Z [10/29] pty-serial-n16-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:36.9019010Z [11/29] pty-serial-n16-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:37.1477560Z [12/29] pty-serial-n16-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:37.3613330Z [13/29] pty-concurrent-n16-a16-rate0-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:38.1076590Z [14/29] pty-concurrent-n16-a16-rate0-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:38.8566890Z [15/29] pty-concurrent-n16-a16-rate0-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:39.6216550Z [16/29] pty-concurrent-n16-a16-rate0-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:40.3899550Z [17/29] pty-concurrent-n16-a4-rate655360-shared repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:41.1210700Z [18/29] pty-concurrent-n16-a4-rate655360-shared-2 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:41.8463380Z [19/29] pty-concurrent-n16-a4-rate655360-shared-4 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:42.6392840Z [20/29] pty-concurrent-n16-a4-rate655360-dedicated repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:43.3962550Z [21/29] native-n1-v0-c0-a0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:43.6240130Z [22/29] native-n1-v0-c1-a0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:43.9071770Z [23/29] native-n1-v0-c1-a3 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:44.1982100Z [24/29] native-n1-v1-c0-a0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:44.4685320Z [25/29] native-n1-v1-c1-a0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:44.7643440Z [26/29] native-n1-v1-c1-a3 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:45.0398570Z [27/29] codec-lines10000-v0 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:45.1234260Z [28/29] codec-lines10000-v1 repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:45.1992660Z [29/29] native-correctness repetition 1
+experiments (macos-15)	Measure current revision and apply gate	2026-09-08T15:17:45.7627700Z Passed 29 fixtures. Results: /Users/runner/work/pty-runtime/pty-runtime/work/current-results
+experiments (macos-15)	Preserve evidence even on failure	﻿2026-09-08T15:17:45.7869990Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7871070Z ##[group]Run actions/upload-artifact@v4
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7872050Z with:
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7872280Z   name: experiments-macOS-ARM64
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7872980Z   path: work/current-results/
+experiments (macos-15)	Preserve evidence even on failure	work/experiment-cache/build-logs/
+experiments (macos-15)	Preserve evidence even on failure	/Users/runner/work/_temp/pty-baseline-results/
+experiments (macos-15)	Preserve evidence even on failure	/Users/runner/work/_temp/pty-baseline.json
+experiments (macos-15)	Preserve evidence even on failure	
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7873600Z   retention-days: 14
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7873970Z   if-no-files-found: warn
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7874260Z   compression-level: 6
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7874500Z   overwrite: false
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7874830Z   include-hidden-files: false
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7875090Z env:
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7875480Z   RUSTUP_TOOLCHAIN: stable
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7875810Z   PROFILE: smoke
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7876170Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7876650Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.12.10/arm64/lib/pkgconfig
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7877230Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7877660Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7878160Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.12.10/arm64
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:45.7878560Z ##[endgroup]
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0686410Z (node:4554) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0687270Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0789480Z Multiple search paths detected. Calculating the least common ancestor of all paths
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0790580Z The least common ancestor is /Users/runner/work. This will be the root directory of the artifact
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0791120Z With the provided path, there will be 71 files uploaded
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0791630Z Artifact name is valid!
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.0791940Z Root directory input is valid!
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.3757650Z Beginning upload of artifact content to blob storage
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.4176130Z (node:4554) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.6301430Z Uploaded bytes 49353
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.6786340Z Finished uploading artifact content to blob storage!
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.6787690Z SHA256 digest of uploaded artifact zip is ef338c4f792dbf129c8324c30224dbc3bcaa85e2efeeba9c03bd3229cb990e19
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.6788620Z Finalizing artifact upload
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.9736340Z Artifact experiments-macOS-ARM64.zip successfully finalized. Artifact ID 10063100442
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.9737070Z Artifact experiments-macOS-ARM64 has been successfully uploaded! Final size is 49353 bytes. Artifact ID is 10063100442
+experiments (macos-15)	Preserve evidence even on failure	2026-09-08T15:17:46.9737810Z Artifact download URL: https://github.com/nessalabs/pty-runtime/actions/runs/34243560737/artifacts/10063100442
+experiments (macos-15)	Post Run actions/cache@v4	﻿2026-09-08T15:17:47.1507670Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:47.1508730Z Post job cleanup.
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:47.2486110Z (node:4557) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:47.2487310Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:47.2674750Z [command]/opt/homebrew/bin/gtar --posix -cf cache.tzst --exclude cache.tzst -P -C /Users/runner/work/pty-runtime/pty-runtime --files-from manifest.txt --delay-directory-restore --use-compress-program zstdmt
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:53.1519400Z (node:4557) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:54.1445870Z Sent 0 of 335445171 (0.0%), 0.0 MBs/sec
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:55.1451910Z Sent 67108864 of 335445171 (20.0%), 32.0 MBs/sec
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:56.1459560Z Sent 268435456 of 335445171 (80.0%), 85.2 MBs/sec
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:56.2762130Z Sent 335445171 of 335445171 (100.0%), 102.1 MBs/sec
+experiments (macos-15)	Post Run actions/cache@v4	2026-09-08T15:17:56.3786740Z Cache saved with key: experiments-baseline-v2-macOS-ARM64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (macos-15)	Post Run actions/setup-python@v5	﻿2026-09-08T15:17:56.3971360Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Post Run actions/setup-python@v5	2026-09-08T15:17:56.3972710Z Post job cleanup.
+experiments (macos-15)	Post Run actions/setup-python@v5	2026-09-08T15:17:56.5315110Z (node:4715) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (macos-15)	Post Run actions/setup-python@v5	2026-09-08T15:17:56.5316080Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (macos-15)	Post Run actions/checkout@v4	﻿2026-09-08T15:17:56.5410110Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.5411130Z Post job cleanup.
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6137370Z [command]/opt/homebrew/bin/git version
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6318970Z git version 2.55.0
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6335640Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/950515d8-1cf5-4ed3-abd5-33377cc1c439/.gitconfig'
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6345970Z Temporarily overriding HOME='/Users/runner/work/_temp/950515d8-1cf5-4ed3-abd5-33377cc1c439' before making global git config changes
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6346700Z Adding repository directory to the temporary git global config as a safe directory
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6349330Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/pty-runtime/pty-runtime
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6439580Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.6488910Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7158540Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7199610Z http.https://github.com/.extraheader
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7204840Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7262080Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7909120Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+experiments (macos-15)	Post Run actions/checkout@v4	2026-09-08T15:17:56.7953790Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+experiments (macos-15)	Complete job	﻿2026-09-08T15:17:56.8739360Z Cleaning up orphan processes
+experiments (macos-15)	Complete job	2026-09-08T15:17:57.6077740Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Set up job	﻿2026-09-08T15:15:23.1621624Z Current runner version: '2.337.0'
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1708940Z ##[group]Runner Image Provisioner
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1710374Z Hosted Compute Agent
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1711325Z Version: 20260828.587
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1712309Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1714421Z Build Date: 2026-08-28T16:44:25Z
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1715531Z Worker ID: {cf30ddf9-5230-40a5-a3e4-a9d9789ca23e}
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1716604Z Azure Region: eastus
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1717638Z ##[endgroup]
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1719932Z ##[group]Operating System
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1721019Z Ubuntu
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1721922Z 24.04.4
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1722758Z LTS
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1723950Z ##[endgroup]
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1724853Z ##[group]Runner Image
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1725973Z Image: ubuntu-24.04
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1726909Z Version: 20260831.293.1
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1728603Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1743505Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1745263Z ##[endgroup]
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1747016Z ##[group]GITHUB_TOKEN Permissions
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1749975Z Contents: read
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1750900Z Metadata: read
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1751981Z ##[endgroup]
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1785461Z Secret source: Actions
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.1787503Z Prepare workflow directory
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.2939621Z Prepare all required actions
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.3012301Z Getting action download info
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.5470568Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.6844413Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.7710155Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:23.8764604Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+experiments (ubuntu-24.04)	Set up job	2026-09-08T15:15:24.1445240Z Complete job name: experiments (ubuntu-24.04)
+experiments (ubuntu-24.04)	Run actions/checkout@v4	﻿2026-09-08T15:15:24.2289656Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2300523Z ##[group]Run actions/checkout@v4
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2301697Z with:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2302523Z   repository: nessalabs/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2310496Z   token: ***
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2311306Z   ssh-strict: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2312140Z   ssh-user: git
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2312973Z   persist-credentials: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2313996Z   clean: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2314845Z   sparse-checkout-cone-mode: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2315830Z   fetch-depth: 1
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2316658Z   fetch-tags: false
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2317525Z   show-progress: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2318436Z   lfs: false
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2319238Z   submodules: false
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2320139Z   set-safe-directory: true
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2321115Z   allow-unsafe-pr-checkout: false
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2322346Z env:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2323125Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2324373Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.2325182Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3457591Z Syncing repository: nessalabs/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3463899Z ##[group]Getting Git version info
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3466380Z Working directory is '/home/runner/work/pty-runtime/pty-runtime'
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3470273Z [command]/usr/bin/git version
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3594340Z git version 2.55.0
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3650410Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3722207Z Temporarily overriding HOME='/home/runner/work/_temp/8134fa4a-0901-40ea-9cb1-71ec110c174b' before making global git config changes
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3735518Z Adding repository directory to the temporary git global config as a safe directory
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3749771Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/pty-runtime/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3755475Z Deleting the contents of '/home/runner/work/pty-runtime/pty-runtime'
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3758825Z ##[group]Initializing the repository
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3761024Z [command]/usr/bin/git init /home/runner/work/pty-runtime/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3843390Z hint: Using 'master' as the name for the initial branch. This default branch name
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3866510Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3876926Z hint: to use in all of your new repositories, which will suppress this warning,
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3879390Z hint: call:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3880649Z hint:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3882176Z hint: 	git config --global init.defaultBranch <name>
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3884250Z hint:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3885987Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3888913Z hint: 'development'. The just-created branch can be renamed via this command:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3891210Z hint:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3892482Z hint: 	git branch -m <name>
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3894184Z hint:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3896011Z hint: Disable this message with "git config set advice.defaultBranchName false"
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3899131Z Initialized empty Git repository in /home/runner/work/pty-runtime/pty-runtime/.git/
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3905290Z [command]/usr/bin/git remote add origin https://github.com/nessalabs/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3940642Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3943078Z ##[group]Disabling automatic garbage collection
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.3966289Z [command]/usr/bin/git config --local gc.auto 0
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4049428Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4070704Z ##[group]Setting up auth
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4104810Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4118202Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4846281Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4931801Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4941186Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.4971184Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.5233478Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.5276322Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.5279132Z ##[group]Fetching the repository
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.5289526Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +52ad04c3519616e6cedea9ac8707406970a40ed7:refs/remotes/origin/main
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9486675Z From https://github.com/nessalabs/pty-runtime
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9489271Z  * [new ref]         52ad04c3519616e6cedea9ac8707406970a40ed7 -> origin/main
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9492520Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9494345Z ##[group]Determining the checkout info
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9596703Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9598738Z [command]/usr/bin/git sparse-checkout disable
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9607570Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9609399Z ##[group]Checking out the ref
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9610228Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9933411Z Switched to a new branch 'main'
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9935382Z branch 'main' set up to track 'origin/main'.
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9939401Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:24.9986324Z [command]/usr/bin/git log -1 --format=%H
+experiments (ubuntu-24.04)	Run actions/checkout@v4	2026-09-08T15:15:25.0019369Z 52ad04c3519616e6cedea9ac8707406970a40ed7
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	﻿2026-09-08T15:15:25.0298523Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0300727Z ##[group]Run actions/setup-python@v5
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0301165Z with:
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0301523Z   python-version: 3.12
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0301910Z   check-latest: false
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0305279Z   token: ***
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0305687Z   update-environment: true
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0306095Z   allow-prereleases: false
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0306506Z   freethreaded: false
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0306891Z env:
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0307252Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0307638Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.0307993Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.1858093Z ##[group]Installed versions
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.1964013Z (node:2022) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.1967328Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.1984642Z Successfully set up CPython (3.12.14)
+experiments (ubuntu-24.04)	Run actions/setup-python@v5	2026-09-08T15:15:25.1985937Z ##[endgroup]
+experiments (ubuntu-24.04)	Prepare Rust tools	﻿2026-09-08T15:15:25.2308260Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2309878Z ^[[36;1mrustup toolchain install stable --profile minimal --component rustfmt --component clippy^[[0m
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2481391Z shell: /usr/bin/bash -e {0}
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2482124Z env:
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2482736Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2483778Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2484570Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2485762Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2486698Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2487542Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2488407Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2489259Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.2489976Z ##[endgroup]
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.5085461Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.7998939Z info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8290700Z info: removing previous version of component clippy
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8301266Z info: removing previous version of component rustfmt
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8309680Z info: removing previous version of component cargo
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8355234Z info: removing previous version of component rust-std
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8400056Z info: removing previous version of component rustc
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:25.8447100Z info: downloading 5 components
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:35.1705770Z 
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:35.1805899Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.98.1 (48a229cea 2026-09-01) (from rustc 1.98.0 (88d9e12ae 2026-08-18))
+experiments (ubuntu-24.04)	Prepare Rust tools	2026-09-08T15:15:35.1807149Z 
+experiments (ubuntu-24.04)	Run actions/cache@v4	﻿2026-09-08T15:15:35.2615927Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2617194Z ##[group]Run actions/cache@v4
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2617444Z with:
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2617681Z   path: work/experiment-cache
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2618199Z   key: experiments-baseline-v2-Linux-X64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2618974Z   enableCrossOsArchive: false
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2619231Z   fail-on-cache-miss: false
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2619474Z   lookup-only: false
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2619698Z   save-always: false
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2619931Z env:
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2620138Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2620374Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2620699Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2621173Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2621605Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2621988Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2622375Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2622761Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.2623088Z ##[endgroup]
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.3739523Z (node:2072) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.3741121Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (ubuntu-24.04)	Run actions/cache@v4	2026-09-08T15:15:35.4585640Z Cache not found for input keys: experiments-baseline-v2-Linux-X64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (ubuntu-24.04)	Check runner and Rust fixture	﻿2026-09-08T15:15:35.4702567Z ##[group]Run python3 -m unittest discover -s experiments/tests -v
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4703087Z ^[[36;1mpython3 -m unittest discover -s experiments/tests -v^[[0m
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4704825Z ^[[36;1mcargo fmt --manifest-path experiments/pty/Cargo.toml --check^[[0m
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4705405Z ^[[36;1mcargo clippy --manifest-path experiments/pty/Cargo.toml --locked --all-targets -- -D warnings^[[0m
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4745666Z shell: /usr/bin/bash -e {0}
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4745947Z env:
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4746160Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4746441Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4746756Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4747193Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4747610Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4747990Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4748367Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4748789Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:35.4749112Z ##[endgroup]
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9115215Z test_descriptor_leak_is_rejected (test_gate.GateTests.test_descriptor_leak_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9128499Z test_different_platform_is_rejected (test_gate.GateTests.test_different_platform_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9137430Z test_different_workload_is_rejected (test_gate.GateTests.test_different_workload_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9141724Z test_duplicate_result_is_rejected (test_gate.GateTests.test_duplicate_result_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9146523Z test_extra_worker_is_rejected (test_gate.GateTests.test_extra_worker_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:36.9150781Z test_failed_result_cannot_be_omitted (test_gate.GateTests.test_failed_result_cannot_be_omitted) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0178492Z test_fixture_timeout_is_reported_and_reaped (test_gate.GateTests.test_fixture_timeout_is_reported_and_reaped) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0190299Z test_identical_baseline_passes (test_gate.GateTests.test_identical_baseline_passes) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0193460Z test_memory_regression_fails (test_gate.GateTests.test_memory_regression_fails) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0197437Z test_missing_latency_samples_are_rejected (test_gate.GateTests.test_missing_latency_samples_are_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0206710Z test_missing_metric_cannot_pass_comparison (test_gate.GateTests.test_missing_metric_cannot_pass_comparison) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0210270Z test_missing_repetition_is_rejected (test_gate.GateTests.test_missing_repetition_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0214520Z test_nonfinite_measurement_is_rejected (test_gate.GateTests.test_nonfinite_measurement_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0253707Z test_results_are_revalidated_from_raw_records (test_gate.GateTests.test_results_are_revalidated_from_raw_records) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0262236Z test_small_noise_passes (test_gate.GateTests.test_small_noise_passes) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0264263Z test_smoke_run_cannot_become_a_performance_baseline (test_gate.GateTests.test_smoke_run_cannot_become_a_performance_baseline) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0265758Z test_throughput_regression_fails (test_gate.GateTests.test_throughput_regression_fails) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0267049Z test_wrong_byte_total_is_rejected (test_gate.GateTests.test_wrong_byte_total_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0268368Z test_wrong_os_memory_counter_is_rejected (test_gate.GateTests.test_wrong_os_memory_counter_is_rejected) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0279364Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0298025Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0309084Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0319837Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0331838Z test_linux_build_and_cache_include_baseline_cpu_and_driver (test_native_build.NativeBuildContract.test_linux_build_and_cache_include_baseline_cpu_and_driver) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0345449Z Building pinned libghostty-vt for aarch64-macos...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0362106Z Building pinned libghostty-vt for aarch64-macos...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0372986Z Building pinned libghostty-vt for aarch64-macos...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0394367Z Building pinned libghostty-vt for aarch64-macos...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0405953Z test_macos_build_and_cache_include_baseline_cpu_and_driver (test_native_build.NativeBuildContract.test_macos_build_and_cache_include_baseline_cpu_and_driver) ... ok
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0407318Z 
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0407937Z ----------------------------------------------------------------------
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0423828Z Ran 21 tests in 0.130s
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0428471Z 
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.0434242Z OK
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.1722464Z     Updating crates.io index
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2476385Z  Downloading crates ...
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2784764Z   Downloaded serde_core v1.0.229
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2814048Z   Downloaded itoa v1.0.18
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2843659Z   Downloaded memchr v2.8.3
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2917125Z   Downloaded serde_json v1.0.151
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.2996727Z   Downloaded zmij v1.0.23
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.3016440Z   Downloaded libc v0.2.189
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.3618343Z    Compiling serde_core v1.0.229
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.3619349Z    Compiling zmij v1.0.23
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.5866828Z    Compiling serde_json v1.0.151
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.5894643Z    Compiling libc v0.2.189
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.8834321Z     Checking itoa v1.0.18
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:37.9540901Z     Checking memchr v2.8.3
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:39.7224892Z     Checking pty-experiment-harness v0.1.0 (/home/runner/work/pty-runtime/pty-runtime/experiments/pty)
+experiments (ubuntu-24.04)	Check runner and Rust fixture	2026-09-08T15:15:39.9208978Z     Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.77s
+experiments (ubuntu-24.04)	Measure current revision and apply gate	﻿2026-09-08T15:15:39.9381749Z ##[group]Run comparison_args=()
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9404494Z ^[[36;1mcomparison_args=()^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9405017Z ^[[36;1mif [[ -f "$RUNNER_TEMP/pty-baseline.json" ]]; then^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9405618Z ^[[36;1m  comparison_args+=(--baseline "$RUNNER_TEMP/pty-baseline.json")^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9406146Z ^[[36;1mfi^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9406793Z ^[[36;1mpython3 experiments/run.py run --profile "$PROFILE" --output work/current-results "${comparison_args[@]}"^[[0m
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9451113Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9451473Z env:
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9451688Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9451932Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9452408Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9452842Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9453532Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9453912Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9454331Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9454713Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:39.9455032Z ##[endgroup]
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:40.0273839Z Building the locked Rust PTY fixture...
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:46.2763457Z Downloading pinned dependency: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:15:58.6453549Z Downloading pinned dependency: https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:16:01.8434171Z Building pinned libghostty-vt for x86_64-linux...
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:40.3981989Z [1/29] pty-idle-n1-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:40.8016704Z [2/29] pty-idle-n1-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:41.2051425Z [3/29] pty-idle-n1-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:41.6084367Z [4/29] pty-idle-n1-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:42.0114703Z [5/29] pty-idle-n16-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:42.4266058Z [6/29] pty-idle-n16-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:42.8314212Z [7/29] pty-idle-n16-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:43.2363838Z [8/29] pty-idle-n16-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:43.6425918Z [9/29] pty-serial-n16-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:43.9443358Z [10/29] pty-serial-n16-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:44.2201217Z [11/29] pty-serial-n16-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:44.4949459Z [12/29] pty-serial-n16-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:44.7686943Z [13/29] pty-concurrent-n16-a16-rate0-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:45.4889615Z [14/29] pty-concurrent-n16-a16-rate0-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:46.2097647Z [15/29] pty-concurrent-n16-a16-rate0-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:46.9402955Z [16/29] pty-concurrent-n16-a16-rate0-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:47.6721351Z [17/29] pty-concurrent-n16-a4-rate655360-shared repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:48.3908760Z [18/29] pty-concurrent-n16-a4-rate655360-shared-2 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:49.0990546Z [19/29] pty-concurrent-n16-a4-rate655360-shared-4 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:49.8082345Z [20/29] pty-concurrent-n16-a4-rate655360-dedicated repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:50.5184332Z [21/29] native-n1-v0-c0-a0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:50.7328780Z [22/29] native-n1-v0-c1-a0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:50.9453894Z [23/29] native-n1-v0-c1-a3 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:51.1603957Z [24/29] native-n1-v1-c0-a0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:51.3718954Z [25/29] native-n1-v1-c1-a0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:51.5862558Z [26/29] native-n1-v1-c1-a3 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:51.8018212Z [27/29] codec-lines10000-v0 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:51.9792321Z [28/29] codec-lines10000-v1 repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:52.1547841Z [29/29] native-correctness repetition 1
+experiments (ubuntu-24.04)	Measure current revision and apply gate	2026-09-08T15:19:53.2304776Z Passed 29 fixtures. Results: /home/runner/work/pty-runtime/pty-runtime/work/current-results
+experiments (ubuntu-24.04)	Preserve evidence even on failure	﻿2026-09-08T15:19:53.2495318Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2496545Z ##[group]Run actions/upload-artifact@v4
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2496815Z with:
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2497024Z   name: experiments-Linux-X64
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2497652Z   path: work/current-results/
+experiments (ubuntu-24.04)	Preserve evidence even on failure	work/experiment-cache/build-logs/
+experiments (ubuntu-24.04)	Preserve evidence even on failure	/home/runner/work/_temp/pty-baseline-results/
+experiments (ubuntu-24.04)	Preserve evidence even on failure	/home/runner/work/_temp/pty-baseline.json
+experiments (ubuntu-24.04)	Preserve evidence even on failure	
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2498276Z   retention-days: 14
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2498499Z   if-no-files-found: warn
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2498929Z   compression-level: 6
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2499147Z   overwrite: false
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2499363Z   include-hidden-files: false
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2499597Z env:
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2499791Z   RUSTUP_TOOLCHAIN: stable
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2500060Z   PROFILE: smoke
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2500331Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2500750Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2501163Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2501535Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2501913Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2502282Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.2502597Z ##[endgroup]
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4214273Z (node:2897) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4215833Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4738856Z Multiple search paths detected. Calculating the least common ancestor of all paths
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4740786Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4741597Z With the provided path, there will be 71 files uploaded
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4742337Z Artifact name is valid!
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.4742686Z Root directory input is valid!
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.6493943Z Beginning upload of artifact content to blob storage
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.7405452Z (node:2897) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.7694901Z Uploaded bytes 52050
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.7853925Z Finished uploading artifact content to blob storage!
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.7855171Z SHA256 digest of uploaded artifact zip is c7ef402b2702b77cc21aa673d8ccd034abadd2e256ba971e0ff2a8603c8b9b48
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.7856264Z Finalizing artifact upload
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.9896881Z Artifact experiments-Linux-X64.zip successfully finalized. Artifact ID 10063193513
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.9898131Z Artifact experiments-Linux-X64 has been successfully uploaded! Final size is 52050 bytes. Artifact ID is 10063193513
+experiments (ubuntu-24.04)	Preserve evidence even on failure	2026-09-08T15:19:53.9899506Z Artifact download URL: https://github.com/nessalabs/pty-runtime/actions/runs/34243560737/artifacts/10063193513
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	﻿2026-09-08T15:19:54.0695958Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:54.0697202Z Post job cleanup.
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:54.1864317Z (node:2922) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:54.1874105Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:54.2046813Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/pty-runtime/pty-runtime --files-from manifest.txt --use-compress-program zstdmt
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:58.9084086Z (node:2922) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:19:59.8924629Z Sent 105509149 of 373944605 (28.2%), 100.7 MBs/sec
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:20:00.8921472Z Sent 239726877 of 373944605 (64.1%), 114.4 MBs/sec
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:20:01.2525589Z Sent 373944605 of 373944605 (100.0%), 151.1 MBs/sec
+experiments (ubuntu-24.04)	Post Run actions/cache@v4	2026-09-08T15:20:01.3644194Z Cache saved with key: experiments-baseline-v2-Linux-X64-9859d96e9bb314d0baf5a4e6ad58f7d94b0d0af4bc1b71528cd863f5a0e108e7
+experiments (ubuntu-24.04)	Post Run actions/setup-python@v5	﻿2026-09-08T15:20:01.3795177Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Post Run actions/setup-python@v5	2026-09-08T15:20:01.3797173Z Post job cleanup.
+experiments (ubuntu-24.04)	Post Run actions/setup-python@v5	2026-09-08T15:20:01.5124785Z (node:2945) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+experiments (ubuntu-24.04)	Post Run actions/setup-python@v5	2026-09-08T15:20:01.5126099Z (Use `node --trace-deprecation ...` to show where the warning was created)
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	﻿2026-09-08T15:20:01.5390783Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.5392823Z Post job cleanup.
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6483781Z [command]/usr/bin/git version
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6533533Z git version 2.55.0
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6597344Z Temporarily overriding HOME='/home/runner/work/_temp/a4a9250c-2dc2-4813-b1d2-af89ae3b2a33' before making global git config changes
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6598747Z Adding repository directory to the temporary git global config as a safe directory
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6599903Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/pty-runtime/pty-runtime
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6665851Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.6742689Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.7097888Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.7143975Z http.https://github.com/.extraheader
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.7164293Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.7209829Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.7893963Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+experiments (ubuntu-24.04)	Post Run actions/checkout@v4	2026-09-08T15:20:01.8017361Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+experiments (ubuntu-24.04)	Complete job	﻿2026-09-08T15:20:01.8869943Z Cleaning up orphan processes
+experiments (ubuntu-24.04)	Complete job	2026-09-08T15:20:01.9183991Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

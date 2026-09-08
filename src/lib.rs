@@ -7,7 +7,9 @@ mod adapters;
 mod runtime;
 pub use adapters::StorageOptions;
 pub use pty_runtime_application::projection::{
-    PinnedCheckpoint, ProjectedView, ProjectionOperation, ProjectionServices,
+    PinnedCheckpoint, ProjectedView, ProjectionOperation, ProjectionServices, StateTransfer,
+    TransferBoundary, TransferCursor, TransferEnd, TransferError, TransferEvent, TransferEventKind,
+    TransferObserver, TransferRead,
 };
 pub use pty_runtime_application::runtime::{
     AttachPosition, Attachment, Completion, CompletionWait, NextOutput, OutputEvent, RuntimeError,
@@ -42,3 +44,15 @@ pub mod ports {
     };
     pub use pty_runtime_application::terminal::{ITerminal, ITerminalFactory};
 }
+
+/// Optional forwarding through the pinned event-stream sink, without implicit persistence.
+#[cfg(feature = "event-stream")]
+pub use pty_runtime_infrastructure::event_stream;
+
+/// Bounded opt-in runtime measurements; payloads and session identities are never retained.
+pub use pty_runtime_application::diagnostics::{LatencyKind, LatencySnapshot, RuntimeDiagnostics};
+
+/// Aggregate counters and bounded current admission-reservation snapshots.
+pub use pty_runtime_application::diagnostics::{
+    AggregateSnapshot, BudgetUsage, CounterKind, ProjectionResources, ResourceSnapshot,
+};

@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def identity():
     paths = []
-    for folder in ['src', 'crates', 'tests', 'scripts', 'helpers']:
+    for folder in ['src', 'crates', 'tests', 'scripts', 'helpers', 'experiments', 'examples']:
         for directory, children, names in os.walk(ROOT / folder):
-            children[:] = [child for child in children if child not in {'target', '.git', '__pycache__'}]
+            children[:] = [child for child in children if child not in {'target', '.git', '__pycache__', 'work'}]
             paths.extend(Path(directory) / name for name in names
-                         if Path(name).suffix in {'.rs', '.c', '.h', '.toml', '.py', '.lock', '.zig', '.patch'})
+                         if Path(name).suffix in {'.rs', '.c', '.h', '.toml', '.py', '.lock', '.zig', '.patch', '.json', '.sh'})
     paths.extend([ROOT / 'Cargo.toml', ROOT / 'Cargo.lock', Path(__file__).resolve()])
     digest = hashlib.sha256()
     for path in sorted(set(paths)):

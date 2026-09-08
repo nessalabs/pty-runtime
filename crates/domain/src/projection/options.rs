@@ -4,6 +4,12 @@ use std::time::Duration;
 /// Global admission bounds shared by every projected session in one runtime.
 #[derive(Debug, Clone, Copy)]
 pub struct ProjectionLimits {
+    /// Shared ordered continuation payload bytes, including consumer-retained events.
+    pub journal_bytes: usize,
+    /// Shared continuation records, including consumer-retained events.
+    pub journal_slots: usize,
+    /// Independent live transfer observers and provisional transfer requests.
+    pub transfer_observers: usize,
     /// Parser payload bytes, independent from evictable raw replay.
     pub staging_bytes: usize,
     /// Parser chunks and ordered request queue entries.
@@ -24,6 +30,9 @@ pub struct ProjectionLimits {
 impl Default for ProjectionLimits {
     fn default() -> Self {
         Self {
+            journal_bytes: 16 * 1024 * 1024,
+            journal_slots: 4096,
+            transfer_observers: 2048,
             staging_bytes: 64 * 1024 * 1024,
             staging_slots: 16384,
             resident_bytes: 1024 * 1024 * 1024,
@@ -39,6 +48,9 @@ impl ProjectionLimits {
     /// Reject zero or impossible allocation bounds before reserving any storage.
     pub fn validate(self) -> Result<Self, ProjectionError> {
         let limits = [
+            self.journal_bytes,
+            self.journal_slots,
+            self.transfer_observers,
             self.staging_bytes,
             self.staging_slots,
             self.resident_bytes,
@@ -58,6 +70,12 @@ impl ProjectionLimits {
 /// Per-session projection admission and bounded idle-parking retry policy.
 #[derive(Debug, Clone, Copy)]
 pub struct ProjectionOptions {
+    /// Per-session continuation bytes, charged until every retained event is dropped.
+    pub journal_bytes: usize,
+    /// Per-session continuation records, including evicted consumer-held events.
+    pub journal_slots: usize,
+    /// Independent transfer observers; idle observers retain bounded metadata only.
+    pub transfer_observers: usize,
     /// Native and synchronous operation limits enforced by the terminal adapter.
     pub terminal: TerminalConfig,
     /// Lossless parser payload cap; must admit a complete native feed chunk.
@@ -78,6 +96,9 @@ impl ProjectionOptions {
     pub fn new(terminal: TerminalConfig) -> Self {
         Self {
             terminal,
+            journal_bytes: 1024 * 1024,
+            journal_slots: 256,
+            transfer_observers: 32,
             staging_bytes: 2 * 1024 * 1024,
             staging_slots: 256,
             request_slots: 32,
@@ -89,7 +110,13 @@ impl ProjectionOptions {
     /// Validate all finite bounds and checked copied-view allocation accounting.
     pub fn validate(self) -> Result<Self, ProjectionError> {
         self.terminal.validate()?;
-        if self.staging_bytes < self.terminal.feed_bytes
+        if self.journal_bytes == 0
+            || self.journal_bytes > isize::MAX as usize
+            || self.journal_slots == 0
+            || self.journal_slots > 1_048_576
+            || self.transfer_observers == 0
+            || self.transfer_observers > 1_048_576
+            || self.staging_bytes < self.terminal.feed_bytes
             || self.staging_bytes > isize::MAX as usize
             || self.staging_slots == 0
             || self.staging_slots > 1_048_576

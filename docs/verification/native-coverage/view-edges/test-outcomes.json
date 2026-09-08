@@ -1,0 +1,27 @@
+[
+  {
+    "test": "terminal_view_edges",
+    "exit_code": 0,
+    "binary_sha256": "cca1d3d87dbafe8d90c42e21fefbe568b9060813bc8be4374935bac6dce2c94a"
+  },
+  {
+    "test": "terminal_live_restore",
+    "exit_code": 0,
+    "binary_sha256": "664eb541a7df27bd74abd32d1dab8f4b8910e2a257d8af7fbc1c832e80b7bcf7"
+  },
+  {
+    "test": "terminal_bounds",
+    "exit_code": 0,
+    "binary_sha256": "6fd1696a37dc511753656d43b6a2f975a83e9935ca3a7b905ee1c3876c7ed678"
+  },
+  {
+    "test": "terminal_contract",
+    "exit_code": 0,
+    "binary_sha256": "70b17c2783c892f21bad79c0f8cf1b2c43c856449a9c3b2394d7baa2d08cf758"
+  },
+  {
+    "test": "allocator-contract",
+    "exit_code": 0,
+    "binary_sha256": "d10f32f0aa236761bedd2ffc9fd591eedf2ef708ae30b6ced515a69bb89d61ce"
+  }
+]

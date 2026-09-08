@@ -1,0 +1,28 @@
+{"repeat": 0, "exit": 101}
+
+running 1 test
+test simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live ... FAILED
+
+failures:
+
+failures:
+    simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.10s
+
+   Compiling pty-runtime-infrastructure v0.1.0 (/tmp/pty-loop4-gate/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.66s
+     Running tests/process_pressure.rs (target/debug/deps/process_pressure-d5aa0fd5344238e8)
+HOST-FAULT sid=68688 at crates/infrastructure/src/process/guardian.rs:149:30
+HOST-FAULT sid=68719 at crates/infrastructure/src/process/guardian.rs:149:30
+HOST-FAULT sid=68724 at crates/infrastructure/src/process/guardian.rs:149:30
+FAILED-WAIT bytes=131072 exit=Some(Code(0)) drain=Some(Eof)
+
+thread 'simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live' (68660) panicked at crates/infrastructure/tests/fixtures/process_events.rs:80:9:
+assertion `left == right` failed
+  left: Some(Internal)
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `-p pty-runtime-infrastructure --test process_pressure`
+
+NO HELPER FAULTS

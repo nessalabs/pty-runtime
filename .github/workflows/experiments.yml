@@ -39,7 +39,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: work/experiment-cache
-          key: experiments-baseline-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/run.py', 'scripts/native/bootstrap.py', 'experiments/pty/Cargo.lock') }}
+          key: experiments-baseline-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/run.py', 'scripts/native/bootstrap.py', 'scripts/native/verify_source.py', 'scripts/native/patches/snapshot-pending-wrap.patch', 'experiments/pty/Cargo.lock') }}
       - name: Check runner and Rust fixture
         run: |
           python3 -m unittest discover -s experiments/tests -v
@@ -55,7 +55,7 @@ jobs:
         if: inputs.profile == 'qualification' && inputs.baseline_ref != ''
         shell: bash
         run: |
-          python3 baseline-source/experiments/run.py run --profile qualification --cache "$GITHUB_WORKSPACE/work/experiment-cache" --output "$RUNNER_TEMP/pty-baseline-results"
+          python3 baseline-source/experiments/run.py run --profile qualification --cache "$RUNNER_TEMP/pty-baseline-cache" --output "$RUNNER_TEMP/pty-baseline-results"
           python3 experiments/run.py baseline --results "$RUNNER_TEMP/pty-baseline-results" --output "$RUNNER_TEMP/pty-baseline.json"
       - name: Measure current revision and apply gate
         shell: bash

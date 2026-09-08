@@ -1,16 +1,18 @@
 //! Independent authoritative projection order, residency and parking policy.
 mod options;
 mod policy;
+mod transfer;
 use crate::{
     ReplayCursor, checkpoint::CheckpointError, process::ProcessError, terminal::TerminalError,
 };
 pub use options::{ProjectionLimits, ProjectionOptions};
 pub use policy::{ParkAttempt, ProjectionPolicy};
+pub use transfer::{TransferBoundary, TransferCursor, TransferEnd, TransferError, TransferOrder};
 
 /// Terminal ownership state, independent from process exit and output drain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Residency {
-    /// A complete live model is available.
+    /// A live model is available; history applicability is reported separately.
     Resident,
     /// Immutable state is being encoded or committed; live model is retained.
     Parking,
@@ -56,6 +58,10 @@ pub struct ProjectionStatus {
     pub control_generation: u64,
     /// Independent terminal residency/history state.
     pub residency: Residency,
+    /// Current or most recent restoration, including explicitly inapplicable history.
+    pub history: crate::terminal::RestorationProgress,
+    /// Cumulative validated history pages that could not be applied in this lifetime.
+    pub skipped_history_pages: u64,
     /// Permanent projection failure, if any.
     pub failure: Option<ProjectionError>,
     /// Latest recoverable parking failure; original live state is retained.
@@ -88,3 +94,6 @@ impl From<ProcessError> for ProjectionError {
 }
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod transfer_tests;

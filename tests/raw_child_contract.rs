@@ -98,3 +98,41 @@ fn merged_stdout_stderr_preserves_binary_bytes_through_public_observer() {
     assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
     owner.shutdown();
 }
+
+#[test]
+fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
+    let owner = runtime(RuntimeOptions::default());
+    let spec = CommandSpec::new(
+        "/usr/bin/env".into(),
+        std::env::current_dir().unwrap(),
+        vec![],
+    )
+    .unwrap()
+    .with_environment(
+        EnvironmentPolicy::Empty,
+        vec!["PATH".into(), "PTY_SYNTHETIC_FLAG".into()],
+        vec![("PTY_SYNTHETIC_FLAG".into(), "final-override".into())],
+    )
+    .unwrap();
+    let session = owner
+        .spawn(id("exact-environment"), &spec, options())
+        .unwrap();
+    let mut reader = session.attach(AttachPosition::Oldest).unwrap();
+    let mut output = Vec::new();
+    let done = loop {
+        match block_on(reader.read_next()).unwrap() {
+            OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }) => output.extend(bytes),
+            OutputEvent::Complete(done) => break done,
+            other => panic!("unexpected env observation {other:?}"),
+        }
+    };
+    assert_eq!(done.status.exit, Some(ExitStatus::Code(0)));
+    assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
+    // Compare without printing unexpected values if a future environment leak occurs.
+    assert!(
+        output == b"PTY_SYNTHETIC_FLAG=final-override\r\n"
+            || output == b"PTY_SYNTHETIC_FLAG=final-override\n",
+        "unexpected exec environment"
+    );
+    owner.shutdown();
+}

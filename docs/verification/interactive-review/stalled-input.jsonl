@@ -1,0 +1,2 @@
+{"sent_input_bytes": 3066, "escape_bytes_accepted": 0, "exit_after_11_seconds": 1, "transcript": "READY\ninteractive: input stopped after 0 bytes: Some(Timeout)\r\n"}
+{"external_term_exit": 1}

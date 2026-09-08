@@ -41,6 +41,8 @@ impl ProjectionPolicy {
                 processed: cursor,
                 control_generation: 0,
                 residency: Residency::Resident,
+                history: crate::terminal::RestorationProgress::Complete,
+                skipped_history_pages: 0,
                 failure: None,
                 parking_failure: None,
             },
@@ -177,6 +179,7 @@ impl ProjectionPolicy {
     pub fn begin_restore(&mut self) -> Result<(), ProjectionError> {
         self.require_restoration_source(&[Residency::Parked])?;
         self.status.residency = Residency::Restoring;
+        self.status.history = crate::terminal::RestorationProgress::Usable;
         Ok(())
     }
     /// Record a native restoration milestone from an admitted restore operation.
@@ -186,9 +189,20 @@ impl ProjectionPolicy {
         progress: crate::terminal::RestorationProgress,
     ) -> Result<(), ProjectionError> {
         self.require_restoration_source(&[Residency::Restoring, Residency::Usable])?;
-        self.status.residency = match progress {
-            crate::terminal::RestorationProgress::Usable => Residency::Usable,
-            crate::terminal::RestorationProgress::Complete => Residency::Resident,
+        let additional = progress
+            .skipped_pages()
+            .checked_sub(self.status.history.skipped_pages())
+            .ok_or(ProjectionError::InvalidConfiguration)?;
+        self.status.skipped_history_pages = self
+            .status
+            .skipped_history_pages
+            .checked_add(additional)
+            .ok_or(ProjectionError::Capacity)?;
+        self.status.history = progress;
+        self.status.residency = if progress.is_finished() {
+            Residency::Resident
+        } else {
+            Residency::Usable
         };
         Ok(())
     }

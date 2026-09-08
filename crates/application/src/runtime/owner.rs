@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 /// Application owner independent of transports. Dropping it shuts down its backend.
 /// This type is intentionally not Clone; sessions do not extend owner lifetime.
 pub struct Runtime {
+    diagnostics: Option<Arc<crate::diagnostics::RuntimeDiagnostics>>,
     owner: u64,
     options: RuntimeOptions,
     lifecycle: AdmissionGate,
@@ -36,6 +37,7 @@ impl Runtime {
     ) -> Result<Self, RuntimeError> {
         options.validate()?;
         Ok(Self {
+            diagnostics: None,
             owner,
             observers: Arc::new(Quota::new(options.max_observers)),
             replay: Arc::new(Quota::new(options.replay_bytes)),
@@ -48,6 +50,24 @@ impl Runtime {
             repository,
             backend,
         })
+    }
+    /// Snapshot current shared reservations, including consumer-retained buffers.
+    pub fn resources(&self) -> crate::diagnostics::ResourceSnapshot {
+        crate::diagnostics::ResourceSnapshot {
+            observers: self.observers.usage(),
+            replay_capacity: self.replay.usage(),
+            input_bytes: self.input_bytes.usage(),
+            input_slots: self.input_slots.usage(),
+            projection: self.projection.as_ref().map(ProjectionRuntime::resources),
+        }
+    }
+    /// Enable bounded shared diagnostics for subsequently spawned sessions.
+    pub fn with_diagnostics(
+        mut self,
+        diagnostics: Arc<crate::diagnostics::RuntimeDiagnostics>,
+    ) -> Self {
+        self.diagnostics = Some(diagnostics);
+        self
     }
     /// Compose terminal/storage/scheduling adapters for subsequently projected sessions.
     /// This runtime owns their worker lifetime and closes them during shutdown.
@@ -75,15 +95,18 @@ impl Runtime {
             return Err(ProjectionError::Terminal(TerminalError::Unsupported).into());
         }
         let (lifetime, _admission) = self.lifecycle.admit(self.owner)?;
-        let context = Arc::new(SessionContext::new(
-            lifetime,
-            options.clone(),
-            self.observers.clone(),
-            self.replay.clone(),
-            self.options.output_page_bytes,
-            self.input_bytes.clone(),
-            self.input_slots.clone(),
-        ));
+        let context = Arc::new(
+            SessionContext::new(
+                lifetime,
+                options.clone(),
+                self.observers.clone(),
+                self.replay.clone(),
+                self.options.output_page_bytes,
+                self.input_bytes.clone(),
+                self.input_slots.clone(),
+            )
+            .with_diagnostics(self.diagnostics.clone()),
+        );
         self.repository
             .register(id.clone(), context.clone(), self.options.max_sessions)?;
         if let (Some(owner), Some(policy)) = (&self.projection, options.projection) {

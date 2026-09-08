@@ -1,0 +1,21 @@
+{
+  "measured": [
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/anchor.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/cancellation.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/cleanup.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/discovery.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/discovery_macos.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/drain.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/guardian.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/links.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/main.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/os.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/sentinel.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/successor.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/workload.rs"
+  ],
+  "unmeasured_platform_source": [
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/helpers/guardian/src/discovery_linux.rs",
+    "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-final/source/scripts/guardian/protocol.rs"
+  ]
+}

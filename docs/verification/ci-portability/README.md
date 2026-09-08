@@ -32,3 +32,15 @@ Independent behavioral and organization/DDD review reports are in
 `../../reviews/ci-portability-organization.md`. GitHub execution of this fix must
 be inspected after push before reporting the Ubuntu job repaired. The original
 failed run remains failed and is not relabeled as a pass.
+
+## GitHub result after push
+
+Commit `52ad04c3519616e6cedea9ac8707406970a40ed7` was pushed to private `main`.
+[Runtime run 34243560775](https://github.com/nessalabs/pty-runtime/actions/runs/34243560775)
+completed successfully: Ubuntu 24.04 gate, macOS 15 gate and Rust 1.85 MSRV.
+[Experiment run 34243560737](https://github.com/nessalabs/pty-runtime/actions/runs/34243560737)
+also passed on Ubuntu and macOS. Full logs and authoritative job metadata are
+retained beside this report with the `github-*-52ad04c` names. These executions
+validate the narrow CPU/cache fix at that commit, not the uncommitted runtime
+implementation or its outstanding full release qualification. They do not recover
+the original job's missing faulting instruction.

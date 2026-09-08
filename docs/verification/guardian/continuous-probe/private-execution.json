@@ -1,0 +1,86 @@
+[
+  {
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/filename.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/filename.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/atfork.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/atfork.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rustc",
+      "--edition=2024",
+      "-C",
+      "instrument-coverage",
+      "-C",
+      "llvm-args=-instrprof-atomic-counter-update-all",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_cnts,0x4000",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_bits,0x4000",
+      "-C",
+      "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_data,0x4000",
+      "-C",
+      "link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/filename.o",
+      "-C",
+      "link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/atfork.o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/probe"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/probe"
+    ],
+    "exit_code": -9,
+    "stdout": "ready\n",
+    "stderr": "",
+    "termination": "parent and child both SIGKILL; no normal exit flush"
+  },
+  {
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "merge",
+      "-sparse",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/helper-87507.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/fork-87508.profraw",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/probe.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "export",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/probe",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/private/probe.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"data\":[{\"files\":[{\"branches\":[],\"expansions\":[],\"filename\":\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs\",\"mcdc_records\":[],\"segments\":[[2,18,10000,true,true,false],[2,33,0,false,false,false],[2,36,10000,true,true,false],[2,56,0,false,false,false],[2,62,10000,true,true,false],[2,63,0,false,false,false],[3,18,10000,true,true,false],[3,34,0,false,false,false],[3,37,10000,true,true,false],[3,57,0,false,false,false],[3,63,10000,true,true,false],[3,64,0,false,false,false],[4,18,20000,true,true,false],[4,29,0,false,false,false],[4,32,20000,true,true,false],[4,52,0,false,false,false],[4,58,20000,true,true,false],[4,59,0,false,false,false],[5,1,2,true,true,false],[5,10,0,false,false,false],[5,26,2,true,true,false],[5,33,0,false,false,false],[5,34,2,true,true,false],[5,39,0,false,false,false],[5,41,2,true,true,false],[5,51,0,false,false,false],[5,52,2,true,true,false],[5,56,0,false,false,false],[5,57,2,true,true,false],[5,60,0,false,false,false],[5,61,2,true,true,false],[5,71,0,false,false,false],[5,83,2,true,true,false],[5,86,0,false,false,false],[5,87,2,true,true,false],[5,91,0,false,false,false],[5,95,2,true,true,false],[5,102,0,false,false,false],[5,103,2,true,true,false],[5,109,0,false,false,false],[5,115,2,true,true,false],[5,121,0,false,false,false],[5,133,1,true,true,false],[5,141,0,false,false,false],[5,142,10000,true,true,false],[5,169,0,false,false,false],[5,170,1,true,true,false],[5,180,0,false,false,false],[5,181,1,true,true,false],[5,186,0,false,false,false],[5,187,1,true,true,false],[5,193,0,false,false,false],[5,194,1,true,true,false],[5,198,0,false,false,false],[5,199,1,true,true,false],[5,205,0,false,false,false],[5,215,1,true,true,false],[5,220,0,false,false,false],[5,224,1,true,true,false],[5,229,0,false,false,false],[5,236,1,true,true,false],[5,237,0,false,false,false],[5,247,1,true,true,false],[5,255,0,false,false,false],[5,256,10000,true,true,false],[5,284,0,false,false,false],[5,289,1,true,true,false],[5,297,0,false,false,false],[5,298,1,true,true,false],[5,299,0,false,false,false],[5,301,1,true,true,false],[5,311,0,false,false,false],[5,312,1,true,true,false],[5,316,0,false,false,false],[5,317,1,true,true,false],[5,323,0,false,false,false],[5,324,1,true,true,false],[5,333,0,false,false,false],[5,341,1,true,true,false],[5,351,0,false,false,false],[5,352,1,true,true,false],[5,356,0,false,false,false],[5,357,1,true,true,false],[5,360,0,false,false,false],[5,372,1,true,true,false],[5,382,0,false,false,false],[5,383,1,true,true,false],[5,384,0,false,false,false],[5,386,1,true,true,false],[5,396,0,false,false,false],[5,397,1,true,true,false],[5,404,0,false,false,false],[5,405,1,true,true,false],[5,408,0,false,false,false],[5,409,1,true,true,false],[5,420,0,false,false,false],[5,430,1,true,true,false],[5,440,0,false,false,false],[5,441,1,true,true,false],[5,451,0,false,false,false],[5,456,1,true,true,false],[5,464,0,false,false,false],[5,475,1,true,true,false],[5,480,0,false,false,false],[5,486,1,true,true,false],[5,487,0,false,false,false]],\"summary\":{\"branches\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"functions\":{\"count\":4,\"covered\":4,\"percent\":100},\"instantiations\":{\"count\":4,\"covered\":4,\"percent\":100},\"lines\":{\"count\":4,\"covered\":4,\"percent\":100},\"mcdc\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"regions\":{\"count\":53,\"covered\":53,\"notcovered\":0,\"percent\":100}}}],\"functions\":[{\"branches\":[],\"count\":10000,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe10child_only\",\"regions\":[[2,18,2,33,10000,0,0,0],[2,36,2,56,10000,0,0,0],[2,62,2,63,10000,0,0,0]]},{\"branches\":[],\"count\":10000,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe11parent_only\",\"regions\":[[3,18,3,34,10000,0,0,0],[3,37,3,57,10000,0,0,0],[3,63,3,64,10000,0,0,0]]},{\"branches\":[],\"count\":2,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe4main\",\"regions\":[[5,1,5,10,2,0,0,0],[5,26,5,33,2,0,0,0],[5,34,5,39,2,0,0,0],[5,41,5,51,2,0,0,0],[5,52,5,56,2,0,0,0],[5,57,5,60,2,0,0,0],[5,61,5,71,2,0,0,0],[5,83,5,86,2,0,0,0],[5,87,5,91,2,0,0,0],[5,95,5,102,2,0,0,0],[5,103,5,109,2,0,0,0],[5,115,5,121,2,0,0,0],[5,133,5,141,1,0,0,0],[5,142,5,169,10000,0,0,0],[5,170,5,180,1,0,0,0],[5,181,5,186,1,0,0,0],[5,187,5,193,1,0,0,0],[5,194,5,198,1,0,0,0],[5,199,5,205,1,0,0,0],[5,215,5,220,1,0,0,0],[5,224,5,229,1,0,0,0],[5,236,5,237,1,0,0,0],[5,247,5,255,1,0,0,0],[5,256,5,284,10000,0,0,0],[5,289,5,297,1,0,0,0],[5,298,5,299,1,0,0,0],[5,301,5,311,1,0,0,0],[5,312,5,316,1,0,0,0],[5,317,5,323,1,0,0,0],[5,324,5,333,1,0,0,0],[5,341,5,351,1,0,0,0],[5,352,5,356,1,0,0,0],[5,357,5,360,1,0,0,0],[5,372,5,382,1,0,0,0],[5,383,5,384,1,0,0,0],[5,386,5,396,1,0,0,0],[5,397,5,404,1,0,0,0],[5,405,5,408,1,0,0,0],[5,409,5,420,1,0,0,0],[5,430,5,440,1,0,0,0],[5,441,5,451,1,0,0,0],[5,456,5,464,1,0,0,0],[5,475,5,480,1,0,0,0],[5,486,5,487,1,0,0,0]]},{\"branches\":[],\"count\":20000,\"filenames\":[\"/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/sigkill/probe.rs\"],\"mcdc_records\":[],\"name\":\"_RNvCs4W6t0ZobjTU_5probe6shared\",\"regions\":[[4,18,4,29,20000,0,0,0],[4,32,4,52,20000,0,0,0],[4,58,4,59,20000,0,0,0]]}],\"totals\":{\"branches\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"functions\":{\"count\":4,\"covered\":4,\"percent\":100},\"instantiations\":{\"count\":4,\"covered\":4,\"percent\":100},\"lines\":{\"count\":4,\"covered\":4,\"percent\":100},\"mcdc\":{\"count\":0,\"covered\":0,\"notcovered\":0,\"percent\":0},\"regions\":{\"count\":53,\"covered\":53,\"notcovered\":0,\"percent\":100}}}],\"type\":\"llvm.coverage.json.export\",\"version\":\"3.1.0\"}",
+    "stderr": ""
+  }
+]

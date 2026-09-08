@@ -1,0 +1,12 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "head": "52ad04c3519616e6cedea9ac8707406970a40ed7",
+  "working_tree": "dirty; scoped SHA-256 below",
+  "linux_source_archive_sha256": "d151e76655d3d98e5034fdaa1395a2dbf18455df7b8f2da419ddccc4a13d753f",
+  "sha256": {
+    "examples/interactive.rs": "7f2a0b2eb6214ba67c80dfcdfd990ac601b6b883c865532f7f87cde1243f816c",
+    "examples/interactive_support/host.rs": "f316b747432a41e92c409e4c92725d8d151aae96d8c929170a94a94324b6946b",
+    "scripts/release/interactive_smoke.py": "a3e053b45ec69fafc3e8b9484d559c0946154bab9e69af754a4df1d5b2c1bd93",
+    "docs/examples/interactive.md": "7fd03d25e5cca2839ff0a9c3e1e5f7577c46a34d623f38915b7c740e480ca3f0"
+  }
+}

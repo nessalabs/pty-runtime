@@ -1,0 +1,108 @@
+[
+  {
+    "name": "guardian-isolation",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "pty-runtime-infrastructure",
+      "--test",
+      "process_failure_isolation",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "event-decode",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--no-default-features",
+      "--features",
+      "event-stream",
+      "--test",
+      "event_stream_decode_contract",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "transfer-cancellation",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "pty-runtime-application",
+      "--lib",
+      "projection::tests::acceptance",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 101
+  },
+  {
+    "name": "application",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "pty-runtime-application",
+      "--lib"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "clippy-application",
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "pty-runtime-application",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "clippy-guardian-test",
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "pty-runtime-infrastructure",
+      "--test",
+      "process_failure_isolation",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "clippy-event-test",
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--no-default-features",
+      "--features",
+      "event-stream",
+      "--test",
+      "event_stream_decode_contract",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0
+  }
+]

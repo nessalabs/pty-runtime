@@ -44,6 +44,7 @@ pub struct ProjectionServices {
 /// The runtime retains this owner until explicit close cleanup completes. Raw process
 /// state and cancellation never require the native ownership mutex.
 pub struct ProjectionCoordinator {
+    pub(super) journal: Arc<super::journal::Journal>,
     pub(super) options: ProjectionOptions,
     pub(super) protected_bytes: usize,
     pub(super) services: Mutex<Option<ProjectionServices>>,
@@ -110,9 +111,11 @@ impl ProjectionCoordinator {
             .try_reserve_exact(options.staging_slots)
             .map_err(|_| ProjectionError::Capacity)?;
         let owner = Arc::new(Self {
+            journal: super::journal::Journal::new(lifetime, options, &budgets),
             core: Mutex::new(Core {
                 policy: ProjectionPolicy::new(lifetime, options, services.clock.now())?,
                 queue,
+                output_drain: None,
                 close_waiters: Vec::new(),
                 unreclaimed_failure: None,
                 cleanup_failure: None,
@@ -128,6 +131,7 @@ impl ProjectionCoordinator {
                 resize: None,
                 garbage: VecDeque::new(),
                 config: options.terminal,
+                history_due: false,
             }),
             local_bytes: Arc::new(Quota::new(options.staging_bytes)),
             local_slots: Arc::new(Quota::new(options.staging_slots)),

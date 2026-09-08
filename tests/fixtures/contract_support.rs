@@ -33,7 +33,10 @@ fn dimensions() {
 pub fn inspect(args: &[String]) {
     let literal = "literal $HOME $(printf injected); *";
     let home_ok = match args[4].as_str() {
-        "empty" => std::env::vars_os().all(|(name, _)| name == "PTY_SYNTHETIC_FLAG"),
+        // LLVM coverage startup can add this one key after exec. The public
+        // contract independently uses /usr/bin/env to verify exact exec-time emptiness.
+        "empty" => std::env::vars_os()
+            .all(|(name, _)| name == "PTY_SYNTHETIC_FLAG" || name == "__LLVM_PROFILE_RT_INIT_ONCE"),
         "inherit" => std::env::var("HOME").is_ok_and(|value| value == args[5]),
         _ => false,
     };

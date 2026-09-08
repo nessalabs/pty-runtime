@@ -5,7 +5,7 @@ headless terminal projection. The initial reader strategy is one dedicated
 reader per live PTY. Implementation and release qualification are in progress;
 standalone experiment results are not evidence of a finished session runtime.
 
-Read [the ADRs](docs/README.md), [coding standards](coding_standards.md), and
+Read [embedding and ownership guidance](docs/usage.md), [the ADRs](docs/README.md), [coding standards](coding_standards.md), and
 [experiment instructions](experiments/README.md).
 
 The workspace separates domain, application ports/use cases, infrastructure
@@ -22,5 +22,6 @@ use without Ghostty; projected use requires the default `ghostty` feature.
 The [review loop 3 record](docs/verification/loop3.md) covers integrated real-PTY
 projection, bounded parser staging, ordered resize/replies, encrypted idle parking,
 restoration and snapshot pins. It includes independent review and executed gates.
-Ordered observer continuation, foreground guardian integration, event-stream and
-full release qualification remain in progress; see the [requirements ledger](docs/verification/requirements.md).
+Ordered observer continuation, the packaged foreground Guardian and optional
+event-stream forwarding now have scoped integration tests and independent reviews.
+Their current review loop and full release qualification remain in progress; see the [requirements ledger](docs/verification/requirements.md).

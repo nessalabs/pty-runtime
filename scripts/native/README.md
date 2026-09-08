@@ -3,7 +3,10 @@
 The `ghostty` infrastructure feature compiles the C bridge against the pinned
 `82232ecde55405559dec29c5466cb9e39938cb41` headers and links the real static VT
 library. `build.rs` verifies the cached source archive SHA-256 and matches
-extracted native source files against the archive. It requires the existing
+extracted native source files against the archive, except for the exact reviewed
+[snapshot cursor correction](patches/README.md). The existing bootstrap applies
+that hash-verified correction before building; Cargo verifies its build stamp
+and library digest before linking. It requires the existing
 experiment bootstrap's compiled `zig-out/lib/libghostty-vt.a`; there is no stub
 or automatic replacement. `PTY_RUNTIME_GHOSTTY_SOURCE` can select another cache
 path containing the same verified archive and source. The compiled archive is
@@ -43,19 +46,28 @@ region. The large reference retains and counts 100,000 history lines. Truncated,
 corrupt, and appended transport bytes must fail before full completion; observing
 READY alone never certifies checkpoint integrity or complete history.
 
-## Verified restoration limitation
+## READY, live mutation, and history accounting
 
-An initial reference test rendered identical active screens after feeding live
-output at READY, but the full-state oracle found only 8,141 formatted bytes in
-the restored model versus 14,642 in the uninterrupted reference. Fencing resize
-alone did not fix this; live feed before history completion also lost history
-in that test. The adapter therefore advertises `mutation_during_restore: false`
-and rejects feed/resize with `HistoryIncomplete` before any mutation. READY
-allows active-screen observation; incremental history steps continue. The
-application must stage admitted output and controls under its own bounds and
-apply them once, in order, after `Complete`. This preserves complete history;
-it does not silently accept upstream's permission to skip inapplicable pages.
+The pinned engine permits feed/resize between history steps. Some source pages
+become inapplicable after width changes, screen replacement or history-budget
+overflow. The adapter now advertises `mutation_during_restore: true`, reports
+validated-but-skipped pages explicitly, and distinguishes full history completion
+from a finished source with skipped history. Observing READY alone still does
+not certify source integrity or full history.
 
-Native parking orchestration, encrypted storage, full PTY/reply integration,
-Linux qualification, integrated memory/performance and release soaks are not
-proved by this adapter-only suite.
+The coordinator alternates one admitted live operation with one bounded history
+step. It retains the saved source and restoration memory until FINISH validates
+the source. Output and resize remain in their original order. Transfer End also
+waits for this validation; a later corrupt source cannot follow a successful End.
+Session status preserves cumulative omitted-page accounting across later parks.
+
+The earlier active-screen comparison missed history loss. Current real-native
+regressions use the complete canonical-state oracle: 100,000 source lines and
+interleaved same-width live output with spare history quota match an uninterrupted
+reference exactly. Separate width-change and quota tests require explicit skipped
+history outcomes. A deterministic real-Ghostty/AEAD/disk/coordinator test confirms
+live output at READY and retained ciphertext before history FINISH; its process
+events are injected. Actual PTY projection tests remain a separate evidence scope.
+
+These adapter tests do not establish integrated capacity, supported-platform
+release performance, fault-injection completeness or the twelve-hour soak.

@@ -2,8 +2,8 @@
 
 **Status: implementation and qualification in progress.** The Rust workspace
 contains the raw session runtime and native terminal, checkpoint, and scheduling
-adapters. Projection/parking orchestration and full release qualification remain
-pending. See the [proof ledger](verification/requirements.md); no complete ADR
+adapters. Integrated projection, parking, transfer and event forwarding have scoped
+proof records. Full release qualification remains pending. See the [proof ledger](verification/requirements.md); no complete ADR
 milestone is claimed from standalone adapter tests.
 
 ## What we are building

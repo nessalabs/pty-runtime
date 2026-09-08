@@ -11,6 +11,12 @@ impl Quota {
             used: AtomicUsize::new(0),
         }
     }
+    pub fn usage(&self) -> crate::diagnostics::BudgetUsage {
+        crate::diagnostics::BudgetUsage {
+            used: self.used.load(Ordering::Acquire),
+            limit: self.limit,
+        }
+    }
     pub fn acquire(&self, bytes: usize) -> bool {
         self.used
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |used| {

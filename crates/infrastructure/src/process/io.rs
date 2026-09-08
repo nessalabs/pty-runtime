@@ -74,14 +74,27 @@ fn read_loop(
             Err(e) if e.raw_os_error() == Some(libc::EIO) => return DrainOutcome::Eof,
             Err(e) => return DrainOutcome::Failed(error(e)),
         };
+        let read_completed = Instant::now();
+        if let Some(diagnostics) = &session.diagnostics {
+            diagnostics.count(
+                pty_runtime_application::diagnostics::CounterKind::BytesRead,
+                count as u64,
+            );
+        }
         loop {
             if session.stop_reader.load(Ordering::Acquire) {
                 return DrainOutcome::Truncated;
             }
-            match events.output(&scratch[..count]) {
+            match events.output_observed(&scratch[..count], Some(read_completed)) {
                 OutputAcceptance::Accepted => break,
                 OutputAcceptance::Closed => return DrainOutcome::Truncated,
                 OutputAcceptance::Backpressure => {
+                    if let Some(diagnostics) = &session.diagnostics {
+                        diagnostics.count(
+                            pty_runtime_application::diagnostics::CounterKind::OutputBackpressure,
+                            1,
+                        );
+                    }
                     events.wait_for_capacity(Instant::now() + Duration::from_millis(20))
                 }
             }
@@ -101,7 +114,15 @@ pub(super) fn write_ready(host: &mut File, session: &Session) {
     } else if input.offset < input.bytes.len() {
         match host.write(&input.bytes[input.offset..]) {
             Ok(0) => failure = Some(ProcessError::Io),
-            Ok(count) => input.offset += count,
+            Ok(count) => {
+                input.offset += count;
+                if let Some(diagnostics) = &session.diagnostics {
+                    diagnostics.count(
+                        pty_runtime_application::diagnostics::CounterKind::BytesWritten,
+                        count as u64,
+                    );
+                }
+            }
             Err(e)
                 if matches!(
                     e.kind(),
@@ -114,6 +135,17 @@ pub(super) fn write_ready(host: &mut File, session: &Session) {
         if let Some(mut input) = queues.input.pop_front() {
             queues.bytes -= input.bytes.len();
             drop(queues);
+            if failure.is_some() {
+                if let Some(diagnostics) = &session.diagnostics {
+                    diagnostics.count(
+                        pty_runtime_application::diagnostics::CounterKind::FailedOperations,
+                        1,
+                    );
+                }
+            }
+            if let Some(timing) = input.timing.take() {
+                timing.finish(failure.is_none());
+            }
             if let Some(reply) = input.reply.take() {
                 let written = input.offset;
                 drop(input);

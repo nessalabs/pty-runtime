@@ -16,6 +16,7 @@ use std::{
     time::Instant,
 };
 pub(super) struct Input {
+    pub timing: Option<pty_runtime_application::diagnostics::Timing>,
     pub bytes: Vec<u8>,
     pub offset: usize,
     pub deadline: Instant,
@@ -33,16 +34,23 @@ impl Drop for Input {
         }
     }
 }
+pub(super) struct Resize {
+    pub size: TerminalSize,
+    pub reply: oneshot::Sender<Result<(), ProcessError>>,
+    pub timing: Option<pty_runtime_application::diagnostics::Timing>,
+}
 pub(super) struct Queues {
     pub input: VecDeque<Input>,
     pub bytes: usize,
-    pub resize: Option<(TerminalSize, oneshot::Sender<Result<(), ProcessError>>)>,
+    pub resize: Option<Resize>,
 }
 pub(super) struct Session {
+    pub diagnostics: Option<Arc<pty_runtime_application::diagnostics::RuntimeDiagnostics>>,
     pub pid: u32,
     pub limits: ProcessLimits,
     pub queues: Mutex<Queues>,
     pub cancel: AtomicBool,
+    pub cancel_timing: Mutex<Option<pty_runtime_application::diagnostics::Timing>>,
     pub closed: AtomicBool,
     pub stop_reader: AtomicBool,
     pub reader_done: AtomicBool,
@@ -83,6 +91,12 @@ impl Session {
         let resize = queues.resize.take();
         queues.bytes = 0;
         drop(queues);
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.count(
+                pty_runtime_application::diagnostics::CounterKind::FailedOperations,
+                input.len() as u64 + u64::from(resize.is_some()),
+            );
+        }
         for mut input in input {
             if let Some(reply) = input.reply.take() {
                 let written = input.offset;
@@ -93,8 +107,8 @@ impl Session {
                 });
             }
         }
-        if let Some((_, reply)) = resize {
-            let _ = reply.send(Err(reason));
+        if let Some(resize) = resize {
+            let _ = resize.reply.send(Err(reason));
         }
     }
 }
@@ -115,11 +129,25 @@ impl IProcessSession for Session {
             || queues.input.len() >= self.limits.input_slots
             || bytes.len() > self.limits.input_bytes.saturating_sub(queues.bytes)
         {
+            if let Some(diagnostics) = &self.diagnostics {
+                diagnostics.count(
+                    pty_runtime_application::diagnostics::CounterKind::InputSaturation,
+                    1,
+                );
+            }
             return Err(ProcessError::Capacity);
         }
         let (tx, rx) = oneshot::channel();
         queues.bytes += bytes.len();
+        let timing = self.diagnostics.as_ref().map(|diagnostics| {
+            pty_runtime_application::diagnostics::Timing::new(
+                diagnostics.clone(),
+                pty_runtime_application::diagnostics::LatencyKind::InputDispatch,
+                Instant::now(),
+            )
+        });
         queues.input.push_back(Input {
+            timing,
             bytes: bytes.to_vec(),
             offset: 0,
             deadline: Instant::now() + self.limits.write_timeout,
@@ -127,6 +155,12 @@ impl IProcessSession for Session {
             _reservation: reservation,
         });
         drop(queues);
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.count(
+                pty_runtime_application::diagnostics::CounterKind::InputAdmittedBytes,
+                bytes.len() as u64,
+            );
+        }
         self.notify();
         Ok(Box::pin(async move {
             rx.await.unwrap_or(WriteOutcome {
@@ -139,13 +173,47 @@ impl IProcessSession for Session {
         if self.closed.load(Ordering::Acquire) {
             return Err(ProcessError::Closed);
         }
-        self.cancel.store(true, Ordering::Release);
+        let mut pending = self
+            .cancel_timing
+            .lock()
+            .map_err(|_| ProcessError::Internal)?;
+        // Closing is published before the owner drains this same timer slot.
+        // Recheck under its lock so a retained closed handle cannot install a
+        // measurement after final cleanup has already observed an empty slot.
+        if self.closed.load(Ordering::Acquire) {
+            return Err(ProcessError::Closed);
+        }
+        if !self.cancel.load(Ordering::Acquire) {
+            *pending = self.diagnostics.as_ref().map(|diagnostics| {
+                pty_runtime_application::diagnostics::Timing::new(
+                    diagnostics.clone(),
+                    pty_runtime_application::diagnostics::LatencyKind::CancelDispatch,
+                    Instant::now(),
+                )
+            });
+            self.cancel.store(true, Ordering::Release);
+        }
+        drop(pending);
         self.notify();
         Ok(())
     }
     fn resize(
         &self,
         size: TerminalSize,
+    ) -> Result<ProcessOperation<Result<(), ProcessError>>, ProcessError> {
+        let timing = self.diagnostics.as_ref().map(|diagnostics| {
+            pty_runtime_application::diagnostics::Timing::new(
+                diagnostics.clone(),
+                pty_runtime_application::diagnostics::LatencyKind::ResizeDispatch,
+                Instant::now(),
+            )
+        });
+        self.resize_timed(size, timing)
+    }
+    fn resize_timed(
+        &self,
+        size: TerminalSize,
+        timing: Option<pty_runtime_application::diagnostics::Timing>,
     ) -> Result<ProcessOperation<Result<(), ProcessError>>, ProcessError> {
         let mut queues = self.queues.lock().map_err(|_| ProcessError::Internal)?;
         if self.closed.load(Ordering::Acquire) {
@@ -155,7 +223,11 @@ impl IProcessSession for Session {
             return Err(ProcessError::Capacity);
         }
         let (tx, rx) = oneshot::channel();
-        queues.resize = Some((size, tx));
+        queues.resize = Some(Resize {
+            size,
+            reply: tx,
+            timing,
+        });
         drop(queues);
         self.notify();
         Ok(Box::pin(async move {

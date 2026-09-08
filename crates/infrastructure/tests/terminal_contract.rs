@@ -131,7 +131,7 @@ fn checkpoints_preserve_parser_continuation_and_uninterrupted_state() {
 }
 
 #[test]
-fn ready_fences_mutations_to_preserve_one_hundred_thousand_history_lines() {
+fn ready_accepts_live_output_while_preserving_one_hundred_thousand_history_lines() {
     let mut c = config();
     c.history_bytes = 128 * 1024 * 1024;
     c.native_bytes = 256 * 1024 * 1024;
@@ -155,17 +155,26 @@ fn ready_fences_mutations_to_preserve_one_hundred_thousand_history_lines() {
     let mut restored = GhosttyTerminalFactory.restore(checkpoint, c).unwrap();
     assert_eq!(restored.restoration_progress(), RestorationProgress::Usable);
     assert_eq!(restored.view().unwrap(), reference.view().unwrap());
-    assert_eq!(
-        restored.feed(b"1mLIVE\x1b[0m\r\n"),
-        Err(TerminalError::HistoryIncomplete)
-    );
-    assert_eq!(
-        restored.resize(TerminalSize::new(100, 30).unwrap(), 1),
-        Err(TerminalError::HistoryIncomplete)
-    );
-    complete(restored.as_mut());
     for t in [&mut reference, &mut restored] {
         t.feed(b"1mLIVE\x1b[0m\r\n").unwrap();
+    }
+    assert_eq!(restored.restoration_progress(), RestorationProgress::Usable);
+    let mut steps = 0;
+    while !restored.restoration_progress().is_finished() {
+        restored.restore_history_step().unwrap();
+        steps += 1;
+        for t in [&mut reference, &mut restored] {
+            t.feed(b"interleaved live output\r\n").unwrap();
+        }
+        assert!(steps < 10_000);
+    }
+    assert!(steps > 1);
+    assert_eq!(
+        restored.restoration_progress(),
+        RestorationProgress::Complete
+    );
+    same_semantics(reference.as_mut(), restored.as_mut(), 6000, 0);
+    for t in [&mut reference, &mut restored] {
         t.resize(TerminalSize::new(100, 30).unwrap(), 1).unwrap();
     }
     assert_eq!(restored.view().unwrap(), reference.view().unwrap());

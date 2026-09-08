@@ -1,0 +1,14 @@
+1/2 test.test_0...OK
+2/2 src.terminal.bitmap_allocator.test.findFreeChunks refuses spans beyond final bitmap...thread 17196183 panic: index out of bounds: index 1, len 1
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/bitmap-capacity-review/src/terminal/bitmap_allocator.zig:322:29: 0x1029bfe03 in findFreeChunks (test)
+            if (@ctz(bitmaps[i]) < rem) continue;
+                            ^
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/bitmap-capacity-review/src/terminal/bitmap_allocator.zig:1229:66: 0x1029bf76b in test.findFreeChunks refuses spans beyond final bitmap (test)
+        try testing.expectEqual(@as(?usize, null), findFreeChunks(&one, 64 + extra));
+                                                                 ^
+/Users/nessa/Documents/NessaLabs/pty-runtime/work/experiment-cache/zig-aarch64-macos-0.16.0/lib/compiler/test_runner.zig:291:25: 0x1029752bf in mainTerminal (test)
+        if (test_fn.func()) |_| {
+                        ^
+???:?:?: 0x18355c4e3 in start (/usr/lib/dyld)
+error: the following test command terminated with signal ABRT:
+/Users/nessa/.cache/zig/o/3c5877b6a03dceedb549532c0f45456c/test --seed=0xbeba2341

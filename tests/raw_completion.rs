@@ -52,11 +52,9 @@ fn signal_death_and_descendant_drain_never_become_fabricated_success() {
     );
     assert_eq!(bytes, b"final");
     assert_eq!(descendant.status.exit, Some(ExitStatus::Code(23)));
-    #[cfg(target_os = "linux")]
     assert_eq!(descendant.status.drain, Some(DrainOutcome::Truncated));
-    #[cfg(target_os = "macos")]
-    assert_eq!(descendant.status.drain, Some(DrainOutcome::Eof));
-    // macOS hangs up this PTY on session-leader exit; Linux waits until the drain
-    // deadline. Neither behavior changes the already-reaped nonzero exit status.
+    // The independent sentinel retains the controlling session after W exits.
+    // This live descendant holds the slave past the drain deadline on both OSes;
+    // truncation never changes the already-reaped nonzero workload exit status.
     owner.shutdown();
 }

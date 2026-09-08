@@ -1,0 +1,297 @@
+--- a/src/terminal/snapshot/screen.zig
++++ b/src/terminal/snapshot/screen.zig
+@@ -411,8 +411,11 @@
+                 .x = x,
+                 .y = y,
+                 .cursor_style = header.cursor_style,
++                // A valid cursor can have pending wrap at a right margin or
++                // after a resize. Only normalize when coordinates were clipped.
+                 .pending_wrap = header.cursor_flags.pending_wrap and
+-                    x == row_pin.node.cols() - 1,
++                    ((header.cursor_x == x and header.cursor_y == y) or
++                        x == row_pin.node.cols() - 1),
+                 .protected = header.cursor_flags.protected,
+                 .style = header.cursor_pen,
+                 .hyperlink_implicit_id = header.hyperlink_implicit_id,
+@@ -824,7 +827,8 @@
+             .y = @min(self.y, rows - 1),
+             .style = self.pen,
+             .protected = self.flags.protected,
+-            .pending_wrap = self.flags.pending_wrap and x == cols - 1,
++            .pending_wrap = self.flags.pending_wrap and
++                ((self.x == x and self.y < rows) or x == cols - 1),
+             .origin = self.flags.origin,
+             .charset = self.charset,
+         };
+@@ -2053,14 +2057,22 @@
+             .expected_y = 1,
+             .expected_pending_wrap = true,
+         },
+-        // Pending wrap away from the final column would trip native printing
+-        // assertions, so retain the position and clear only that flag.
++        // In-range pending wrap is valid at a right margin or after resize.
+         .{
+             .x = 0,
+             .y = 0,
+             .pending_wrap = true,
+             .expected_x = 0,
+             .expected_y = 0,
++            .expected_pending_wrap = true,
++        },
++        // Clipped coordinates retain the old last-column normalization.
++        .{
++            .x = 0,
++            .y = std.math.maxInt(u16),
++            .pending_wrap = true,
++            .expected_x = 0,
++            .expected_y = 1,
+             .expected_pending_wrap = false,
+         },
+     };
+@@ -2214,6 +2226,28 @@
+     try std.testing.expect(saved.pending_wrap);
+ }
+ 
++test "saved cursor preserves valid pending wrap and normalizes clipping" {
++    const Case = struct { x: u16, y: u16, expected: bool };
++    const cases = [_]Case{
++        .{ .x = 0, .y = 0, .expected = true },
++        .{ .x = 0, .y = 9, .expected = false },
++        .{ .x = 9, .y = 9, .expected = true },
++    };
++    for (cases) |case| {
++        const saved: SavedCursor = .{
++            .x = case.x,
++            .y = case.y,
++            .pen = .{},
++            .flags = .{ .pending_wrap = true },
++            .charset = .{},
++        };
++        const restored = saved.terminal(2, 2);
++        try std.testing.expectEqual(case.expected, restored.pending_wrap);
++        try std.testing.expectEqual(@min(case.x, 1), restored.x);
++        try std.testing.expectEqual(@min(case.y, 1), restored.y);
++    }
++}
++
+ test "SCREEN restoration rejects invalid and incomplete sequences" {
+     var screen = try TerminalScreen.init(
+         std.testing.io,
+--- a/src/terminal/PageList.zig
++++ b/src/terminal/PageList.zig
+@@ -2785,7 +2785,14 @@
+                     const rows = page.rows.ptr(page.memory);
+                     for (0..page.size.rows) |i| {
+                         const row = &rows[i];
+-                        page.clearCells(row, cols, self.cols);
++                        // A wide glyph straddling the cutoff loses both cells.
++                        // Clear through its base so the remaining row is valid,
++                        // releasing any grapheme/style/hyperlink state as usual.
++                        const start = if (page.getCells(row)[cols - 1].wide == .wide)
++                            cols - 1
++                        else
++                            cols;
++                        page.clearCells(row, start, self.cols);
+                     }
+ 
+                     page.size.cols = cols;
+@@ -2937,6 +2944,13 @@
+             if (cells[old_cols - 1].wide == .spacer_head) break :fast;
+         }
+ 
++        // Match the wider replacement-page path below. Copying a narrower
++        // row into a wider destination clears its old soft-wrap links.
++        // Spare allocation capacity must not change logical resize behavior.
++        for (rows) |*row| {
++            row.wrap = false;
++            row.wrap_continuation = false;
++        }
+         page.size.cols = cols;
+         return;
+     }
+@@ -3162,6 +3176,17 @@
+     self: *PageList,
+     max: size.CellCountInt,
+ ) size.CellCountInt {
++    // Only a .pin viewport uses this always-tracked pin. Its stale position
++    // must not prevent trimming otherwise: snapshots and scrolling can leave
++    // it on different blank rows despite identical active terminal contents.
++    switch (self.viewport) {
++        .pin => {},
++        .active, .top => {
++            self.viewport_pin.* = .{ .node = self.pages.first.? };
++            self.viewport_pin_row_offset = null;
++        },
++    }
++
+     var trimmed: size.CellCountInt = 0;
+     var invalidated_node: ?*List.Node = null;
+     const bl_pin = self.getBottomRight(.screen).?;
+@@ -15259,6 +15284,35 @@
+     }
+ }
+ 
++test "PageList resize (no reflow) less cols clears split wide glyph" {
++    for ([_]size.CellCountInt{ 1, 5 }) |cols| {
++        var s = try init(std.testing.allocator, .{
++            .cols = 6,
++            .rows = 2,
++            .max_size = 0,
++        });
++        defer s.deinit();
++        const page = s.pages.first.?.page();
++        const base = page.getRowAndCell(cols - 1, 0).cell;
++        base.* = .init('界');
++        base.wide = .wide;
++        page.getRowAndCell(cols, 0).cell.wide = .spacer_tail;
++        page.getRowAndCell(cols - 1, 1).cell.* = .init('N');
++
++        try s.resize(.{ .cols = cols, .reflow = false });
++        const clipped = s.pages.first.?.page();
++        const last = clipped.getRowAndCell(cols - 1, 0).cell;
++        try std.testing.expectEqual(pagepkg.Cell.Wide.narrow, last.wide);
++        try std.testing.expectEqual(@as(u21, 0), last.codepoint());
++        try std.testing.expectEqual(@as(u21, 'N'), clipped.getRowAndCell(cols - 1, 1).cell.codepoint());
++
++        try s.resize(.{ .cols = 6, .reflow = false });
++        const grown = s.pages.first.?.page();
++        try std.testing.expectEqual(@as(u21, 0), grown.getRowAndCell(cols, 0).cell.codepoint());
++        try std.testing.expectEqual(pagepkg.Cell.Wide.narrow, grown.getRowAndCell(cols, 0).cell.wide);
++    }
++}
++
+ test "PageList resize (no reflow) less cols pin in trimmed cols" {
+     const testing = std.testing;
+     const alloc = testing.allocator;
+@@ -15407,6 +15461,28 @@
+             try testing.expectEqual(@as(u21, 0), rac.cell.content.codepoint.data);
+             try testing.expectEqual(pagepkg.Cell.Wide.narrow, rac.cell.wide);
+         }
++    }
++}
++
++test "PageList resize (no reflow) grow cols wrap flags ignore spare capacity" {
++    for ([_]size.CellCountInt{ 10, 5 }) |initial_cols| {
++        var s = try init(std.testing.allocator, .{
++            .cols = initial_cols,
++            .rows = 3,
++            .max_size = 0,
++        });
++        defer s.deinit();
++        try s.resize(.{ .cols = 5, .reflow = false });
++
++        const original = s.pages.first.?.page();
++        original.getRowAndCell(4, 0).row.wrap = true;
++        original.getRowAndCell(0, 1).row.wrap_continuation = true;
++
++        // Initial width 10 retains capacity; initial width 5 needs new pages.
++        try s.resize(.{ .cols = 8, .reflow = false });
++        const grown = s.pages.first.?.page();
++        try std.testing.expect(!grown.getRowAndCell(4, 0).row.wrap);
++        try std.testing.expect(!grown.getRowAndCell(0, 1).row.wrap_continuation);
+     }
+ }
+ 
+@@ -20337,6 +20413,38 @@
+     }
+ }
+ 
++test "PageList resize (no reflow) inactive viewport does not retain blank rows" {
++    for ([_]Viewport{ .active, .top }) |viewport| {
++        for ([_]bool{ false, true }) |retain_row| {
++            var s = try init(std.testing.allocator, .{ .cols = 5, .rows = 4 });
++            defer s.deinit();
++            s.getCell(.{ .active = .{} }).?.cell.* = .init('N');
++            const last = s.pin(.{ .active = .{ .y = 3 } }).?;
++            s.viewport_pin.* = last;
++            s.viewport = viewport;
++            const retained = if (retain_row) try s.trackPin(last) else null;
++            defer if (retained) |retained_pin| s.untrackPin(retained_pin);
++
++            try s.resize(.{ .rows = 1, .reflow = false });
++            try std.testing.expectEqual(@as(usize, if (retain_row) 4 else 1), s.totalRows());
++            try std.testing.expectEqual(@as(size.CellCountInt, 0), s.viewport_pin.y);
++            if (retained) |retained_pin| try std.testing.expectEqual(@as(size.CellCountInt, 3), retained_pin.y);
++        }
++    }
++}
++
++test "PageList resize (no reflow) preserves a pinned history viewport" {
++    var s = try init(std.testing.allocator, .{ .cols = 5, .rows = 3 });
++    defer s.deinit();
++    for (0..6) |_| _ = try s.grow();
++    const pinned = s.pin(.{ .screen = .{ .y = 2 } }).?;
++    s.viewport_pin.* = pinned;
++    s.viewport = .pin;
++    try s.resize(.{ .rows = 2, .reflow = false });
++    try std.testing.expectEqual(Viewport.pin, s.viewport);
++    try std.testing.expectEqual(pinned, s.viewport_pin.*);
++}
++
+ test "PageList resize trimmed rows have default state" {
+     const testing = std.testing;
+     const alloc = testing.allocator;
+--- a/src/terminal/bitmap_allocator.zig
++++ b/src/terminal/bitmap_allocator.zig
+@@ -317,6 +317,10 @@
+                 rem -= 64;
+             }
+ 
++            // The final partial word may be beyond the available bitmaps even
++            // when the full-word loop above had no iterations left to check.
++            if (i >= bitmaps.len) return null;
++
+             // If the number of available chunks at the start of this bitmap
+             // is less than the remaining required, we have to try again.
+             if (@ctz(bitmaps[i]) < rem) continue;
+@@ -1219,3 +1223,50 @@
+         try testing.expectEqual(64, Alloc.bytesRequired(u8, 33));
+     }
+ }
++
++test "findFreeChunks refuses spans beyond final bitmap" {
++    const testing = std.testing;
++    // Exercise every possible nonempty remainder at the missing final word.
++    for (1..65) |extra| {
++        var one = [_]u64{0};
++        try testing.expectEqual(@as(?usize, null), findFreeChunks(&one, 64 + extra));
++        try testing.expectEqual(@as(u64, 0), one[0]);
++        var several = [_]u64{ 0xff, 0, 0 };
++        const before = several;
++        try testing.expectEqual(@as(?usize, null), findFreeChunks(&several, 184 + extra));
++        try testing.expectEqualSlices(u64, &before, &several);
++    }
++    var exact = [_]u64{ 0xff, 0, 0 };
++    try testing.expectEqual(@as(?usize, 8), findFreeChunks(&exact, 184));
++    for (exact) |word| try testing.expectEqual(std.math.maxInt(u64), word);
++}
++
++test "BitmapAllocator capacity rejection preserves allocations and retry" {
++    const testing = std.testing;
++    const Alloc = BitmapAllocator(1);
++    const layout = Alloc.layout(192);
++    const buf = try testing.allocator.alignedAlloc(u8, Alloc.base_align, layout.total_size);
++    defer testing.allocator.free(buf);
++    var allocator = Alloc.init(.init(buf), layout);
++    // Force search_start past a fully occupied word, then end exactly at capacity.
++    const prefix = try allocator.alloc(u8, buf, 64);
++    @memset(prefix, 0x5a);
++    for (1..65) |extra| {
++        try testing.expectError(error.OutOfMemory, allocator.alloc(u8, buf, 128 + extra));
++        try testing.expectEqual(@as(usize, 64), allocator.usedBytes(buf));
++        try testing.expectEqual(@as(usize, 1), allocator.search_start);
++        for (prefix) |byte| try testing.expectEqual(@as(u8, 0x5a), byte);
++    }
++    const remainder = try allocator.alloc(u8, buf, 128);
++    @memset(remainder, 0xa5);
++    try testing.expectEqual(@as(usize, 192), allocator.usedBytes(buf));
++    try testing.expectError(error.OutOfMemory, allocator.alloc(u8, buf, 1));
++    allocator.free(buf, remainder);
++    allocator.free(buf, prefix);
++    try testing.expectEqual(@as(usize, 0), allocator.usedBytes(buf));
++    const full = try allocator.alloc(u8, buf, 192);
++    @memset(full, 0x33);
++    try testing.expectEqual(@as(usize, 192), full.len);
++    allocator.free(buf, full);
++    try testing.expectEqual(@as(usize, 0), allocator.usedBytes(buf));
++}

@@ -1,0 +1,42 @@
+test_empty_lsof_failure_identifies_command_and_pids (test_load_diagnostics.LoadDiagnostics) ... FAIL
+test_failed_census_retains_child_exit_and_queued_stderr (test_load_diagnostics.LoadDiagnostics) ... /Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_diagnostics.py:31: ResourceWarning: unclosed file <_io.TextIOWrapper name=5 encoding='UTF-8'>
+  self.assertFalse(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0}, destination, True, 1, {}, 5))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_diagnostics.py:31: ResourceWarning: unclosed file <_io.TextIOWrapper name=6 encoding='UTF-8'>
+  self.assertFalse(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0}, destination, True, 1, {}, 5))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_missing_ps_process_identifies_missing_pid (test_load_diagnostics.LoadDiagnostics) ... FAIL
+
+======================================================================
+ERROR: test_failed_census_retains_child_exit_and_queued_stderr (test_load_diagnostics.LoadDiagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_diagnostics.py", line 34, in test_failed_census_retains_child_exit_and_queued_stderr
+    self.assertIn('fail_sample', failure['traceback'])
+KeyError: 'traceback'
+
+======================================================================
+FAIL: test_empty_lsof_failure_identifies_command_and_pids (test_load_diagnostics.LoadDiagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_diagnostics.py", line 45, in test_empty_lsof_failure_identifies_command_and_pids
+    resources.process_costs([123])
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/guardian/resources.py", line 35, in process_costs
+    assert inventory.returncode == 0, inventory.stderr
+AssertionError
+
+======================================================================
+FAIL: test_missing_ps_process_identifies_missing_pid (test_load_diagnostics.LoadDiagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_diagnostics.py", line 51, in test_missing_ps_process_identifies_missing_pid
+    resources.process_costs([123, 456])
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/guardian/resources.py", line 49, in process_costs
+    assert len(rows) == len(pids)
+AssertionError
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.399s
+
+FAILED (failures=2, errors=1)

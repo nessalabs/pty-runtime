@@ -113,7 +113,8 @@ pub struct TerminalCapabilities {
     pub checkpoints: bool,
     /// Usable state may precede history completion.
     pub incremental_restore: bool,
-    /// Live mutation can preserve complete history before restoration finishes.
+    /// Live mutation is supported before source validation finishes; inapplicable
+    /// history must be reported explicitly in restoration progress.
     pub mutation_during_restore: bool,
     /// The engine supports resident history compression.
     pub history_compression: bool,

@@ -122,3 +122,26 @@ fn restoration_rejects_unadmitted_sources_and_preserves_failures() {
     );
     assert_eq!(policy.status().residency, Residency::Failed);
 }
+
+#[test]
+fn skipped_history_progress_cannot_regress_into_complete_history() {
+    use crate::terminal::RestorationProgress;
+    let mut policy =
+        ProjectionPolicy::new(SessionLifetime::new(4, 1), options(), Duration::ZERO).unwrap();
+    let attempt = policy.begin_park(Duration::from_secs(60)).unwrap();
+    assert!(policy.commit_park(attempt, true));
+    policy.begin_restore().unwrap();
+    let skipped = RestorationProgress::UsableWithSkippedHistory { skipped_pages: 2 };
+    policy.restoration_progress(skipped).unwrap();
+    assert_eq!(policy.status().skipped_history_pages, 2);
+    assert_eq!(
+        policy.restoration_progress(RestorationProgress::Complete),
+        Err(ProjectionError::InvalidConfiguration)
+    );
+    assert_eq!(policy.status().history, skipped);
+    let finish = RestorationProgress::FinishedWithSkippedHistory { skipped_pages: 3 };
+    policy.restoration_progress(finish).unwrap();
+    assert_eq!(policy.status().history, finish);
+    assert_eq!(policy.status().residency, Residency::Resident);
+    assert_eq!(policy.status().skipped_history_pages, 3);
+}

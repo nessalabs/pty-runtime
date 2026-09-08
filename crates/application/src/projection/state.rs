@@ -1,6 +1,7 @@
 use super::{
     budgets::{DiskLease, IoMemory, Lease, StagingLease},
-    observation::{PinnedCheckpoint, ProjectedView, Ticket},
+    observation::{ProjectedView, Ticket},
+    snapshot::SnapshotRequest,
 };
 use crate::{process::ProcessOperation, terminal::ITerminal};
 use pty_runtime_domain::{
@@ -17,20 +18,21 @@ pub(super) enum Event {
     Output(Vec<u8>, StagingLease),
     Resize(TerminalSize, Arc<Ticket<ResizeOutcome>>, StagingLease),
     View(Arc<Ticket<ProjectedView>>, StagingLease),
-    Checkpoint(Arc<Ticket<PinnedCheckpoint>>, StagingLease),
+    Checkpoint(SnapshotRequest, StagingLease),
 }
 impl Event {
     pub fn fail(self, error: ProjectionError) {
         match self {
             Self::Resize(_, ticket, _) => ticket.complete(Err(error)),
             Self::View(ticket, _) => ticket.complete(Err(error)),
-            Self::Checkpoint(ticket, _) => ticket.complete(Err(error)),
+            Self::Checkpoint(request, _) => request.fail(error),
             Self::Output(_, _) => (),
         }
     }
 }
 pub(super) struct Core {
     pub policy: ProjectionPolicy,
+    pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,
     pub queue: VecDeque<Event>,
     pub close_waiters: Vec<Arc<Ticket<()>>>,
     pub unreclaimed_failure: Option<ProjectionError>,
@@ -91,7 +93,7 @@ pub(super) enum IoKind {
         memory: IoMemory,
     },
     Transfer {
-        ticket: Arc<Ticket<PinnedCheckpoint>>,
+        request: SnapshotRequest,
         memory: IoMemory,
         _staging: StagingLease,
     },
@@ -113,6 +115,7 @@ pub(super) struct PendingIo {
 }
 pub(super) struct Engine {
     pub config: pty_runtime_domain::terminal::TerminalConfig,
+    pub history_due: bool,
     pub terminal: Option<Box<dyn ITerminal>>,
     pub resident: Option<Lease>,
     pub source: Option<Stored>,

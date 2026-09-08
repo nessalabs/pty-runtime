@@ -1,12 +1,24 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
 #include "bridge.h"
+#include <limits.h>
 
 /* Allocator context and native handles share one exclusive owner. No callback
  * escapes a native call or accesses Rust. Denial is sticky until destruction. */
 static void *bounded_alloc(void *ctx, size_t n, uint8_t alignment, uintptr_t ra) {
   (void)ra;
   RuntimeTerminal *o = ctx;
-  if (alignment > 16 || n > o->limit - o->used) { o->denied = true; return NULL; }
-  void *p = malloc(n);
+  /* The pinned Zig adapter passes log2(alignment). Compression also requests
+   * alignments greater than malloc's guarantee, so honor them explicitly. */
+  if (alignment >= sizeof(size_t) * CHAR_BIT || n > o->limit - o->used) {
+    o->denied = true; return NULL;
+  }
+  size_t alignment_bytes = (size_t)1 << alignment;
+  if (alignment_bytes > o->limit) { o->denied = true; return NULL; }
+  void *p = NULL;
+  if (alignment_bytes <= _Alignof(max_align_t)) p = malloc(n);
+  else if (posix_memalign(&p, alignment_bytes, n) != 0) p = NULL;
   if (!p) { o->denied = true; return NULL; }
   o->used += n;
   return p;

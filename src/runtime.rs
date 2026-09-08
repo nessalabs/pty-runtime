@@ -66,6 +66,17 @@ impl Runtime {
                 .with_projection(services)?,
         })
     }
+    /// Snapshot logical shared resource reservations, independent of opt-in timings.
+    /// These are current quotas; OS RSS, stacks, helpers and allocator overhead are separate.
+    pub fn resources(&self) -> crate::ResourceSnapshot {
+        self.inner.resources()
+    }
+    /// Enable fixed shared timing counters for subsequently spawned sessions.
+    /// Install before spawning the measured population; existing sessions keep their configuration.
+    pub fn with_diagnostics(mut self, diagnostics: Arc<crate::RuntimeDiagnostics>) -> Self {
+        self.inner = self.inner.with_diagnostics(diagnostics);
+        self
+    }
     /// Spawn once under a caller ID; retained completed IDs reject duplicate spawn.
     pub fn spawn(
         &self,

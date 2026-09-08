@@ -9,3 +9,6 @@ pub mod terminal;
 pub mod checkpoint;
 
 pub mod scheduling;
+
+#[cfg(feature = "event-stream")]
+pub mod event_stream;

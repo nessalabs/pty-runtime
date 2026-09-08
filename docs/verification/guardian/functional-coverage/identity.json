@@ -1,0 +1,23 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "source_root": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/coverage-matrix-1",
+  "page_size": 16384,
+  "compiler_flags": [
+    "-C",
+    "instrument-coverage",
+    "-C",
+    "llvm-args=-instrprof-atomic-counter-update-all",
+    "-C",
+    "link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage/filename.o",
+    "-C",
+    "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_cnts,0x4000",
+    "-C",
+    "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_bits,0x4000",
+    "-C",
+    "link-arg=-Wl,-sectalign,__DATA,__llvm_prf_data,0x4000"
+  ],
+  "filename_source": "const char __llvm_profile_filename[] = \"/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage/profiles/helper-%p%c.profraw\";\n",
+  "scope": "All guardian src/*.rs; unit tests plus actual helper protocol fixture",
+  "driver_sha256": "965ae24f927be6109d6b65f51cbe791c8d06c6f1c0faafda0e13d9ac91d5e84b",
+  "production_source_modified": false
+}

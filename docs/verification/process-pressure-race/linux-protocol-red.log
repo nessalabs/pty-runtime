@@ -1,0 +1,34 @@
+
+running 5 tests
+test protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control ... FAILED
+test protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof ... FAILED
+test protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+test protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+
+failures:
+
+---- protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control stdout ----
+
+thread 'protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control' (71652) panicked at src/../../../scripts/guardian/protocol.rs:256:38:
+called `Result::unwrap()` on an `Err` value: Os { code: 104, kind: ConnectionReset, message: "Connection reset by peer" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof stdout ----
+
+thread 'protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof' (71653) panicked at src/../../../scripts/guardian/protocol.rs:271:9:
+assertion `left == right` failed
+  left: ConnectionReset
+ right: InvalidData
+
+
+failures:
+    protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control
+    protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pty-runtime-guardian v0.1.0 (/tmp/pty-loop4-gate/helpers/guardian)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.51s
+     Running unittests src/main.rs (/tmp/pty-loop4-gate/helpers/guardian/target/debug/deps/pty_runtime_guardian-952989ff3e197d88)
+error: test failed, to rerun pass `--bin pty-runtime-guardian`

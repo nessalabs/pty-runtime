@@ -22,6 +22,7 @@ use std::{
     thread::JoinHandle,
 };
 pub(super) struct Shared {
+    pub image: super::image::HelperImage,
     pub shutdown: AtomicBool,
     pub immediate: AtomicBool,
     pub spawn_stop: AtomicBool,
@@ -29,12 +30,16 @@ pub(super) struct Shared {
     pub max: usize,
     pub wake: Arc<UnixStream>,
 }
-/// Unix process owner. Owns one shared supervisor and one reader per admitted PTY.
-/// Dropping the backend immediately kills/reaps owned children and joins all workers.
+/// Unix process owner with a shared host supervisor/spawner and dedicated PTY readers.
+/// Each admitted PTY additionally owns two fresh helper processes and bounded
+/// temporary group anchors, including a cleanup successor when both helper groups
+/// contain descendants. These per-session helper event loops have explicit OS cost.
+/// Dropping immediately requests cleanup, observes helper termination and joins workers.
 /// The host must neither reap managed children nor enable SIGCHLD auto-reaping for
 /// this backend's entire lifetime. Construction rejects SIG_IGN/SA_NOCLDWAIT.
-/// Cancellation currently targets the anchored original group, not arbitrary
-/// foreground groups. Descendants leaving that group are outside this contract.
+/// Cancellation uses verified member anchors for root/foreground groups; a live
+/// helper retains the owned session through single-helper failure. Discovery
+/// errors retain cleanup ownership and can delay shutdown until the OS recovers.
 /// A blocked OS spawn/filesystem call cannot be interrupted portably: shutdown
 /// reaps existing children independently, then joins that launch and cleans any
 /// late child. Completion of that join has no wall-clock bound.
@@ -49,6 +54,27 @@ impl UnixProcessBackend {
     pub fn new(allowed_roots: Vec<PathBuf>, max_processes: usize) -> Result<Self, ProcessError> {
         Self::build(allowed_roots, max_processes, spawner::Options::default())
     }
+    /// Verify a bundled helper against this build's exact target image and stage
+    /// a private executable copy. Signatures embedded in those bytes are preserved.
+    /// A signed package supplies the same image at build time through
+    /// `PTY_RUNTIME_GUARDIAN_IMAGE`; version/architecture mismatches are rejected.
+    pub fn with_bundled_guardian(
+        allowed_roots: Vec<PathBuf>,
+        max_processes: usize,
+        image: PathBuf,
+    ) -> Result<Self, ProcessError> {
+        Self::build(
+            allowed_roots,
+            max_processes,
+            spawner::Options {
+                bundled: Some(image),
+                #[cfg(test)]
+                hook: None,
+                #[cfg(test)]
+                after_launch: None,
+            },
+        )
+    }
     pub(super) fn build(
         allowed_roots: Vec<PathBuf>,
         max_processes: usize,
@@ -59,8 +85,10 @@ impl UnixProcessBackend {
             return Err(ProcessError::Capacity);
         }
         let roots = spawn::roots(&allowed_roots)?;
+        let image = super::image::HelperImage::new(options.bundled.as_deref())?;
         let (wake_tx, wake_rx) = pair()?;
         let shared = Arc::new(Shared {
+            image,
             shutdown: AtomicBool::new(false),
             immediate: AtomicBool::new(false),
             spawn_stop: AtomicBool::new(false),

@@ -16,6 +16,7 @@ pub struct Store {
     pub panic_commit: AtomicBool,
     pub invalid_reference: AtomicBool,
     pub fail_read: AtomicBool,
+    pub panic_read: AtomicBool,
     pub fail_delete: AtomicBool,
 }
 impl ICheckpointStore for Store {
@@ -52,6 +53,10 @@ impl ICheckpointStore for Store {
         reference: CheckpointRef,
         max: usize,
     ) -> Result<ProtectedCheckpoint, CheckpointError> {
+        assert!(
+            !self.panic_read.load(Ordering::Acquire),
+            "injected read panic"
+        );
         if self.fail_read.load(Ordering::Acquire) {
             return Err(CheckpointError::Unavailable);
         }
@@ -93,6 +98,8 @@ impl ICheckpointStore for Store {
 pub struct Protector {
     pub fail: AtomicBool,
     pub compressed_bound: AtomicUsize,
+    pub wrong_open_descriptor: AtomicBool,
+    pub opened_capacity: AtomicUsize,
 }
 impl ICheckpointProtector for Protector {
     fn protected_size_limit(&self, plaintext: usize) -> Result<usize, CheckpointError> {
@@ -138,9 +145,15 @@ impl ICheckpointProtector for Protector {
             return Err(CheckpointError::AuthenticationFailed);
         }
         let bytes = checkpoint.ciphertext();
+        let mut plaintext: Vec<u8> = bytes[..bytes.len() - 40].iter().map(|b| b ^ 0xa5).collect();
+        plaintext.reserve(self.opened_capacity.load(Ordering::Acquire));
+        let mut descriptor = descriptor.clone();
+        if self.wrong_open_descriptor.load(Ordering::Acquire) {
+            descriptor.control_generation += 1;
+        }
         Ok(TerminalCheckpoint {
-            descriptor: descriptor.clone(),
-            bytes: bytes[..bytes.len() - 40].iter().map(|b| b ^ 0xa5).collect(),
+            descriptor,
+            bytes: plaintext,
         })
     }
 }

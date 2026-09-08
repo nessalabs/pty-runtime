@@ -34,7 +34,8 @@ RuntimeTerminal *rt_restore(const uint8_t *bytes, size_t len, size_t continuatio
   *error = 0;
   return o;
 }
-int rt_history(RuntimeTerminal *o) {
+int rt_history(RuntimeTerminal *o, size_t *rows) {
+  *rows = 0;
   if (!o->decoder) return 1;
   int r = ghostty_snapshot_decoder_next(o->decoder);
   if (r == GHOSTTY_NO_VALUE) {
@@ -44,5 +45,7 @@ int rt_history(RuntimeTerminal *o) {
     ghostty_snapshot_decoder_free(o->decoder); o->decoder = NULL; return 1;
   }
   if (o->denied) return -2;
-  return r == GHOSTTY_SUCCESS ? 0 : -1;
+  if (r != GHOSTTY_SUCCESS || ghostty_snapshot_decoder_get(o->decoder,
+      GHOSTTY_SNAPSHOT_DECODER_DATA_PROGRESS_ROWS, rows)) return -1;
+  return 0;
 }

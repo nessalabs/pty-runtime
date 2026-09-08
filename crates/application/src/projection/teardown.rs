@@ -21,6 +21,7 @@ impl ProjectionCoordinator {
         if self.status().residency == Residency::Closed {
             return;
         }
+        self.journal.close();
         let rejected = {
             let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
             core.policy.close();
@@ -64,8 +65,8 @@ impl ProjectionCoordinator {
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .push(source.into()),
-                IoKind::Transfer { ticket, .. } => {
-                    self.drop_contained(|| ticket.complete(Err(ProjectionError::Worker)))
+                IoKind::Transfer { request, .. } => {
+                    self.drop_contained(|| request.fail(ProjectionError::Worker))
                 }
                 IoKind::Restore { .. } => (),
             }

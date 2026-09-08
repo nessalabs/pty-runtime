@@ -1,0 +1,284 @@
+[
+  {
+    "name": "rustc-version",
+    "command": [
+      "rustc",
+      "-Vv"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "rust-sysroot",
+    "command": [
+      "rustc",
+      "--print",
+      "sysroot"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "llvm-cov-version",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "--version"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "llvm-profdata-version",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "--version"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "compile-filename",
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/filename.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/filename.o"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "compile-atfork",
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/atfork.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/atfork.o"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "build-helper",
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "--manifest-path",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/source/helpers/guardian/Cargo.toml",
+      "--bins"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "build-units",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/source/helpers/guardian/Cargo.toml",
+      "--bin",
+      "pty-runtime-guardian",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "units",
+    "command": [
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/deps/pty_runtime_guardian-2db634920c0bc198",
+      "--test-threads=1"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "actual-protocol",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/python3",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/source/scripts/guardian/probe.py",
+      "--helper",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/pty-runtime-guardian"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "merge",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "merge",
+      "-sparse",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36472.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36473.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36475.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36476.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36480.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36481.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36485.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36486.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36494.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36495.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36519.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36520.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36551.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36553.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36577.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36578.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36716.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36732.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36734.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36737.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36738.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36763.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36764.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36767.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36769.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36782.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36783.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36784.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36789.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36790.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36791.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36795.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36796.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36797.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36798.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36799.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36802.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36803.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36804.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36805.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36806.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36810.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36811.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36812.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36813.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36814.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36819.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36820.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36821.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36822.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36823.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36824.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36827.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36830.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36831.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36833.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36836.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36837.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36838.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36839.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36840.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36841.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36844.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36845.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36846.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36847.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36848.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36849.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36852.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36853.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36854.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36855.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36856.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36858.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36867.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36868.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36869.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36870.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36871.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36890.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36891.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36894.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36895.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36896.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/fork-36905.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36415.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36432.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36474.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36484.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36517.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36573.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36578.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36730.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36734.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36761.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36764.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36780.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36783.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36788.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36790.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36794.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36796.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36801.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36803.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36809.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36811.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36818.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36820.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36826.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36829.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36835.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36837.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36843.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36845.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36851.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36853.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36866.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36868.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36889.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/profiles/helper-36891.profraw",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/guardian.profdata"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "report",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "report",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/pty-runtime-guardian",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/deps/pty_runtime_guardian-2db634920c0bc198",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/guardian.profdata"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "export",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "export",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/pty-runtime-guardian",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/deps/pty_runtime_guardian-2db634920c0bc198",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/guardian.profdata"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  },
+  {
+    "name": "annotated",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "show",
+      "-show-branches=count",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/pty-runtime-guardian",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/target/debug/deps/pty_runtime_guardian-2db634920c0bc198",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195/guardian.profdata"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-rust195",
+    "exit_code": 0
+  }
+]

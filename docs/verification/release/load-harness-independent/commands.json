@@ -1,0 +1,26 @@
+[
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts/tests",
+      "-p",
+      "test_load_diagnostics.py",
+      "-v"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "rustfmt",
+      "--edition",
+      "2024",
+      "--check",
+      "examples/release_load_support/population.rs"
+    ],
+    "exit_code": 0
+  }
+]

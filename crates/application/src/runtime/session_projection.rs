@@ -1,6 +1,6 @@
 use super::{RuntimeError, Session};
 use crate::projection::{
-    PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionOperation,
+    PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionOperation, StateTransfer,
 };
 use pty_runtime_domain::{
     projection::{ProjectionError, ProjectionStatus, ResizeOutcome},
@@ -29,6 +29,12 @@ impl Session {
     ) -> Result<ProjectionOperation<PinnedCheckpoint>, RuntimeError> {
         Ok(self.projection()?.checkpoint()?)
     }
+    /// Capture a checkpoint and an ordered original-byte/resize continuation at one
+    /// boundary. Consumer models must discard generated replies. Retained results
+    /// keep their finite quotas; a lost continuation requires an explicit resync.
+    pub fn begin_transfer(&self) -> Result<ProjectionOperation<StateTransfer>, RuntimeError> {
+        Ok(self.projection()?.begin_transfer()?)
+    }
     /// Order resize with parser output and report OS/model results separately.
     /// Use this in projected mode; raw sessions use `resize`. Dropping the wait does
     /// not undo an admitted control or hide a partial OS/model outcome.
@@ -36,7 +42,17 @@ impl Session {
         &self,
         size: TerminalSize,
     ) -> Result<ProjectionOperation<ResizeOutcome>, RuntimeError> {
-        Ok(self.projection()?.resize(size)?)
+        let timing = self
+            .context
+            .timing(crate::diagnostics::LatencyKind::ResizeAdmission);
+        let dispatch = self
+            .context
+            .timing(crate::diagnostics::LatencyKind::ResizeDispatch);
+        let wait = self.projection()?.resize_timed(size, dispatch)?;
+        if let Some(timing) = timing {
+            timing.finish(true);
+        }
+        Ok(wait)
     }
     fn projection(&self) -> Result<Arc<ProjectionCoordinator>, RuntimeError> {
         self.context

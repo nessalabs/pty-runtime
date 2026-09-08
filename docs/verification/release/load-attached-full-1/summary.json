@@ -1,0 +1,44 @@
+{
+  "smoke": false,
+  "repeats": 5,
+  "results": [
+    {
+      "case": "attached",
+      "trial": 1,
+      "passed": false,
+      "path": "attached-1.jsonl"
+    },
+    {
+      "case": "attached",
+      "trial": 2,
+      "passed": true,
+      "path": "attached-2.jsonl"
+    },
+    {
+      "case": "attached",
+      "trial": 3,
+      "passed": false,
+      "path": "attached-3.jsonl"
+    },
+    {
+      "case": "attached",
+      "trial": 4,
+      "passed": false,
+      "path": "attached-4.jsonl"
+    },
+    {
+      "case": "attached",
+      "trial": 5,
+      "passed": true,
+      "path": "attached-5.jsonl"
+    }
+  ],
+  "full_matrix_executed": false,
+  "all_trials_passed": false,
+  "limitations": [
+    "C/OS allocator overhead is measured by RSS/PSS separately.",
+    "Darwin PSS and portable per-process wakeup counts are unavailable from this collector.",
+    "Rust requested allocation totals include fixture bookkeeping; they are not a standalone 4KiB control-metadata proof.",
+    "Exact raw byte/gap and processed-offset accounting does not replace canonical terminal reference tests."
+  ]
+}

@@ -36,18 +36,33 @@ impl Session {
     }
     /// Admit transient input before returning a wait. Dropping the wait does not resend/undo bytes.
     pub fn write(&self, bytes: &[u8]) -> Result<ProcessOperation<WriteOutcome>, RuntimeError> {
+        let timing = self
+            .context
+            .timing(crate::diagnostics::LatencyKind::InputAdmission);
         let lease = super::quota::InputLease::acquire(
             self.context.input_bytes.clone(),
             self.context.input_slots.clone(),
             bytes.len(),
-        )?;
-        Ok(self
+        )
+        .inspect_err(|_| {
+            if let Some(diagnostics) = &self.context.diagnostics {
+                diagnostics.count(crate::diagnostics::CounterKind::InputSaturation, 1);
+            }
+        })?;
+        let wait = self
             .context
             .process()?
-            .write_reserved(bytes, Some(Box::new(lease)))?)
+            .write_reserved(bytes, Some(Box::new(lease)))?;
+        if let Some(timing) = timing {
+            timing.finish(true);
+        }
+        Ok(wait)
     }
     /// Admit a coalesced termination sequence independent of input congestion.
     pub fn cancel(&self) -> Result<(), RuntimeError> {
+        let timing = self
+            .context
+            .timing(crate::diagnostics::LatencyKind::CancelAdmission);
         {
             let mut state = self
                 .context
@@ -65,6 +80,9 @@ impl Session {
         if let Some(process) = process {
             process.request_cancel()?;
         }
+        if let Some(timing) = timing {
+            timing.finish(true);
+        }
         Ok(())
     }
     /// Resize a raw PTY. Projected sessions must use `resize_projected` to preserve
@@ -73,13 +91,20 @@ impl Session {
         &self,
         size: TerminalSize,
     ) -> Result<ProcessOperation<Result<(), ProcessError>>, RuntimeError> {
+        let timing = self
+            .context
+            .timing(crate::diagnostics::LatencyKind::ResizeAdmission);
         if self.context.options.projection.is_some() {
             return Err(pty_runtime_domain::projection::ProjectionError::Terminal(
                 pty_runtime_domain::terminal::TerminalError::Unsupported,
             )
             .into());
         }
-        Ok(self.context.process()?.resize(size)?)
+        let wait = self.context.process()?.resize(size)?;
+        if let Some(timing) = timing {
+            timing.finish(true);
+        }
+        Ok(wait)
     }
     /// Reserve a bounded completion waiter; cancelling its future does not cancel the child.
     pub fn wait(&self) -> Result<CompletionWait, RuntimeError> {
@@ -99,16 +124,24 @@ pub struct CompletionWait {
 impl Future for CompletionWait {
     type Output = Result<Completion, RuntimeError>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Ok(mut state) = self.context.state.lock() else {
-            return Poll::Ready(Err(RuntimeError::Internal));
+        let mut next_waker = Some(cx.waker().clone());
+        let mut old_waker = None;
+        let result = {
+            let Ok(mut state) = self.context.state.lock() else {
+                return Poll::Ready(Err(RuntimeError::Internal));
+            };
+            let completion = state.status.completion();
+            if let Some(slot) = state.watchers.get_mut(&self.id) {
+                old_waker = slot.take();
+                if completion.is_none() {
+                    *slot = next_waker.take();
+                }
+            }
+            completion.map_or(Poll::Pending, |done| Poll::Ready(Ok(done)))
         };
-        if let Some(done) = state.status.completion() {
-            return Poll::Ready(Ok(done));
-        }
-        if let Some(slot) = state.watchers.get_mut(&self.id) {
-            *slot = Some(cx.waker().clone());
-        }
-        Poll::Pending
+        drop(old_waker);
+        drop(next_waker);
+        result
     }
 }
 impl Drop for CompletionWait {

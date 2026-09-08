@@ -20,6 +20,9 @@ pub struct Probe {
     pub fail_restore: AtomicBool,
     pub panic_feed: AtomicBool,
     pub fail_resize: AtomicBool,
+    pub live_restore: AtomicBool,
+    pub skip_history: AtomicBool,
+    pub fail_history: AtomicBool,
 }
 pub struct Factory(pub Arc<Probe>);
 impl ITerminalFactory for Factory {
@@ -27,7 +30,7 @@ impl ITerminalFactory for Factory {
         TerminalCapabilities {
             checkpoints: true,
             incremental_restore: true,
-            mutation_during_restore: false,
+            mutation_during_restore: self.0.live_restore.load(Ordering::Acquire),
             history_compression: false,
         }
     }
@@ -42,6 +45,7 @@ impl ITerminalFactory for Factory {
             size: config.size,
             generation: 0,
             history: 0,
+            skipped: 0,
         }))
     }
     fn restore(
@@ -63,6 +67,7 @@ impl ITerminalFactory for Factory {
             size: config.size,
             generation: checkpoint.descriptor.control_generation,
             history: 2,
+            skipped: 0,
         }))
     }
 }
@@ -72,6 +77,7 @@ struct Terminal {
     size: TerminalSize,
     generation: u64,
     history: usize,
+    skipped: u64,
 }
 impl Drop for Terminal {
     fn drop(&mut self) {
@@ -84,7 +90,7 @@ impl ITerminal for Terminal {
             !self.probe.panic_feed.load(Ordering::Acquire),
             "injected native panic"
         );
-        assert_eq!(self.history, 0, "mutation before complete history");
+        assert!(self.history == 0 || self.probe.live_restore.load(Ordering::Acquire));
         self.probe
             .trace
             .lock()
@@ -98,7 +104,7 @@ impl ITerminal for Terminal {
         }))
     }
     fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError> {
-        assert_eq!(self.history, 0, "resize before complete history");
+        assert!(self.history == 0 || self.probe.live_restore.load(Ordering::Acquire));
         if self.probe.fail_resize.load(Ordering::Acquire) {
             return Err(TerminalError::EngineFailure);
         }
@@ -178,13 +184,20 @@ impl ITerminal for Terminal {
         })
     }
     fn restoration_progress(&self) -> RestorationProgress {
-        if self.history == 0 {
-            RestorationProgress::Complete
-        } else {
-            RestorationProgress::Usable
+        match (self.history, self.skipped) {
+            (0, 0) => RestorationProgress::Complete,
+            (_, 0) => RestorationProgress::Usable,
+            (0, skipped_pages) => RestorationProgress::FinishedWithSkippedHistory { skipped_pages },
+            (_, skipped_pages) => RestorationProgress::UsableWithSkippedHistory { skipped_pages },
         }
     }
     fn restore_history_step(&mut self) -> Result<RestorationProgress, TerminalError> {
+        if self.probe.fail_history.load(Ordering::Acquire) {
+            return Err(TerminalError::CorruptCheckpoint);
+        }
+        if self.history > 0 && self.probe.skip_history.load(Ordering::Acquire) {
+            self.skipped += 1;
+        }
         self.history = self.history.saturating_sub(1);
         self.probe
             .trace
@@ -193,6 +206,7 @@ impl ITerminal for Terminal {
             .push(Trace::History(self.history));
         Ok(self.restoration_progress())
     }
+
     fn compress_history_step(&mut self) -> Result<bool, TerminalError> {
         Ok(true)
     }

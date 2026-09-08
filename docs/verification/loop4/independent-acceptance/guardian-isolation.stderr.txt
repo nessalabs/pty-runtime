@@ -1,0 +1,3 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running tests/process_failure_isolation.rs (target/debug/deps/process_failure_isolation-ec76c85c87d08b18)

@@ -1,0 +1,203 @@
+[
+  {
+    "name": "rustc-version",
+    "command": [
+      "rustc",
+      "-Vv"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "rust-sysroot",
+    "command": [
+      "rustc",
+      "--print",
+      "sysroot"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "llvm-cov-version",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "--version"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "llvm-profdata-version",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "--version"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "compile-filename",
+    "command": [
+      "clang",
+      "-c",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/filename.c",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/filename.o"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "build-helper",
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "--manifest-path",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/Cargo.toml",
+      "--bins"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "build-units",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/Cargo.toml",
+      "--bin",
+      "pty-runtime-guardian",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "units",
+    "command": [
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/deps/pty_runtime_guardian-298f10ef9b219b10",
+      "--test-threads=1"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "actual-protocol",
+    "command": [
+      "/Library/Developer/CommandLineTools/usr/bin/python3",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/scripts/guardian/probe.py",
+      "--helper",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/pty-runtime-guardian"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "merge",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-profdata",
+      "merge",
+      "-sparse",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86506.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86509.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86514.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86522.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86530.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86538.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86540.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86543.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86545.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86549.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86551.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86555.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86557.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86560.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86562.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86565.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86567.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86572.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86574.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86579.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86581.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86586.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86588.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86594.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86597.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86603.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86605.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86610.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86612.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86618.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86620.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86626.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86628.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86635.profraw",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/profiles/helper-86637.profraw",
+      "-o",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/guardian.profdata"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "report",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "report",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/pty-runtime-guardian",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/deps/pty_runtime_guardian-298f10ef9b219b10",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/guardian.profdata",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/anchor.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/cancellation.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/cleanup.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery_linux.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery_macos.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/drain.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/links.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/main.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/os.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/sentinel.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/successor.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/workload.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/scripts/guardian/protocol.rs"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  },
+  {
+    "name": "export",
+    "command": [
+      "/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/llvm-cov",
+      "export",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/pty-runtime-guardian",
+      "-object",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/target/debug/deps/pty_runtime_guardian-298f10ef9b219b10",
+      "-instr-profile=/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/guardian.profdata",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/anchor.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/cancellation.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/cleanup.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery_linux.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/discovery_macos.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/drain.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/links.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/main.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/os.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/sentinel.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/successor.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/workload.rs",
+      "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/scripts/guardian/protocol.rs"
+    ],
+    "cwd": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat",
+    "exit_code": 0
+  }
+]

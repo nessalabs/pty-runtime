@@ -45,8 +45,10 @@ def architecture():
                     raise SystemExit(f'Reversed workspace dependency: {name} -> {dep_name}')
                 if dep.get('path') is None or Path(dep['path']).resolve() != locations[dep_name].parent.resolve():
                     raise SystemExit(f'Workspace dependency points elsewhere: {name} -> {dep_name}')
-    for folder in ['src', 'crates', 'scripts/native', 'tests']:
+    for folder in ['src', 'crates', 'scripts/native', 'scripts/guardian', 'tests', 'examples', 'helpers', 'experiments/native']:
         for path in (ROOT / folder).rglob('*'):
+            if {'target', '__pycache__', '.git'} & set(path.relative_to(ROOT).parts):
+                continue
             if path.suffix not in ('.rs', '.c', '.h'):
                 continue
             count = sum(bool(line.strip()) for line in path.read_text().splitlines())
@@ -60,10 +62,19 @@ def main():
     for package in ['pty-runtime-domain', 'pty-runtime-application']:
         run('cargo', 'test', '--locked', '-p', package, '--no-default-features')
     run('cargo', 'fmt', '--all', '--check')
+    run('cargo', 'fmt', '--manifest-path', 'helpers/guardian/Cargo.toml', '--check')
+    run('cargo', 'clippy', '--manifest-path', 'helpers/guardian/Cargo.toml', '--locked', '--all-targets', '--', '-D', 'warnings')
+    run('cargo', 'test', '--manifest-path', 'helpers/guardian/Cargo.toml', '--locked')
     run('python3', 'scripts/native/bootstrap.py')
+    run('python3', 'scripts/native/tests/run_allocator_contract.py')
+    run('python3', 'scripts/native/tests/run_boundary_contract.py')
     run('cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--all-features', '--', '-D', 'warnings')
     run('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')
     run('cargo', 'test', '--locked', '--workspace', '--no-default-features')
+    run('cargo', 'test', '--locked', '--no-default-features', '--features', 'event-stream')
+    run('cargo', 'run', '--locked', '--example', 'event_stream_reconnect', '--no-default-features', '--features', 'event-stream')
+    run('cargo', 'build', '--locked', '--example', 'interactive', '--no-default-features')
+    run('python3', 'scripts/release/interactive_smoke.py')
     run('cargo', 'doc', '--locked', '--workspace', '--no-deps', '--all-features',
         env={**os.environ, 'RUSTDOCFLAGS': '-D warnings'})
     run('python3', 'scripts/performance.py')

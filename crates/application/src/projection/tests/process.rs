@@ -12,6 +12,8 @@ pub struct Process {
     pub writes: Mutex<Vec<Vec<u8>>>,
     pub reject: AtomicBool,
     pub partial: AtomicBool,
+    pub fail_resize_admission: AtomicBool,
+    pub fail_resize_completion: AtomicBool,
     pub controls: Mutex<Vec<TerminalSize>>,
 }
 impl IProcessSession for Process {
@@ -44,7 +46,13 @@ impl IProcessSession for Process {
         &self,
         size: TerminalSize,
     ) -> Result<ProcessOperation<Result<(), ProcessError>>, ProcessError> {
+        if self.fail_resize_admission.load(Ordering::Acquire) {
+            return Err(ProcessError::Io);
+        }
         self.controls.lock().unwrap().push(size);
-        Ok(Box::pin(async { Ok(()) }))
+        let fail = self.fail_resize_completion.load(Ordering::Acquire);
+        Ok(Box::pin(async move {
+            if fail { Err(ProcessError::Io) } else { Ok(()) }
+        }))
     }
 }

@@ -1,0 +1,10 @@
+test_empty_lsof_failure_identifies_command_and_pids (test_load_diagnostics.LoadDiagnostics) ... ok
+test_failed_census_retains_child_exit_and_queued_stderr (test_load_diagnostics.LoadDiagnostics) ... ok
+test_failed_checkpoint_acknowledgement_does_not_escape_cleanup (test_load_diagnostics.LoadDiagnostics) ... ok
+test_missing_ps_process_identifies_missing_pid (test_load_diagnostics.LoadDiagnostics) ... ok
+test_vanished_lsof_process_uses_owner_fallback_with_evidence (test_load_diagnostics.LoadDiagnostics) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.522s
+
+OK

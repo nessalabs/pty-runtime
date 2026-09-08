@@ -56,9 +56,9 @@ impl ProjectionCoordinator {
                 return WorkSchedule::After(Duration::from_millis(5));
             }
         };
-        let kind = if let Some(Event::Checkpoint(ticket, staging)) = transfer {
+        let kind = if let Some(Event::Checkpoint(request, staging)) = transfer {
             IoKind::Transfer {
-                ticket,
+                request,
                 memory,
                 _staging: staging,
             }
@@ -111,8 +111,8 @@ impl ProjectionCoordinator {
                 WorkSchedule::Dormant
             }
             Err(error) => {
-                if let IoKind::Transfer { ticket, .. } = kind {
-                    ticket.complete(Err(error));
+                if let IoKind::Transfer { request, .. } = kind {
+                    request.fail(error);
                 }
                 WorkSchedule::After(Duration::from_millis(5))
             }

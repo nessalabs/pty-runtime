@@ -115,7 +115,9 @@ NATIVE_BUILD_OPTIONS = ("-Demit-lib-vt", "-Demit-xcframework=false", "-Doptimize
 
 def native_build_stamp(key):
     return {"dependencies": DEPENDENCIES, "target": key, "libc": platform.libc_ver(),
-            "build_options": list(NATIVE_BUILD_OPTIONS), "build_driver_sha256": sha(Path(__file__))}
+            "build_options": list(NATIVE_BUILD_OPTIONS), "build_driver_sha256": sha(Path(__file__)),
+            "snapshot_patch_sha256": sha(ROOT / "scripts/native/patches/snapshot-pending-wrap.patch"),
+            "source_verifier_sha256": sha(ROOT / "scripts/native/verify_source.py")}
 
 
 def build(cache, suite, jobs):
@@ -147,15 +149,19 @@ def build(cache, suite, jobs):
         fetch(DEPENDENCIES["ghostty"]["url"], DEPENDENCIES["ghostty"]["sha256"], archive)
         if not (source / "build.zig").exists():
             extract(archive, cache)
+        checked([sys.executable, ROOT / "scripts/native/verify_source.py", source, "--prepare"])
         stamp_value = native_build_stamp(key)
         stamp = source / "experiment-build.json"
         library = source / "zig-out/lib/libghostty-vt.a"
+        if library.is_file():
+            stamp_value["library_sha256"] = sha(library)
         if not library.is_file() or not stamp.exists() or json.loads(stamp.read_text()) != json.loads(json.dumps(stamp_value)):
             print(f"Building pinned libghostty-vt for {key}...", flush=True)
             checked([zig, "build", *NATIVE_BUILD_OPTIONS, f"-j{jobs}",
                      "--global-cache-dir", cache / "zig-global-cache"], cwd=source,
                     timeout=1800, log=logs / "ghostty")
             gate.require(library.is_file(), "native build did not emit the static VT library")
+            stamp_value["library_sha256"] = sha(library)
             save(stamp, stamp_value)
         compiler = shutil.which("clang") or shutil.which("cc")
         gate.require(compiler is not None, "a C compiler is required for native experiments")

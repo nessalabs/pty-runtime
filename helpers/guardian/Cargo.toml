@@ -1,0 +1,32 @@
+[package]
+name = "pty-runtime-guardian"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+autotests = false
+
+[workspace]
+
+[dependencies]
+libc = "=0.2.189"
+
+[[bin]]
+name = "pty-runtime-guardian"
+path = "src/main.rs"
+
+[[bin]]
+name = "guardian-fixture"
+path = "tests/fixture.rs"
+test = false
+bench = false
+
+[profile.release]
+panic = "abort"
+strip = true
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

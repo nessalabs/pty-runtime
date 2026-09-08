@@ -1,0 +1,553 @@
+Counters:
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os7session:
+    Hash: 0x80f47ba170b539ea
+    Counters: 3
+    Function count: 20
+    Block counts: [0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB2_4Kind6decode:
+    Hash: 0xdf6e96656155c422
+    Counters: 17
+    Function count: 211
+    Block counts: [0, 0, 0, 57, 6, 2, 9, 27, 17, 0, 6, 0, 1, 10, 0, 19]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links6notify:
+    Hash: 0x777366da2a395f2d
+    Counters: 1
+    Function count: 117
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os4fork:
+    Hash: 0x4d0c4fbd88d2c75d
+    Counters: 2
+    Function count: 43
+    Block counts: [0]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links5inbox:
+    Hash: 0xcc129a2c643ee637
+    Counters: 1
+    Function count: 2764
+    Block counts: []
+  _RNvMs_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB4_5Frame6decode:
+    Hash: 0x5828f27a2f7c466c
+    Counters: 6
+    Function count: 3
+    Block counts: [0, 0, 1, 0, 10]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload3pid:
+    Hash: 0x1855a046b16eff99
+    Counters: 1
+    Function count: 38
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload6launch:
+    Hash: 0x544302471ec0b59c
+    Counters: 5
+    Function count: 19
+    Block counts: [0, 0, 0, 0]
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel14finish_receive:
+    Hash: 0x394a4f9ae708db1c
+    Counters: 2
+    Function count: 40
+    Block counts: [40]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian8guardian14await_sentinel:
+    Hash: 0x1f12f00095d64cea
+    Counters: 13
+    Function count: 20
+    Block counts: [40, 19, 59, 36, 75, 15, 20, 19, 19, 19, 20, 20]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload4reap:
+    Hash: 0xa6aadcaba7eb95e3
+    Counters: 5
+    Function count: 198
+    Block counts: [151, 47, 0, 14]
+  _RNvCsc3rRCmWEcph_20pty_runtime_guardian5start:
+    Hash: 0x045f6e0b2c6f612a
+    Counters: 22
+    Function count: 20
+    Block counts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5drainNtB2_5Drain5retry:
+    Hash: 0x0ae61a8031f82ba1
+    Counters: 1
+    Function count: 8
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation5empty:
+    Hash: 0x360cdb34784392e5
+    Counters: 1
+    Function count: 169
+    Block counts: []
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links5pause:
+    Hash: 0x01fe55303d147f53
+    Counters: 2
+    Function count: 2711
+    Block counts: [0]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB4_5Frame6decode:
+    Hash: 0x8a90d5e3082fee59
+    Counters: 6
+    Function count: 211
+    Block counts: [0, 0, 0, 0, 1055]
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel14finish_receive:
+    Hash: 0x4686a1d9ca017c3f
+    Counters: 2
+    Function count: 3
+    Block counts: [1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint4send:
+    Hash: 0x67b0dc8f05698728
+    Counters: 7
+    Function count: 633
+    Block counts: [578, 578, 308, 0, 0, 0]
+  _RNCNCNvCsc3rRCmWEcph_20pty_runtime_guardian6number00B5_:
+    Hash: 0x817a4b351b51dcf3
+    Counters: 1
+    Function count: 40
+    Block counts: []
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel7receive:
+    Hash: 0xe428becc93b243a8
+    Counters: 8
+    Function count: 8
+    Block counts: [0, 0, 0, 0, 0, 5, 2]
+  _RNCNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB4_8Workload6pollfd0B6_:
+    Hash: 0x4c8df1071ae7ff65
+    Counters: 1
+    Function count: 33
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os19terminate_own_group:
+    Hash: 0x31bbf4eb7cb524b9
+    Counters: 1
+    Function count: 48
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep10idle_delay:
+    Hash: 0x0d350f4fa7666706
+    Counters: 2
+    Function count: 2548
+    Block counts: [38]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian9discoveryNtB2_9Discovery4next:
+    Hash: 0x81cce3099a619b2e
+    Counters: 9
+    Function count: 316921
+    Block counts: [357, 0, 357, 349, 314791, 0, 1066, 0]
+  _RNvNtNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol5testss_57fragments_reassemble_without_interpreting_partial_records:
+    Hash: 0x67f364003593d4c6
+    Counters: 3
+    Function count: 1
+    Block counts: [1, 1]
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel3new:
+    Hash: 0xf111a2e9bf9f5304
+    Counters: 2
+    Function count: 114
+    Block counts: [0]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian8sentinel3run:
+    Hash: 0xceaf0d1f7eb64354
+    Counters: 34
+    Function count: 20
+    Block counts: [242, 270, 0, 63, 301, 6, 3, 1, 10, 19, 20, 6, 6, 6, 19, 19, 20, 220, 107, 10, 108, 109, 109, 0, 207, 108, 21, 120, 108, 4, 7, 0, 12]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint7healthy:
+    Hash: 0xcb7eb90edab24307
+    Counters: 1
+    Function count: 3234
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian9discoveryNtB2_9Discovery3new:
+    Hash: 0x53612d1634468b07
+    Counters: 2
+    Function count: 370
+    Block counts: [0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation23take_escalation_applied:
+    Hash: 0x5788b9aa0df3851b
+    Counters: 1
+    Function count: 198
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation17take_term_applied:
+    Hash: 0x112bc3769915bd7a
+    Counters: 5
+    Function count: 198
+    Block counts: [0, 198, 0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian6anchorNtB2_6Anchor5start:
+    Hash: 0xbee1c30420eeeff0
+    Counters: 6
+    Function count: 17
+    Block counts: [0, 17, 0, 0, 0]
+  _RNCNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB7_7Channel7enqueue0B9_:
+    Hash: 0x9e8d35f8c412a47b
+    Counters: 1
+    Function count: 36
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload6pollfd:
+    Hash: 0x4c8df1071ae7ff65
+    Counters: 1
+    Function count: 184
+    Block counts: []
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links5flush:
+    Hash: 0xc286ee1e43cf6954
+    Counters: 1
+    Function count: 2941
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation7pollfds:
+    Hash: 0x3e1d73cd28b19da1
+    Counters: 2
+    Function count: 184
+    Block counts: [184]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation3new:
+    Hash: 0xe07b2548f81696ad
+    Counters: 1
+    Function count: 19
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os4wait:
+    Hash: 0xcd74cb0f7d48e0d2
+    Counters: 3
+    Function count: 169
+    Block counts: [29, 29]
+  _RNvNtNtCsc3rRCmWEcph_20pty_runtime_guardian9discovery8platform4live:
+    Hash: 0x43d8d1768ca8233c
+    Counters: 2
+    Function count: 1066
+    Block counts: [0]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os9own_group:
+    Hash: 0x5dbec7b8f4c9d0da
+    Counters: 2
+    Function count: 26
+    Block counts: [0]
+  _RNvNtNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol5testss_45stale_generation_and_partial_eof_are_rejected:
+    Hash: 0xcd124c4d9a7822e7
+    Counters: 4
+    Function count: 1
+    Block counts: [1, 1, 1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5drainNtB2_5Drain5delay:
+    Hash: 0xd60392c4a9ed94fc
+    Counters: 3
+    Function count: 10
+    Block counts: [2, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian6anchorNtB2_6Anchor7pollfds:
+    Hash: 0x7013af3202c74305
+    Counters: 3
+    Function count: 38
+    Block counts: [0, 0]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os15close_unrelated:
+    Hash: 0xf4baf38203ae05b2
+    Counters: 9
+    Function count: 49
+    Block counts: [0, 395, 0, 0, 444, 248, 144, 153]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep4step:
+    Hash: 0x8d7c349da2285c5b
+    Counters: 18
+    Function count: 2577
+    Block counts: [19, 2520, 0, 21, 361, 0, 316657, 316299, 0, 1056, 361, 331, 16, 318819, 0, 0, 12]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep3new:
+    Hash: 0xb1c574285e37a5f3
+    Counters: 1
+    Function count: 35
+    Block counts: []
+  _RNvNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol7invalid:
+    Hash: 0xca38f282c51c4d79
+    Counters: 1
+    Function count: 3
+    Block counts: []
+  _RNCNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os15close_unrelated0B5_:
+    Hash: 0xf4baf38203ae05b2
+    Counters: 1
+    Function count: 395
+    Block counts: []
+  _RNvNtNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol5testss_63peer_close_after_final_record_preserves_eof_with_unread_control:
+    Hash: 0x5176aaf58767878e
+    Counters: 4
+    Function count: 1
+    Block counts: [1, 1, 1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian6anchorNtB2_6Anchor7request:
+    Hash: 0x3244295cf3e15fc5
+    Counters: 2
+    Function count: 17
+    Block counts: [17]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links3new:
+    Hash: 0x9b91f8a159859c98
+    Counters: 3
+    Function count: 40
+    Block counts: [0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation4tick:
+    Hash: 0xd4a0d9471073209f
+    Counters: 33
+    Function count: 198
+    Block counts: [198, 0, 0, 0, 0, 0, 14, 0, 169, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 5, 5, 0, 0]
+  _RNvCs9ZFEB6U2FLt_16guardian_fixture6member:
+    Hash: 0x669d760fa42b8de2
+    Counters: 7
+    Function count: 22
+    Block counts: [0, 22, 0, 22, 22, 0]
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel2fd:
+    Hash: 0x416e0f5825141e27
+    Counters: 1
+    Function count: 5216
+    Block counts: []
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel5flush:
+    Hash: 0x9998953b18f09dc6
+    Counters: 8
+    Function count: 5574
+    Block counts: [5878, 5574, 5878, 0, 0, 0, 304]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian6anchor6member:
+    Hash: 0xa6c519debc62186e
+    Counters: 22
+    Function count: 17
+    Block counts: [0, 0, 0, 17, 0, 0, 0, 0, 0, 34, 0, 0, 0, 17, 17, 0, 0, 0, 0, 0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep15additional_peer:
+    Hash: 0x667eecd8b6770b06
+    Counters: 1
+    Function count: 7
+    Block counts: []
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel7enqueue:
+    Hash: 0x9e8d35f8c412a47b
+    Counters: 4
+    Function count: 11
+    Block counts: [0, 0, 1]
+  _RNvMNtNtCsc3rRCmWEcph_20pty_runtime_guardian9discovery8platformNtB2_9Inventory4next:
+    Hash: 0xa34e4c695e06320c
+    Counters: 2
+    Function count: 316921
+    Block counts: [357]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian9successor7handoff:
+    Hash: 0xb2ca30b09ebce527
+    Counters: 8
+    Function count: 6
+    Block counts: [0, 0, 6, 0, 6, 6, 0]
+  _RNvCsc3rRCmWEcph_20pty_runtime_guardian6number:
+    Hash: 0x817a4b351b51dcf3
+    Counters: 1
+    Function count: 40
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian6anchorNtB2_6Anchor4tick:
+    Hash: 0x9af23693971c8935
+    Counters: 18
+    Function count: 38
+    Block counts: [0, 55, 0, 38, 55, 34, 17, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17]
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel3eof:
+    Hash: 0x78f575b967467e9a
+    Counters: 1
+    Function count: 2
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint6pollfd:
+    Hash: 0xf8f1e18b29cd6099
+    Counters: 4
+    Function count: 5422
+    Block counts: [5149, 5422, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload6signal:
+    Hash: 0xabf7f193bfe3df62
+    Counters: 5
+    Function count: 14
+    Block counts: [9, 5, 0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian2osNtB2_9ExitWatch3new:
+    Hash: 0xf8c330b76aa275b2
+    Counters: 4
+    Function count: 62
+    Block counts: [0, 0, 0]
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel7receive:
+    Hash: 0x49bd358947151956
+    Counters: 8
+    Function count: 5521
+    Block counts: [0, 5270, 0, 0, 5270, 211, 211]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation4stop:
+    Hash: 0x48f4568878347100
+    Counters: 1
+    Function count: 169
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload6reaped:
+    Hash: 0xe92161a17ec9bac1
+    Counters: 1
+    Function count: 382
+    Block counts: []
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel3eof:
+    Hash: 0x1791d4177e91ff13
+    Counters: 1
+    Function count: 5272
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian2osNtB2_9ExitWatch2fd:
+    Hash: 0x807e9074847d1759
+    Counters: 1
+    Function count: 211
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian9successor5begin:
+    Hash: 0x9497e0a22e148d31
+    Counters: 27
+    Function count: 6
+    Block counts: [0, 0, 0, 2284, 2291, 0, 5, 5, 2, 2, 2280, 2278, 313, 0, 0, 0, 0, 2273, 309, 318, 0, 1, 0, 2227, 3, 3]
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel3new:
+    Hash: 0xf3ee8b7c505ba63d
+    Counters: 2
+    Function count: 5
+    Block counts: [0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint7receive:
+    Hash: 0xd7cf577f6a952d45
+    Counters: 6
+    Function count: 5528
+    Block counts: [5255, 5432, 0, 23, 5432]
+  _RNvMNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB2_4Kind6decode:
+    Hash: 0x3904f1c26a6dafef
+    Counters: 17
+    Function count: 2
+    Block counts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+  _RNvCsc3rRCmWEcph_20pty_runtime_guardian4main:
+    Hash: 0x1646db096a265f6a
+    Counters: 2
+    Function count: 20
+    Block counts: [0]
+  _RNvMs_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB4_5Frame3new:
+    Hash: 0xa3a9ac229b31b010
+    Counters: 1
+    Function count: 17
+    Block counts: []
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links5frame:
+    Hash: 0x3a8c7614804256ad
+    Counters: 1
+    Function count: 471
+    Block counts: []
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links7pollfds:
+    Hash: 0x4836560e58e96bd4
+    Counters: 1
+    Function count: 2711
+    Block counts: []
+  _RNvMs_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB4_5Frame6encode:
+    Hash: 0x7bb39ecc4987daab
+    Counters: 2
+    Function count: 15
+    Block counts: [75]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5drainNtB2_5Drain3new:
+    Hash: 0xc08971322cfd23ba
+    Counters: 1
+    Function count: 19
+    Block counts: []
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel7enqueue:
+    Hash: 0xab8c3f957d65a347
+    Counters: 4
+    Function count: 304
+    Block counts: [0, 0, 0]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB4_5Links5fault:
+    Hash: 0x055a36a6656fde0d
+    Counters: 1
+    Function count: 11
+    Block counts: []
+  _RNCNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB4_8Workload6launch0B6_:
+    Hash: 0x544302471ec0b59c
+    Counters: 5
+    Function count: 19
+    Block counts: [0, 0, 171, 190]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB4_5Frame3new:
+    Hash: 0x607f4c8a6e3b578f
+    Counters: 1
+    Function count: 716
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload10needs_poll:
+    Hash: 0xe4d87aaebe76cf1c
+    Counters: 2
+    Function count: 184
+    Block counts: [151]
+  _RNvNtNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol5testss_60peer_reset_cannot_turn_a_partial_final_record_into_clean_eof:
+    Hash: 0x47a87f4ad85fe65c
+    Counters: 4
+    Function count: 1
+    Block counts: [1, 1, 1]
+  _RNvMs_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB4_5Frame6encode:
+    Hash: 0xaab31516f628be3a
+    Counters: 2
+    Function count: 304
+    Block counts: [1520]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint2fd:
+    Hash: 0x55340cb0ef31c43e
+    Counters: 1
+    Function count: 12
+    Block counts: []
+  _RNvCs9ZFEB6U2FLt_16guardian_fixture4main:
+    Hash: 0x270fdcd2a3d32520
+    Counters: 11
+    Function count: 14
+    Block counts: [0, 3, 8, 0, 3, 8, 0, 36, 0, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5drainNtB2_5Drain5empty:
+    Hash: 0x98f592fc819bf1fe
+    Counters: 10
+    Function count: 10
+    Block counts: [0, 9, 0, 264, 264, 266, 10, 1, 1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep9peer_gone:
+    Hash: 0x810e169260471f12
+    Counters: 1
+    Function count: 5
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian9discovery15gone_or_unknown:
+    Hash: 0xb8ef010f54c87b4c
+    Counters: 3
+    Function count: 349
+    Block counts: [0, 349]
+  _RNvNtNtCs8ahfRji0Hj1_20pty_runtime_guardian8protocol5testss_44status_backpressure_has_a_fixed_record_bound:
+    Hash: 0x2467cf092abb2c6b
+    Counters: 3
+    Function count: 1
+    Block counts: [9, 1]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint5flush:
+    Hash: 0x2b73096dbd2abd2c
+    Counters: 7
+    Function count: 5882
+    Block counts: [5502, 5502, 104538, 104268, 110040, 0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation7request:
+    Hash: 0x9cd05c9959467747
+    Counters: 2
+    Function count: 169
+    Block counts: [14]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian5linksNtB2_8Endpoint3new:
+    Hash: 0x2fa3f60bebcb0020
+    Counters: 2
+    Function count: 80
+    Block counts: [0]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian12cancellationNtB2_12Cancellation5delay:
+    Hash: 0x60e938dbb1cadc98
+    Counters: 3
+    Function count: 184
+    Block counts: [184, 184]
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian8workloadNtB2_8Workload7settled:
+    Hash: 0x272fcc95f81c11c7
+    Counters: 2
+    Function count: 214
+    Block counts: [181]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os26ignore_supervision_signals:
+    Hash: 0x260fd2d6b6ded04c
+    Counters: 3
+    Function count: 37
+    Block counts: [296, 333]
+  _RNCNvCsc3rRCmWEcph_20pty_runtime_guardian6number0B3_:
+    Hash: 0x817a4b351b51dcf3
+    Counters: 1
+    Function count: 40
+    Block counts: []
+  _RNvMNtCsc3rRCmWEcph_20pty_runtime_guardian7cleanupNtB2_5Sweep7pollfds:
+    Hash: 0xf077ead1c5bcfcef
+    Counters: 2
+    Function count: 2554
+    Block counts: [2516]
+  _RNvMs0_NtCs8ahfRji0Hj1_20pty_runtime_guardian8protocolNtB5_7Channel5flush:
+    Hash: 0x58135171b2de1592
+    Counters: 8
+    Function count: 2
+    Block counts: [4, 2, 4, 0, 0, 0, 2]
+  _RNvMs0_NtCsc3rRCmWEcph_20pty_runtime_guardian8protocolNtB5_7Channel11wants_write:
+    Hash: 0x565cd82f8a9e2c92
+    Counters: 1
+    Function count: 5477
+    Block counts: []
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian8guardian3run:
+    Hash: 0xb9aec194290142b1
+    Counters: 47
+    Function count: 20
+    Block counts: [0, 0, 19, 198, 222, 0, 19, 0, 1, 1, 0, 180, 193, 0, 165, 0, 169, 0, 0, 0, 169, 169, 14, 29, 151, 29, 0, 151, 10, 16, 16, 9, 6, 6, 6, 0, 2, 8, 16, 0, 0, 10, 14, 126, 1, 4]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os5owned:
+    Hash: 0xc9bf7796f45bc6c1
+    Counters: 2
+    Function count: 142
+    Block counts: [0]
+  _RNCNvCsc3rRCmWEcph_20pty_runtime_guardian5start0B3_:
+    Hash: 0x045f6e0b2c6f612a
+    Counters: 1
+    Function count: 46
+    Block counts: []
+  _RNvMNtNtCsc3rRCmWEcph_20pty_runtime_guardian9discovery8platformNtB2_9Inventory3new:
+    Hash: 0xac0dbef4b24e3d15
+    Counters: 3
+    Function count: 370
+    Block counts: [0, 0]
+  _RNvNtCsc3rRCmWEcph_20pty_runtime_guardian2os5pause:
+    Hash: 0x978d1a110523a1ed
+    Counters: 3
+    Function count: 2728
+    Block counts: [0, 0]
+Instrumentation level: Front-end
+Functions shown: 109
+Total functions: 109
+Maximum function count: 316921
+Maximum internal block count: 318819
+Total number of blocks: 561
+Total count: 2403567

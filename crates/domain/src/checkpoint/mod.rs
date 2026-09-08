@@ -1,5 +1,7 @@
 //! Lifetime-bound protected checkpoint storage values.
+mod cleanup;
 use crate::{identity::SessionLifetime, terminal::CheckpointDescriptor};
+pub use cleanup::{CheckpointCleanupLimits, CheckpointCleanupReport};
 
 /// Immutable logical checkpoint identity; generations must never repeat per lifetime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

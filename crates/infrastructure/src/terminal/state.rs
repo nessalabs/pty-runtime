@@ -8,9 +8,6 @@ impl ITerminal for GhosttyTerminal {
         if bytes.len() > self.config.feed_bytes {
             return Err(TerminalError::BudgetExceeded);
         }
-        if self.restoring.is_some() {
-            return Err(TerminalError::HistoryIncomplete);
-        }
         let mut replies = buffer(self.config.reply_bytes)?;
         let mut len = 0;
         // SAFETY: Exclusive owner, valid input slice and initialized output buffer.
@@ -36,9 +33,6 @@ impl ITerminal for GhosttyTerminal {
         self.healthy()?;
         if self.generation.checked_add(1) != Some(generation) {
             return Err(TerminalError::StaleControl);
-        }
-        if self.restoring.is_some() {
-            return Err(TerminalError::HistoryIncomplete);
         }
         // SAFETY: Validated dimensions and exclusive live owner; callbacks stay in C.
         let result = unsafe { ffi::rt_resize(self.raw.as_ptr(), size.cols(), size.rows()) };
@@ -83,23 +77,40 @@ impl ITerminal for GhosttyTerminal {
         Ok(TerminalCheckpoint { descriptor, bytes })
     }
     fn restoration_progress(&self) -> RestorationProgress {
-        if self.restoring.is_some() {
-            RestorationProgress::Usable
-        } else {
-            RestorationProgress::Complete
+        match (self.restoring.is_some(), self.skipped_pages) {
+            (true, 0) => RestorationProgress::Usable,
+            (false, 0) => RestorationProgress::Complete,
+            (true, skipped_pages) => {
+                RestorationProgress::UsableWithSkippedHistory { skipped_pages }
+            }
+            (false, skipped_pages) => {
+                RestorationProgress::FinishedWithSkippedHistory { skipped_pages }
+            }
         }
     }
     fn restore_history_step(&mut self) -> Result<RestorationProgress, TerminalError> {
         self.healthy()?;
         // SAFETY: Exclusive owner retains checkpoint bytes; C decoder performs one
         // history unit and relinquishes its borrowed source only when complete.
-        let result = unsafe { ffi::rt_history(self.raw.as_ptr()) };
+        let mut rows = 0;
+        let result = unsafe { ffi::rt_history(self.raw.as_ptr(), &mut rows) };
         match result {
             1 => {
                 self.restoring = None;
-                Ok(RestorationProgress::Complete)
+                Ok(self.restoration_progress())
             }
-            0 => Ok(RestorationProgress::Usable),
+            0 => {
+                if rows == 0 {
+                    self.skipped_pages = match self.skipped_pages.checked_add(1) {
+                        Some(count) => count,
+                        None => {
+                            self.failed = true;
+                            return Err(TerminalError::BudgetExceeded);
+                        }
+                    };
+                }
+                Ok(self.restoration_progress())
+            }
             _ => {
                 self.failed = true;
                 Err(if result == -2 {

@@ -1,0 +1,73 @@
+{
+  "accepted": false,
+  "reason": "Saturated inferred region counters; do not claim reported coverage percentage",
+  "saturated_regions": [
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/successor.rs",
+      "line": 43,
+      "column": 9,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 144,
+      "column": 58,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 145,
+      "column": 25,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 146,
+      "column": 29,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 146,
+      "column": 37,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 146,
+      "column": 43,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 146,
+      "column": 49,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 146,
+      "column": 63,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/guardian.rs",
+      "line": 147,
+      "column": 25,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/sentinel.rs",
+      "line": 96,
+      "column": 39,
+      "count": 9223372036854775807
+    },
+    {
+      "file": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/guardian-functional-coverage-repeat/source/helpers/guardian/src/sentinel.rs",
+      "line": 96,
+      "column": 45,
+      "count": 9223372036854775807
+    }
+  ],
+  "source_coverage_percentages_trustworthy": false
+}

@@ -4,6 +4,16 @@ mod budgets;
 mod completion;
 mod coordinator;
 mod io;
+mod journal;
+mod snapshot;
+mod stream_end;
+mod transfer;
+pub use pty_runtime_domain::projection::{
+    TransferBoundary, TransferCursor, TransferEnd, TransferError,
+};
+pub use transfer::{
+    StateTransfer, TransferEvent, TransferEventKind, TransferObserver, TransferRead,
+};
 mod native;
 mod observation;
 mod state;

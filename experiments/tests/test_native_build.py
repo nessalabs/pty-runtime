@@ -42,10 +42,12 @@ class NativeBuildContract(unittest.TestCase):
                 saved = json.loads(stamp.read_text())
                 self.assertIn('-Dcpu=baseline', saved['build_options'])
                 self.assertEqual(saved['build_driver_sha256'], run.sha(Path(run.__file__)))
+                self.assertEqual(saved['snapshot_patch_sha256'], run.sha(run.ROOT / 'scripts/native/patches/snapshot-pending-wrap.patch'))
+                self.assertTrue(any(c[-1] == '--prepare' for c in commands))
                 run.build(cache, 'native', 2)
                 self.assertEqual(sum(c[1] == 'build' for c in commands), 1)
                 # Both CPU target and recipe changes invalidate a compiled archive.
-                for field, value in [('build_options', ['-Dcpu=native']), ('build_driver_sha256', 'old-driver')]:
+                for field, value in [('build_options', ['-Dcpu=native']), ('build_driver_sha256', 'old-driver'), ('snapshot_patch_sha256', 'old-patch'), ('source_verifier_sha256', 'old-verifier'), ('library_sha256', 'old-library')]:
                     changed = dict(saved)
                     changed[field] = value
                     stamp.write_text(json.dumps(changed))

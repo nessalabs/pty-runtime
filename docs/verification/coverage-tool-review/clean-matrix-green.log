@@ -1,0 +1,94 @@
++ cargo generate-lockfile
++ cargo generate-lockfile --manifest-path helpers/guardian/Cargo.toml
++ cargo llvm-cov --locked --workspace --all-targets --no-fail-fast --no-report --all-features
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling coverage-review-fixture v0.1.0 (/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/coverage_review_fixture-5493b4e7af13f5b1)
+
+running 2 tests
+test current_test ... ok
+test stale_test ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov clean --workspace
+warning: process didn't exit successfully: `/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo clean --target-dir /private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/target/llvm-cov-target --package coverage-review-fixture` (exit status: 101)
+--- stderr
+error: cannot clean `/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/target/llvm-cov-target`: missing or invalid `CACHEDIR.TAG` file
+  |
+  = note: cleaning has been aborted to prevent accidental deletion of unrelated files
+
++ cargo llvm-cov --locked --workspace --all-targets --no-fail-fast --no-report --no-default-features
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling coverage-review-fixture v0.1.0 (/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/coverage_review_fixture-ec5e454035760bd9)
+
+running 1 test
+test current_test ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov report --json --output-path /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/clean-proof.json
+
+    Finished report saved to /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/clean-proof.json
+STALE PROFILE PROOF: all pre-clean profraw removed; stale_only count is zero after clean/raw run.
++ cargo llvm-cov clean --workspace
+warning: process didn't exit successfully: `/Users/nessa/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo clean --target-dir /private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/target/llvm-cov-target --package coverage-review-fixture` (exit status: 101)
+--- stderr
+error: cannot clean `/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/target/llvm-cov-target`: missing or invalid `CACHEDIR.TAG` file
+  |
+  = note: cleaning has been aborted to prevent accidental deletion of unrelated files
+
++ cargo llvm-cov --locked --workspace --all-targets --no-fail-fast --no-report --all-features
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/coverage_review_fixture-5493b4e7af13f5b1)
+
+running 2 tests
+test current_test ... ok
+test stale_test ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov --locked --workspace --all-targets --no-fail-fast --no-report --no-default-features
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/coverage_review_fixture-ec5e454035760bd9)
+
+running 1 test
+test current_test ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov --locked --workspace --all-targets --no-fail-fast --no-report --no-default-features --features event-stream
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling coverage-review-fixture v0.1.0 (/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/coverage_review_fixture-3c3ef323122dc18e)
+
+running 1 test
+test current_test ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov report --json --output-path /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/matrix.json
+
+    Finished report saved to /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/matrix.json
++ cargo llvm-cov clean --workspace --manifest-path helpers/guardian/Cargo.toml
++ cargo llvm-cov --locked --manifest-path helpers/guardian/Cargo.toml --all-targets --no-fail-fast --no-report
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling coverage-review-helper v0.1.0 (/private/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/helpers/guardian)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (helpers/guardian/target/llvm-cov-target/debug/deps/coverage_review_helper-305d63f88363fd4b)
+
+running 1 test
+test works ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ cargo llvm-cov report --manifest-path helpers/guardian/Cargo.toml --json --output-path /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/helper.json
+
+    Finished report saved to /var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/pty-cov-review-7xwcvxgo/helper.json
+PASS: exact matrix collection/clean command shapes and separate helper command shapes.

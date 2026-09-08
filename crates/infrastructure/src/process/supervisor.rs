@@ -1,4 +1,4 @@
-use super::{backend::Shared, io, lifecycle::OwnedProcess, watch::ExitWatch};
+use super::{backend::Shared, io, lifecycle::OwnedProcess};
 use pty_runtime_domain::process::ProcessError;
 use std::{
     io::Read,
@@ -41,9 +41,7 @@ pub(super) fn run(
             process.control(now, shutting, shared.immediate.load(Ordering::Acquire));
         }
         processes.retain_mut(|process| {
-            if (process.exit_at.is_some() || process.supervision_lost)
-                && process.session.reader_done.load(Ordering::Acquire)
-            {
+            if process.guardian.complete() && process.session.reader_done.load(Ordering::Acquire) {
                 if let Some(reader) = process.reader.take() {
                     let _ = reader.join();
                 }
@@ -67,11 +65,7 @@ pub(super) fn run(
                 .queues
                 .lock()
                 .is_ok_and(|q| !q.input.is_empty());
-            fds.push(libc::pollfd {
-                fd: process.watch.as_ref().map_or(-1, ExitWatch::fd),
-                events: libc::POLLIN,
-                revents: 0,
-            });
+            fds.extend(process.guardian.pollfds());
             fds.push(libc::pollfd {
                 fd: if queued { process.host.as_raw_fd() } else { -1 },
                 events: libc::POLLOUT,
@@ -93,7 +87,11 @@ pub(super) fn run(
         let mut scratch = [0; 256];
         while wake.read(&mut scratch).is_ok_and(|count| count > 0) {}
         for (index, process) in processes.iter_mut().enumerate() {
-            if fds[1 + index * 2].revents != 0 || process.watch.is_none() {
+            if fds[1 + index * 4..4 + index * 4]
+                .iter()
+                .any(|fd| fd.revents != 0)
+                || process.guardian.needs_poll()
+            {
                 process.reap();
             }
             if process.exit_at.is_none() {

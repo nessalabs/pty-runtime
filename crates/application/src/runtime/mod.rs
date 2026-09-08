@@ -19,3 +19,6 @@ pub use options::{
 pub use owner::Runtime;
 pub use repository::ISessionRepository;
 pub use session::{CompletionWait, Session};
+
+#[cfg(test)]
+mod context_tests;

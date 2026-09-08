@@ -69,6 +69,26 @@ source revision, raw evidence, result and remaining gaps. Record not-run explici
 Performance repeats, lifecycle/reconnect counts and the 12-hour soak remain full
 release requirements. Do not replace them with smaller green tests.
 
+Review existing tests against intended behaviors before adding missing coverage.
+An independent test reviewer must add missing acceptance tests, and those tests
+must pass before readiness is claimed. For newly discovered behavior defects,
+retain the failing test result before changing production code, then the passing
+result after the fix (behavioral TDD). A flawed fixture assertion is not evidence
+of a production defect; explain corrections and preserve the original result.
+
+The user requires 100% code coverage as an additional readiness target. Measure
+and report line, function, and region coverage, with branch coverage where the
+toolchain supports it. Inventory production Rust, the guardian helper, native
+bridge code, and platform-specific paths; distinguish unmeasured code from
+uncovered code. Do not exclude production error paths or change behavior solely
+to reach the percentage. Report measurement scope and unsupported instrumentation
+explicitly, and retain unmet coverage as a readiness gap. Code coverage does not
+replace behavior assertions, independent review, or the full ADR workloads.
+Run `python3 scripts/coverage.py --output work/coverage/<unique-run-name>` for the
+Rust workspace feature matrix and separately instrumented helper. This additional
+readiness gate requires both 100% and zero uncovered lines/functions/regions;
+its component scope does not discharge the separate native/platform inventory.
+
 The mechanical gate checks dependency edges, file size, formatting, Clippy,
 workspace tests, documentation and experiment-validator tests. Extend it with
 integration/feature checks as those paths arrive. CI must run the same command.

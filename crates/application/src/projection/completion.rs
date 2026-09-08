@@ -103,34 +103,23 @@ impl ProjectionCoordinator {
                         self.native_call(|| services.terminal.restore(checkpoint, engine.config))
                     }) {
                         Ok(terminal) => {
-                            let complete =
+                            let progress =
                                 match self.native_call(|| Ok(terminal.restoration_progress())) {
-                                    Ok(progress) => progress == RestorationProgress::Complete,
+                                    Ok(progress) => progress,
                                     Err(_) => return,
                                 };
                             engine.terminal = Some(terminal);
                             engine.resident = Some(resident);
                             engine.restore_memory = Some(memory.plain);
-                            if complete {
-                                self.restored(engine);
-                            } else {
-                                let result = self
-                                    .core
-                                    .lock()
-                                    .unwrap_or_else(|e| e.into_inner())
-                                    .policy
-                                    .restoration_progress(RestorationProgress::Usable);
-                                if let Err(error) = result {
-                                    self.fail(error);
-                                }
-                            }
+                            engine.history_due = false;
+                            self.history_progress(engine, progress);
                         }
                         Err(error) => self.fail(error),
                     }
                 }
             }
             IoKind::Transfer {
-                ticket,
+                request,
                 memory,
                 _staging: _,
             } => {
@@ -138,14 +127,17 @@ impl ProjectionCoordinator {
                     IoResult::Read(result) => result,
                     _ => Err(ProjectionError::Worker),
                 };
-                ticket.complete(if closing {
-                    Err(ProjectionError::Closed)
-                } else {
-                    result.map(|checkpoint| PinnedCheckpoint {
-                        checkpoint,
-                        _lease: memory.plain,
-                    })
-                });
+                request.complete(
+                    if closing {
+                        Err(ProjectionError::Closed)
+                    } else {
+                        result.map(|checkpoint| PinnedCheckpoint {
+                            checkpoint,
+                            _lease: memory.plain,
+                        })
+                    },
+                    &self.journal,
+                );
             }
             IoKind::Delete { source, attempts } => {
                 let result = match result {
@@ -163,19 +155,22 @@ impl ProjectionCoordinator {
             }
         }
     }
-    pub(super) fn restored(&self, engine: &mut Engine) {
-        engine.restore_memory = None;
-        if let Some(source) = engine.source.take() {
-            engine.garbage.push_back((source, 0));
-        }
+    pub(super) fn history_progress(&self, engine: &mut Engine, progress: RestorationProgress) {
         let result = self
             .core
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .policy
-            .restoration_progress(RestorationProgress::Complete);
+            .restoration_progress(progress);
         if let Err(error) = result {
             self.fail(error);
+            return;
+        }
+        if progress.is_finished() {
+            engine.restore_memory = None;
+            if let Some(source) = engine.source.take() {
+                engine.garbage.push_back((source, 0));
+            }
         }
     }
 }

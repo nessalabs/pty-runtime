@@ -1,0 +1,20 @@
+{"case": "actual_exit_literal_input", "result": "pass", "actual_exit": 7}
+{"case": "sentinel_kill", "result": "pass", "sid": 36474, "workload": 36476, "actual_exit_observed": true}
+{"case": "guardian_kill", "result": "pass", "sid": 36484, "workload": 36486, "actual_exit_observed": false}
+{"case": "guardian_abort", "result": "pass", "sid": 36517, "workload": 36520, "actual_exit_observed": false}
+{"case": "helper_group_sentinel_normal", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_sentinel_sentinel", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_sentinel_guardian", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_guardian_normal", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_guardian_sentinel", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_guardian_guardian", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_both_normal", "result": "pass", "successor_admitted": true}
+{"case": "helper_group_both_sentinel", "result": "pass", "successor_admitted": false}
+{"case": "helper_group_both_guardian", "result": "pass", "successor_admitted": false}
+{"case": "owner_eof_before_exec", "result": "pass"}
+{"case": "owner_eof_after_exec", "result": "pass"}
+{"case": "handoff_successor_kill_before_ack", "result": "pass"}
+{"case": "handoff_guardian_kill_before_ack", "result": "pass"}
+{"case": "handoff_sentinel_kill_before_ack", "result": "pass"}
+{"case": "handoff_successor_kill_after_ack", "result": "pass", "old_guardian_retired_before_fault": true}
+{"case": "handoff_sentinel_kill_after_ack", "result": "pass", "old_guardian_retired_before_fault": true}

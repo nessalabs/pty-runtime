@@ -1,0 +1,11 @@
+{
+  "before_sha256": "bac61a65b5a3141ccfad2d9d0a6a452be7106a647182470fcf38e1289b5f86e1",
+  "scratch_after_sha256": "32673b2a73f1cf5135fbb1aa4f07855bff6a0c3e42789a178e9ee93da046debc",
+  "canonical_unchanged": true,
+  "patch_sha256": "76c93c81d2e6b2f2aea1e730d9a3f2bb35ab86fa7746c199f08004b989070832",
+  "scratch_root": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/bitmap-capacity-review",
+  "tests": {
+    "ReleaseSafe": 33,
+    "ReleaseFast": 33
+  }
+}

@@ -1,0 +1,13 @@
+
+running 2 tests
+test guardian_loss_reclaims_known_descendants_and_preserves_another_session ... FAILED
+test sentinel_loss_reclaims_known_descendants_and_preserves_another_session ... FAILED
+
+failures:
+
+failures:
+    guardian_loss_reclaims_known_descendants_and_preserves_another_session
+    sentinel_loss_reclaims_known_descendants_and_preserves_another_session
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.24s
+

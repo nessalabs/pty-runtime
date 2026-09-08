@@ -22,6 +22,9 @@ pub(super) struct ProjectionRuntime {
     owned: Mutex<Vec<Slot>>,
 }
 impl ProjectionRuntime {
+    pub fn resources(&self) -> crate::diagnostics::ProjectionResources {
+        self.budgets.resources()
+    }
     pub fn new(
         services: ProjectionServices,
         limits: ProjectionLimits,

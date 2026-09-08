@@ -1,4 +1,4 @@
-use super::{backend::Shared, session::Session, signals::signal, spawn};
+use super::{backend::Shared, guardian::Guardian, session::Session, spawn};
 use pty_runtime_application::process::IProcessEvents;
 use pty_runtime_domain::{
     process::{CommandSpec, ProcessError, ProcessLimits},
@@ -7,7 +7,7 @@ use pty_runtime_domain::{
 use std::{
     fs::File,
     io::Write,
-    process::Child,
+    path::PathBuf,
     sync::{
         Arc,
         atomic::Ordering,
@@ -33,17 +33,16 @@ pub(super) enum Message {
     Launch(Box<Request>),
     Shutdown,
 }
-pub(super) struct PendingChild(pub Option<(Child, File)>);
+pub(super) struct PendingChild(pub Option<(Guardian, File)>);
 impl PendingChild {
-    pub fn take(&mut self) -> Option<(Child, File)> {
+    pub fn take(&mut self) -> Option<(Guardian, File)> {
         self.0.take()
     }
 }
 impl Drop for PendingChild {
     fn drop(&mut self) {
         if let Some((child, host)) = &mut self.0 {
-            signal(child, host, libc::SIGKILL);
-            let _ = child.wait();
+            child.cleanup(host);
         }
     }
 }
@@ -53,6 +52,7 @@ pub(super) struct Prepared {
 }
 #[derive(Default)]
 pub(super) struct Options {
+    pub bundled: Option<PathBuf>,
     #[cfg(test)]
     pub hook: Option<Arc<dyn Fn() -> Result<(), ProcessError> + Send + Sync>>,
     #[cfg(test)]
@@ -83,7 +83,13 @@ pub(super) fn run(
                 continue;
             }
         }
-        match spawn::launch(&request.command, request.size, &roots) {
+        match spawn::launch(
+            &request.command,
+            request.size,
+            &roots,
+            &shared.image,
+            request.limits.terminate_grace,
+        ) {
             Ok(child) => {
                 #[cfg(test)]
                 if let Some(hook) = &options.after_launch {

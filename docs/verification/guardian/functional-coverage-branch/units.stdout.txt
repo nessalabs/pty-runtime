@@ -1,0 +1,10 @@
+
+running 5 tests
+test protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control ... ok
+test protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof ... ok
+test protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

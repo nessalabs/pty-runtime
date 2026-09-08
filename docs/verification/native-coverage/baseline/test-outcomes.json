@@ -1,0 +1,17 @@
+[
+  {
+    "test": "terminal_bounds",
+    "exit_code": 0,
+    "binary_sha256": "a180f269b52aaf5ee55959e55a3ed40442cb35d2e0538f207930b4c14dcacb5d"
+  },
+  {
+    "test": "terminal_live_restore",
+    "exit_code": 0,
+    "binary_sha256": "510c2f53a60f0973770245d71f73eca9c543be3d1ce235093b5c976bc2122864"
+  },
+  {
+    "test": "terminal_contract",
+    "exit_code": 0,
+    "binary_sha256": "4ae5ee2472aa7bb24011de2aa2a0b19261e9a004de522f22cccf01cd524264b2"
+  }
+]
