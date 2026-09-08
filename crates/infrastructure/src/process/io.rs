@@ -8,22 +8,41 @@ use std::{
     sync::{Arc, atomic::Ordering},
     time::{Duration, Instant},
 };
+// Fields drop in declaration order: release the allocation before its gauge.
+struct ReaderScratch {
+    bytes: Vec<u8>,
+    _allocation: Option<pty_runtime_application::diagnostics::ReaderAllocation>,
+}
+impl ReaderScratch {
+    fn new(
+        bytes: usize,
+        diagnostics: Option<&Arc<pty_runtime_application::diagnostics::RuntimeDiagnostics>>,
+    ) -> Self {
+        let bytes = vec![0; bytes];
+        let allocation =
+            diagnostics.map(|diagnostics| diagnostics.reader_allocation(bytes.capacity()));
+        Self {
+            bytes,
+            _allocation: allocation,
+        }
+    }
+}
 pub(super) fn reader(
     mut host: File,
     wake: UnixStream,
     session: Arc<Session>,
     events: Arc<dyn IProcessEvents>,
 ) {
-    let mut scratch = vec![0; session.limits.read_chunk];
+    let mut scratch = ReaderScratch::new(session.limits.read_chunk, session.diagnostics.as_ref());
     let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        read_loop(&mut host, &wake, &session, &*events, &mut scratch)
+        read_loop(&mut host, &wake, &session, &*events, &mut scratch.bytes)
     }))
     .unwrap_or(DrainOutcome::Failed(ProcessError::Internal));
     if matches!(outcome, DrainOutcome::Failed(_)) {
         session.reader_failed.store(true, Ordering::Release);
         session.notify();
     }
-    scratch.fill(0);
+    scratch.bytes.fill(0);
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| events.drained(outcome)));
     session.reader_done.store(true, Ordering::Release);
     session.notify();

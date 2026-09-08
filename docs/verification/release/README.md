@@ -1,4 +1,31 @@
-# Full release workloads: first frozen-source runs
+# Full release workloads: partial qualification
+
+## Latest recorded evidence
+
+Release qualification remains incomplete. Candidate4 at `487ef087` passes all
+five saturated projected-capacity and five dominant-producer correctness trials,
+resolving the observed admission exits in these repetitions. All five dominant
+latency trials pass; all five saturated projected-output p99 values exceed the
+20 ms reference and one also exceeds the 100 ms resize reference. See
+[candidate4 report](candidate4-projected-load/README.md) for the full distinction
+between correctness, controlled offered rate, maximum capacity and host contention.
+Candidate4 macOS build and Linux gate/build have exactly matching source inventories.
+
+The completed [candidate3 capacity/resources run](candidate3-capacity-resources/README.md)
+retains all 45 attempts: five projected admission failures, five raw-capacity
+passes, and 35 idle/resource passes. It predates the admission fix and measured
+reader scratch diagnostics. These records do not prove final-source control memory.
+
+The earlier Linux 12-hour soak was intentionally stopped after about 40 minutes
+because the production admission fix superseded its source. Its
+[partial record and verified cleanup](soak-candidate2-superseded/README.md)
+are preserved; it is neither a completed soak nor a runtime failure. A fresh full
+soak is still required after final-source validation.
+
+Reviewed reader allocation gauges and a fixture staging-depth option are recorded
+in [reader verification](../reader-memory-gauges/README.md). They enable the next
+memory and depth measurements; smoke is not full acceptance. The deferred native
+issue, full matrix and strict coverage requirements remain open.
 
 ## Candidate 2 follow-up
 

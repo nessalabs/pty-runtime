@@ -1,0 +1,18 @@
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.41s
+     Running unittests examples/release_load.rs (work/load-capacity-test-target/debug/examples/release_load-4ecca46517febeba)
+
+running 10 tests
+test release_load_support::config::tests::parser_slot_override_retains_default_and_requested_finite_budget ... ok
+test release_load_support::phase::tests::actual_window_includes_producer_start_skew ... ok
+test release_load_support::config::tests::saturation_is_explicit_and_output_budget_is_finite ... ok
+test release_load_support::config::tests::parser_slot_override_rejects_unbounded_configuration ... ok
+test release_load_support::resize::tests::equal_capacity_errors_keep_admission_and_completion_distinct ... ok
+test release_load_support::resize::tests::completed_os_and_model_outcomes_keep_the_existing_caller_policy ... ok
+test release_load_support::resize::tests::pending_operation_times_out_without_reclassifying_the_error ... ok
+test release_load_support::population::tests::readiness_waits_for_delayed_frame_on_inherited_nonblocking_socket ... ok
+test release_load_support::producer::tests::stalled_output_has_bounded_deadline_and_exact_partial_ledger ... ok
+test release_load_support::producer::tests::zero_rate_idle_is_distinct_from_unpaced_and_cap_is_explicit ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

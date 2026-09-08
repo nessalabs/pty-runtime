@@ -9,6 +9,7 @@ pub struct Config {
     pub rate: u64,
     pub chunk: usize,
     pub producer_bytes: u64,
+    pub staging_slots: usize,
     pub observers: usize,
     pub cols: u16,
     pub rows: u16,
@@ -29,6 +30,7 @@ impl Config {
             warmup: value("--warmup", "10").parse()?,
             rate: value("--rate", "10485760").parse()?,
             producer_bytes: value("--producer-bytes", "8589934592").parse()?,
+            staging_slots: value("--staging-slots", "256").parse()?,
             chunk: value("--chunk", "4093").parse()?,
             observers: value("--observers", "1").parse()?,
             cols: value("--cols", "80").parse()?,
@@ -41,6 +43,8 @@ impl Config {
             || result.seconds == 0
             || result.producer_bytes == 0
             || result.producer_bytes > 68_719_476_736
+            || result.staging_slots == 0
+            || result.staging_slots > 1_048_576
             || result.chunk == 0
             || result.chunk > 65536
             || result.observers > 16
@@ -100,5 +104,28 @@ mod tests {
         assert!(parse(&["--mode", "saturation"]).is_err());
         assert!(parse(&["--producer-bytes", "0"]).is_err());
         assert!(parse(&["--mode", "saturation", "--rate", "0", "--active", "0"]).is_err());
+    }
+    #[test]
+    fn parser_slot_override_rejects_unbounded_configuration() {
+        for value in ["0", "1048577", "-1", "invalid"] {
+            assert!(
+                parse(&["--staging-slots", value]).is_err(),
+                "invalid slot override: {value}"
+            );
+        }
+        assert!(parse(&["--staging-slots", "32"]).is_ok());
+    }
+
+    #[test]
+    fn parser_slot_override_retains_default_and_requested_finite_budget() {
+        assert_eq!(parse(&[]).unwrap().staging_slots, 256);
+        for value in [1, 32, 64, 128, 256, 1_048_576] {
+            assert_eq!(
+                parse(&["--staging-slots", &value.to_string()])
+                    .unwrap()
+                    .staging_slots,
+                value
+            );
+        }
     }
 }

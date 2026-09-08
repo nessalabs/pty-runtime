@@ -50,7 +50,7 @@ impl CounterKind {
         Self::AcknowledgedWorkloadEscalations,
     ];
 }
-/// Fixed aggregate counters plus current activity/retention gauges.
+/// Fixed aggregate counters plus current session, replay and reader gauges.
 #[derive(Debug, Clone)]
 pub struct AggregateSnapshot {
     /// Current admitted session contexts whose process/drain completion is unfinished.
@@ -58,6 +58,10 @@ pub struct AggregateSnapshot {
     pub active_sessions: u64,
     /// Logical bytes currently retained in raw replay across surviving contexts.
     pub retained_replay_bytes: u64,
+    /// Reader loops currently owning an allocated scratch buffer; not a session estimate.
+    pub live_readers: u64,
+    /// Sum of live reader `Vec<u8>` capacities, excluding allocator overhead and stacks.
+    pub reader_scratch_allocated_bytes: u64,
     /// Cumulative operation counters indexed by CounterKind.
     pub counters: [u64; 13],
 }
@@ -71,6 +75,8 @@ pub(super) struct Counters {
     values: [AtomicU64; 13],
     active: AtomicU64,
     retained: AtomicU64,
+    readers: AtomicU64,
+    reader_scratch: AtomicU64,
 }
 fn add(counter: &AtomicU64, count: u64) {
     let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
@@ -88,6 +94,8 @@ impl Counters {
             values: std::array::from_fn(|_| AtomicU64::new(0)),
             active: AtomicU64::new(0),
             retained: AtomicU64::new(0),
+            readers: AtomicU64::new(0),
+            reader_scratch: AtomicU64::new(0),
         }
     }
     pub fn add(&self, kind: CounterKind, count: u64) {
@@ -107,6 +115,15 @@ impl Counters {
             subtract(&self.retained, (before - after) as u64);
         }
     }
+    pub fn reader(&self, bytes: usize, alive: bool) {
+        if alive {
+            add(&self.readers, 1);
+            add(&self.reader_scratch, bytes as u64);
+        } else {
+            subtract(&self.readers, 1);
+            subtract(&self.reader_scratch, bytes as u64);
+        }
+    }
     pub fn reset_quiescent(&self) {
         for counter in &self.values {
             counter.store(0, Ordering::Relaxed);
@@ -117,6 +134,8 @@ impl Counters {
         AggregateSnapshot {
             active_sessions: self.active.load(Ordering::Relaxed),
             retained_replay_bytes: self.retained.load(Ordering::Relaxed),
+            live_readers: self.readers.load(Ordering::Relaxed),
+            reader_scratch_allocated_bytes: self.reader_scratch.load(Ordering::Relaxed),
             counters: std::array::from_fn(|index| self.values[index].load(Ordering::Relaxed)),
         }
     }

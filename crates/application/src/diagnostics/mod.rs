@@ -1,7 +1,9 @@
 //! Optional bounded runtime measurements. No commands, bytes or session labels are retained.
 mod counters;
 mod histogram;
+mod reader;
 mod resources;
+pub use reader::ReaderAllocation;
 #[cfg(test)]
 mod tests;
 pub use counters::{AggregateSnapshot, CounterKind};
@@ -75,7 +77,7 @@ impl RuntimeDiagnostics {
     pub fn count(&self, kind: CounterKind, count: u64) {
         self.counters.add(kind, count);
     }
-    /// Copy aggregate operation counters and current activity/retention gauges.
+    /// Copy aggregate operation counters and current session/replay/reader gauges.
     pub fn aggregate(&self) -> AggregateSnapshot {
         self.counters.snapshot()
     }

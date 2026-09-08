@@ -1,0 +1,11 @@
+# Independent correctness review: fixture staging-slot flag
+
+No P1/P2 finding in the staging-slot flag scope. Reviewed `config.rs`, the projection-option assignment in `population.rs`, the start-record field in `run.rs`, and `scripts/release/LOAD.md`. Exact current file hashes and platform are in `docs/verification/load-staging-slots-independent/source.json`. Concurrent reader-gauge/checkpoint edits already present in population/run are explicitly outside this verdict.
+
+`--staging-slots N` parses to `usize`, rejects zero and values above 1,048,576, and retains 256 when absent. These agree with the existing public per-session projection option default and bound. `release_load.rs` parses configuration before creating the Tokio runtime or population. Population changes only `projection.staging_slots` when a projection exists; raw sessions and raw transient cancellation probes have no projection to change. Shared limits and independent request limits are unaffected.
+
+The structured start field emits an unquoted integer for projected runs and JSON null for raw runs. It describes the configured per-session ceiling, not instantaneous occupancy or a guarantee that shared limits allow every session to fill simultaneously. The full Config record also retains the requested value. Documentation correctly requires preservation of default-256 comparisons and simultaneous throughput, RTT and upstream write-backpressure evidence; no performance improvement is inferred from a lower parser p99.
+
+Independent verification compiled the actual config module in an isolated Rust test wrapper and ran all three config tests successfully. This includes both new flag tests: invalid zero/out-of-range/negative/non-numeric inputs, retained default, and finite minimum/sweep/maximum values. `tests.json` records exact compiler/test commands, exits and output; reviewed file hashes were unchanged during execution. The wrapper isolates this verdict from concurrently changing reader diagnostic code. Author full example tests and Clippy are retained in `docs/verification/load-staging-slots/`; they were not represented as independently rerun here.
+
+No source edits, runtime changes, workloads, native builds or Linux operations were performed. This is flag correctness verification, not release or comparative-performance acceptance.

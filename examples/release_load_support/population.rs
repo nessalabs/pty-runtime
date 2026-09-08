@@ -42,14 +42,14 @@ impl Population {
             "{{\"event\":\"runtime_options\",\"value\":{:?}}}",
             format!("{options:?}")
         );
-        let runtime =
-            Runtime::new(vec![std::env::current_dir()?], options)?.with_diagnostics(diagnostics);
+        let runtime = Runtime::new(vec![std::env::current_dir()?], options)?
+            .with_diagnostics(diagnostics.clone());
         let mut population = Self {
             runtime,
             children: Vec::with_capacity(config.sessions),
             directory,
         };
-        super::report::checkpoint("runtime")?;
+        super::report::checkpoint("runtime", Some(&diagnostics))?;
         for producer in 0..config.sessions {
             let child = population.spawn(config, producer, false)?;
             population.children.push(child);
@@ -92,6 +92,7 @@ impl Population {
         options.process.terminate_grace = Duration::from_millis(if transient { 250 } else { 20 });
         if let Some(projection) = &mut options.projection {
             projection.park_after = Duration::from_secs(3600);
+            projection.staging_slots = config.staging_slots;
         }
         let id = SessionId::new(format!("load-{producer}")).unwrap();
         let session = self.runtime.spawn(id.clone(), &command, options)?;

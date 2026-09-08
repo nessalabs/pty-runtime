@@ -1,0 +1,181 @@
+{
+  "source": "work/release-candidate-4/docs/verification/release/candidate4-projected-load/capacity-projected-1.jsonl",
+  "source_sha256": "08baba0d4a1ae2751932fb6ff578f9ed4662590c150335d9a86f2b60423d79c3",
+  "records": [
+    {
+      "event": "latency",
+      "boundary": "InputAdmission",
+      "successes": 726,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 100,
+      "p95_us": 100,
+      "p99_us": 100,
+      "max_us": 354,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "InputDispatch",
+      "successes": 951538,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 200,
+      "p95_us": 700,
+      "p99_us": 1000,
+      "max_us": 3365,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "RawOutput",
+      "successes": 3804981,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 300,
+      "p95_us": 600,
+      "p99_us": 800,
+      "max_us": 6628,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "ProjectedOutput",
+      "successes": 3804981,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 65900,
+      "p95_us": 74200,
+      "p99_us": 80900,
+      "max_us": 93264,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "ResizeAdmission",
+      "successes": 359,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 43,
+      "p95_us": 43,
+      "p99_us": 43,
+      "max_us": 43,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "ResizeDispatch",
+      "successes": 359,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 66500,
+      "p95_us": 73800,
+      "p99_us": 82000,
+      "max_us": 90603,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "CancelAdmission",
+      "successes": 58,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 12,
+      "p95_us": 12,
+      "p99_us": 12,
+      "max_us": 12,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "latency",
+      "boundary": "CancelDispatch",
+      "successes": 58,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 800,
+      "p95_us": 2000,
+      "p99_us": 3602,
+      "max_us": 3602,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "fixture_rtt",
+      "successes": 726,
+      "failures": 0,
+      "unavailable": 0,
+      "p50_us": 3200,
+      "p95_us": 4100,
+      "p99_us": 58900,
+      "max_us": 76417,
+      "bucket_width_us": 100
+    },
+    {
+      "event": "throughput",
+      "offered_bytes_per_second": null,
+      "producer_mode": "unpaced",
+      "accepted_bytes": 3894526707,
+      "driver_completion_seconds": 60.11869925,
+      "producer_window_seconds": 60.006605,
+      "accepted_bytes_per_second": 64901633.861805715,
+      "target_seconds": 60
+    },
+    {
+      "event": "latency_target",
+      "boundary": "InputDispatch",
+      "target_p99_us": 20000,
+      "observed_p99_us": 1000,
+      "failures": 0,
+      "unavailable": 0,
+      "measurement_complete": true,
+      "passed": true
+    },
+    {
+      "event": "latency_target",
+      "boundary": "RawOutput",
+      "target_p99_us": 20000,
+      "observed_p99_us": 800,
+      "failures": 0,
+      "unavailable": 0,
+      "measurement_complete": true,
+      "passed": true
+    },
+    {
+      "event": "latency_target",
+      "boundary": "ProjectedOutput",
+      "target_p99_us": 20000,
+      "observed_p99_us": 80900,
+      "failures": 0,
+      "unavailable": 0,
+      "measurement_complete": true,
+      "passed": false
+    },
+    {
+      "event": "latency_target",
+      "boundary": "ResizeDispatch",
+      "target_p99_us": 100000,
+      "observed_p99_us": 82000,
+      "failures": 0,
+      "unavailable": 0,
+      "measurement_complete": true,
+      "passed": true
+    },
+    {
+      "event": "latency_target",
+      "boundary": "CancelDispatch",
+      "target_p99_us": 100000,
+      "observed_p99_us": 3602,
+      "failures": 0,
+      "unavailable": 0,
+      "measurement_complete": true,
+      "passed": true
+    },
+    {
+      "event": "trial_result",
+      "passed": true,
+      "seconds": 72.759801166,
+      "full_duration_trial": true,
+      "latency_targets_passed": false
+    }
+  ],
+  "note": "Only root-confirmed completed trial 1 was read. Active files and frozen evidence were not changed."
+}

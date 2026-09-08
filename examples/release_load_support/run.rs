@@ -6,11 +6,16 @@ use pty_runtime::{LatencyKind, RuntimeDiagnostics};
 use std::time::{Duration, Instant};
 pub async fn execute(config: Config) -> Result<()> {
     println!(
-        "{{\"event\":\"start\",\"pid\":{},\"configuration\":{:?},\"measurement_clock\":\"monotonic\",\"fixture_threads_per_child\":2,\"fixture_control_fds_per_child\":2,\"fixture_output_fds_per_child\":1,\"transient_cancel_sessions\":1}}",
+        "{{\"event\":\"start\",\"pid\":{},\"configuration\":{:?},\"measurement_clock\":\"monotonic\",\"projection_staging_slots_per_session\":{},\"fixture_threads_per_child\":2,\"fixture_control_fds_per_child\":2,\"fixture_output_fds_per_child\":1,\"transient_cancel_sessions\":1}}",
         std::process::id(),
-        format!("{config:?}")
+        format!("{config:?}"),
+        if config.raw {
+            "null".to_owned()
+        } else {
+            config.staging_slots.to_string()
+        }
     );
-    report::checkpoint("baseline")?;
+    report::checkpoint("baseline", None)?;
     let diagnostics = RuntimeDiagnostics::new();
     let mut population = Population::new(&config, diagnostics.clone())?;
     for child in &population.children {
@@ -38,13 +43,13 @@ pub async fn execute(config: Config) -> Result<()> {
         None
     };
     resources::report("ready", &population.runtime.resources(), false);
-    report::checkpoint("ready")?;
+    report::checkpoint("ready", Some(&diagnostics))?;
     if config.warmup > 0 {
         phase::run(&mut population, &mut observers, &config, 0, config.warmup).await?;
     }
     diagnostics.reset_quiescent();
     allocator::reset_peak_quiescent();
-    report::checkpoint("measurement_start")?;
+    report::checkpoint("measurement_start", Some(&diagnostics))?;
     let result = phase::run(&mut population, &mut observers, &config, 1, config.seconds).await?;
     report::diagnostics(&diagnostics);
     let rtt = result.fixture_rtt.snapshot(LatencyKind::InputDispatch);
@@ -82,7 +87,7 @@ pub async fn execute(config: Config) -> Result<()> {
     if let Some(sink) = &sink {
         sink.report();
     }
-    report::checkpoint("measurement_end")?;
+    report::checkpoint("measurement_end", Some(&diagnostics))?;
     // Exact lifetime-zero reconnect: missing bytes must be one or more explicit gaps,
     // and every retained suffix byte must match its absolute deterministic offset.
     for (index, child) in population.children.iter().enumerate() {
@@ -120,7 +125,7 @@ pub async fn execute(config: Config) -> Result<()> {
     tokio::time::sleep(Duration::from_millis(100)).await;
     resources::report("forgotten", &population.runtime.resources(), true);
     drop(population);
-    report::checkpoint("closed")?;
+    report::checkpoint("closed", Some(&diagnostics))?;
     println!("{{\"event\":\"complete\"}}");
     Ok(())
 }

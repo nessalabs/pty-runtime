@@ -26,6 +26,16 @@ trials do not fulfill the performance acceptance requirement. No existing output
 directory is overwritten. Full 500-session qualification remains host-dependent
 and is not included in this bounded 128-session matrix.
 
+The fixture accepts `--staging-slots N` (default 256, range 1–1,048,576) to
+sweep each projected session's parser-output queue through the existing public
+projection option. This leaves runtime defaults, global limits and control-request
+budgets unchanged. The structured `start` record reports the effective
+`projection_staging_slots_per_session`; raw-only runs report null because the
+option is inapplicable. The explicitly raw transient cancellation session also has
+no projection. Preserve the default-256 results when comparing 32/64/128-slot cases;
+a lower internal output p99 can shift waiting upstream, so retain producer write
+backpressure, fixture RTT and accepted throughput alongside the comparison.
+
 Each PTY runs an independent producer. Controlled cases retain explicit rate limits;
 capacity cases let active producers write without pacing (`--mode saturation --rate 0`). Its deterministic stream
 mixes ASCII, ANSI colors/cursor queries, wide and combining UTF-8; 4093-byte chunks
@@ -85,7 +95,16 @@ acceptance duration. Smoke target results do not establish release acceptance.
 
 The Python runner records process-tree RSS/PSS where available, CPU, FDs and threads
 by runtime owner, guardian helpers and workload fixture, with census duration and
-missing values explicit. Requested Rust heap totals exclude native C/OS allocations
+missing values explicit. Checkpoint and aggregate records include `live_readers` and
+`reader_scratch_allocated_bytes` from opt-in runtime diagnostics. They count actual
+reader scratch owners after allocation and sum each live `Vec<u8>::capacity()`,
+with RAII subtraction after buffer release on every exit. These gauges survive
+measurement resets; retained completed session handles do not keep them alive.
+They exclude allocator overhead, reader stacks, PTY/kernel buffers and helper
+memory. Concurrent snapshots are approximate; settled snapshots supply exact
+counts. The baseline checkpoint before diagnostics construction reports null.
+
+Requested Rust heap totals exclude native C/OS allocations
 but include fixture objects and the Tokio test driver. They are a conservative input
 to control-memory analysis, not an isolated <=4 KiB/session proof. Reader stacks,
 scratch, native models, kernel cost, fixed diagnostic storage, helper overhead and

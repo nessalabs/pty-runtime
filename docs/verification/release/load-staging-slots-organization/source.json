@@ -1,0 +1,18 @@
+{
+  "examples/release_load_support/config.rs": {
+    "sha256": "a6b287f8b09d420ad7cfe87eafd3e74a5e665f7c4d9b93e8bd9ad0f3271f401f",
+    "nonblank_lines": 129
+  },
+  "examples/release_load_support/population.rs": {
+    "sha256": "dc8b71de68bab96f5c2e3f1512f31bfb8729789f9db1301cd335a4eaa00e327c",
+    "nonblank_lines": 183
+  },
+  "examples/release_load_support/run.rs": {
+    "sha256": "99ac510f6b62ab8b7cadd15cbfaa945a9ec2103a18df707fea6c05a48af2d893",
+    "nonblank_lines": 131
+  },
+  "scripts/release/LOAD.md": {
+    "sha256": "fada75870003af95339591f3d0a2f7db5b8cde254e63c7cea6e274289582ea1e",
+    "nonblank_lines": 100
+  }
+}

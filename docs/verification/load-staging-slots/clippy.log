@@ -1,0 +1,5 @@
+    Checking pty-runtime-domain v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain)
+    Checking pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application)
+    Checking pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Checking pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.55s

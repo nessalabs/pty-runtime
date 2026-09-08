@@ -1,0 +1,12 @@
+{
+  "crates/application/src/diagnostics/counters.rs": {
+    "previous_reviewed_sha256": "5a747701539c48f364e9acc44ca8fb232ef6db53e8d224b8cb177a1c09089d29",
+    "final_sha256": "0175fe984d6f9b91c026e0ef6a1fa3e478f39175c1b1dfd4e51715bb3de15beb",
+    "only_rustdoc_backticks_changed": true
+  },
+  "crates/application/src/diagnostics/reader.rs": {
+    "previous_reviewed_sha256": "e604e817a18e286205eb370d22a6d297e9bdb080d018d1eb0dba2ce22da9ca98",
+    "final_sha256": "8c64b1997db65c04f837e8bd6574c2147a92491074538aea01b58c6e189c9933",
+    "only_rustdoc_backticks_changed": true
+  }
+}

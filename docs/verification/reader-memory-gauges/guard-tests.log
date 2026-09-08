@@ -1,0 +1,10 @@
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.89s
+     Running unittests src/lib.rs (work/load-capacity-test-target/debug/deps/pty_runtime_application-fe125b4250f4aa0f)
+
+running 2 tests
+test diagnostics::reader::tests::live_reader_allocations_survive_reset_and_release_independently ... ok
+test diagnostics::reader::tests::allocation_guard_releases_on_error_and_unwind ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 57 filtered out; finished in 0.00s
+

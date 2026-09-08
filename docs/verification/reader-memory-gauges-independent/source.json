@@ -1,0 +1,45 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "commands": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "pty-runtime-application",
+        "diagnostics::reader"
+      ],
+      "exit_code": 0,
+      "log": "guard.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "pty-runtime-infrastructure",
+        "--no-default-features",
+        "--test",
+        "process_reader_diagnostics"
+      ],
+      "exit_code": 0,
+      "log": "real-readers.log"
+    }
+  ],
+  "target": "/Users/nessa/Documents/NessaLabs/pty-runtime/work/load-capacity-test-target",
+  "files": {
+    "crates/application/src/diagnostics/reader.rs": "e604e817a18e286205eb370d22a6d297e9bdb080d018d1eb0dba2ce22da9ca98",
+    "crates/application/src/diagnostics/counters.rs": "5a747701539c48f364e9acc44ca8fb232ef6db53e8d224b8cb177a1c09089d29",
+    "crates/application/src/diagnostics/mod.rs": "a57546539ec6107b5d46ccd9ee8becba7cb771b1558b51d82f7d21142a2dfe94",
+    "crates/infrastructure/src/process/io.rs": "fbe7117ffcd2b7f0b80e05d7658655b6d351d63ee187e9f198fc4b00166af4a7",
+    "crates/infrastructure/src/process/registration.rs": "cf9c33f8f287023aabe170512a00bfc8d2d28af0d551771e1ecaf58738f2de57",
+    "crates/infrastructure/src/process/supervisor.rs": "900187af4d98291a69709fa8883d50dc978345a837d76fa569b9ae71325049bf",
+    "crates/infrastructure/tests/process_reader_diagnostics.rs": "39c9ac0caee9bcf428e0f179c87c136f8904c80a2e07d3c5e4233916370724d0",
+    "examples/release_load_support/report.rs": "c7ba2a652e463e8e3a544e61c24a643cb5257ce965aee745c3d24a7dd07bb50a",
+    "examples/release_load_support/run.rs": "08c12977fef2f3f7fd0df061128a04e55119fac273c94bbded6d64426f6fa097",
+    "examples/release_load_support/population.rs": "ecc414ce1a288bb62c8c01ae0893efa079b48ffd50dcebe4391c28c5b3fe879f"
+  },
+  "unchanged_during_tests": true
+}

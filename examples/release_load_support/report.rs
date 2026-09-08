@@ -1,9 +1,16 @@
 use super::{Result, allocator};
 use pty_runtime::{LatencyKind, RuntimeDiagnostics};
-pub fn checkpoint(phase: &str) -> Result<()> {
+pub fn checkpoint(phase: &str, diagnostics: Option<&RuntimeDiagnostics>) -> Result<()> {
+    let gauges = diagnostics.map(RuntimeDiagnostics::aggregate);
+    let live_readers = gauges
+        .as_ref()
+        .map_or("null".to_owned(), |g| g.live_readers.to_string());
+    let scratch = gauges.as_ref().map_or("null".to_owned(), |g| {
+        g.reader_scratch_allocated_bytes.to_string()
+    });
     let (live, peak, allocations) = allocator::snapshot();
     println!(
-        "{{\"event\":\"checkpoint\",\"phase\":\"{phase}\",\"rust_requested_live\":{live},\"rust_requested_peak\":{peak},\"rust_allocations\":{allocations}}}"
+        "{{\"event\":\"checkpoint\",\"phase\":\"{phase}\",\"rust_requested_live\":{live},\"rust_requested_peak\":{peak},\"rust_allocations\":{allocations},\"live_readers\":{live_readers},\"reader_scratch_allocated_bytes\":{scratch}}}"
     );
     if std::env::var_os("PTY_RELEASE_CENSUS").is_some() {
         let mut line = String::new();
@@ -29,8 +36,11 @@ pub fn diagnostics(metrics: &RuntimeDiagnostics) {
             data.buckets
         );
     }
+    let aggregate = metrics.aggregate();
     println!(
-        "{{\"event\":\"aggregate\",\"value\":{:?}}}",
-        format!("{:?}", metrics.aggregate())
+        "{{\"event\":\"aggregate\",\"live_readers\":{},\"reader_scratch_allocated_bytes\":{},\"value\":{:?}}}",
+        aggregate.live_readers,
+        aggregate.reader_scratch_allocated_bytes,
+        format!("{aggregate:?}")
     );
 }
