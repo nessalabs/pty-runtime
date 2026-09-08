@@ -1,0 +1,13 @@
+[package]
+name = "pty-runtime-infrastructure"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+pty-runtime-domain = { path = "../domain" }
+pty-runtime-application = { path = "../application" }
+
+[lints]
+workspace = true

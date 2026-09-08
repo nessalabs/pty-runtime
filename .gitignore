@@ -1,0 +1,6 @@
+.DS_Store
+work/
+experiments/pty/target/
+__pycache__/
+*.pyc
+/target/

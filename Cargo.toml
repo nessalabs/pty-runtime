@@ -1,0 +1,30 @@
+[workspace]
+members = [".", "crates/domain", "crates/application", "crates/infrastructure"]
+exclude = ["experiments/pty"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+
+[package]
+name = "pty-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Bounded PTY session ownership and replaceable headless terminal projection"
+
+[dependencies]
+pty-runtime-domain = { path = "crates/domain" }
+pty-runtime-application = { path = "crates/application" }
+pty-runtime-infrastructure = { path = "crates/infrastructure" }
+
+[lints]
+workspace = true

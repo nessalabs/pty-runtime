@@ -1,0 +1,198 @@
+{
+  "recorded_at_utc": "2026-09-08T04:47:21.201496+00:00",
+  "scope": "Native C API experiments only; no PTY, child process, Rust runtime, client transport, encryption, or native Linux execution.",
+  "scratch_directory": "/Users/nessa/Documents/Codex/2026-09-07/pty-runtime-task/work/ghostty-experiments",
+  "ghostty_revision": "82232ecde55405559dec29c5466cb9e39938cb41",
+  "zig_version": "0.16.0",
+  "zig_archive_sha256": "b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489",
+  "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6\nBuildVersion:\t\t25G72",
+  "hardware": "hw.model: Mac17,3\nhw.memsize: 25769803776\nhw.logicalcpu: 10\nhw.pagesize: 16384",
+  "native_build_command": "../zig-aarch64-macos-0.16.0/zig build -Demit-lib-vt -Demit-xcframework=false -Doptimize=ReleaseFast -j4 --global-cache-dir ../zig-global-cache",
+  "native_build_cwd": "ghostty-82232ecde55405559dec29c5466cb9e39938cb41",
+  "fixture_build_command": "clang -O3 -Wall -Wextra -Ighostty-82232ecde55405559dec29c5466cb9e39938cb41/include native-memory.c ghostty-82232ecde55405559dec29c5466cb9e39938cb41/zig-out/lib/libghostty-vt.a -o native-memory",
+  "fixture_arguments": [
+    "terminal_count",
+    "line_count",
+    "varied_corpus_0_or_1",
+    "compression_0_or_1",
+    "scrollback_cap_MiB",
+    "optional_allocator_relief_0_or_1",
+    "optional_allocator_mode_0_to_3"
+  ],
+  "allocator_modes": {
+    "0": "Native default libc malloc/free",
+    "1": "Custom malloc/free control; resize/remap decline",
+    "2": "Same control with mmap/munmap for allocations >=16384 bytes",
+    "3": "Same control with mmap/munmap for allocations >=4096 bytes"
+  },
+  "sources_sha256": {
+    "native-memory.c": "5b2f38bf502d9bbc66f9518cbaa5be3438c8cb91c814aad48ae0f496d6cd9aee",
+    "archive/native-memory-initial.c": "6c43963361619085660bb7f866fc97df3001f227980b2991525d1a5c3e50d4fd",
+    "archive/native-memory-relief.c": "1157cceeaea05de382182b0e9c722e07daa8e986be8641850a5cd533a101f88d",
+    "archive/native-memory-mapped16k.c": "6163e2b62f55b33c3e04d4498cee29e643d0d758a98b27aabbc666e5df784732",
+    "verify-roundtrip.c": "a938d52d1e1eb1576003de07fe24181d9ba7bb117a30490f1751424a1ee0ac55",
+    "codec-timing.c": "6f190a1bbee1ce40d7e1715e6c91089b4ac7d2a1ae08a45f63b95febfb27b2eb",
+    "ghostty-82232ecde55405559dec29c5466cb9e39938cb41/zig-out/lib/libghostty-vt.a": "03eef948e025d782dff5209b77d64938802764e61779c6d9bdd7f3c118b490bb"
+  },
+  "record_counts": {
+    "native-lifecycle": 396,
+    "allocator-relief": 195,
+    "allocator-comparison": 198,
+    "mapped-4k-and-large": 99,
+    "in-memory-codec": 270,
+    "roundtrip-correctness": 6
+  },
+  "total_records": 1164,
+  "lifecycle_runs": 78,
+  "verified_lifecycle_terminals": 6351,
+  "series": {
+    "native-lifecycle": {
+      "source": "archive/native-memory-initial.c",
+      "repeats": 3,
+      "n": [
+        1,
+        32,
+        128
+      ],
+      "lines": 10000,
+      "varied": [
+        0,
+        1
+      ],
+      "compression": [
+        0,
+        1
+      ],
+      "cap_MiB": 8,
+      "order": "n,varied,compression nested ascending; repeat 2 reversed"
+    },
+    "allocator-relief": {
+      "source": "archive/native-memory-relief.c",
+      "repeats": 3,
+      "cases_n_varied_compression": [
+        [
+          32,
+          0,
+          1
+        ],
+        [
+          32,
+          1,
+          1
+        ],
+        [
+          128,
+          0,
+          1
+        ],
+        [
+          128,
+          1,
+          1
+        ],
+        [
+          128,
+          1,
+          0
+        ]
+      ],
+      "lines": 10000,
+      "cap_MiB": 8,
+      "relief": 1,
+      "order": "as listed; repeat 2 reversed"
+    },
+    "allocator-comparison": {
+      "source": "archive/native-memory-mapped16k.c",
+      "repeats": 3,
+      "n": 128,
+      "lines": 10000,
+      "varied": [
+        0,
+        1
+      ],
+      "compression": 1,
+      "cap_MiB": 8,
+      "allocator_mode": [
+        0,
+        1,
+        2
+      ],
+      "order": "varied,allocator nested ascending; repeat 2 reversed"
+    },
+    "mapped-4k-and-large": {
+      "source": "native-memory.c",
+      "repeats": 3,
+      "cases_n_lines_varied_cap_MiB_allocator": [
+        [
+          128,
+          10000,
+          0,
+          8,
+          3
+        ],
+        [
+          128,
+          10000,
+          1,
+          8,
+          3
+        ],
+        [
+          1,
+          100000,
+          0,
+          128,
+          2
+        ]
+      ],
+      "compression": 1,
+      "order": "as listed"
+    },
+    "in-memory-codec": {
+      "source": "codec-timing.c",
+      "included_source": "archive/native-memory-mapped16k.c",
+      "repeats": 3,
+      "warmups": 5,
+      "samples_per_run": 30,
+      "cases_lines_varied": [
+        [
+          10000,
+          0
+        ],
+        [
+          10000,
+          1
+        ],
+        [
+          100000,
+          0
+        ]
+      ],
+      "cap_MiB": 128,
+      "timing": "Encode into reused buffer; decode includes decoder and terminal creation, excludes destruction and disk IO."
+    },
+    "roundtrip-correctness": {
+      "source": "verify-roundtrip.c",
+      "included_source": "native-memory.c",
+      "cases": [
+        "ground",
+        "utf8",
+        "csi",
+        "osc",
+        "dcs",
+        "alternate"
+      ],
+      "additional_roundtrips_per_case": 10,
+      "binary_roundtrip_equal": true
+    }
+  },
+  "limitations": [
+    "Stage memory samples are not continuous peaks.",
+    "Desktop and filesystem cache state uncontrolled.",
+    "Scratch files hold synthetic plaintext and are deleted after each run.",
+    "malloc live bytes exclude direct native page mappings.",
+    "Custom tracked native bytes are valid only for nonzero allocator modes and exclude direct native page mappings.",
+    "Original mapped16k comparison and later mapped4k extension are separate timing series."
+  ]
+}

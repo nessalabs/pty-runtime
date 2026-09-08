@@ -1,0 +1,22 @@
+{
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "files": {
+    "Cargo.lock": "40ad9c6fd828dec312dc0eb3b51a834aed6083b00bbd62e08a64e2706b3d3225",
+    "Cargo.toml": "148810cb46116ce629eb0b3ecfe8fa31a06136e68ddcb8b0fd474c77b2e9f961",
+    "coding_standards.md": "72640c22ab5f1c8fecce016cc2627f725fa059feac242ac379d1f7ca027b25e8",
+    "crates/application/Cargo.toml": "05765afaca73fb9358bfc11e65f943273487d4813877c33802818f3fe669fe5a",
+    "crates/application/src/lib.rs": "5e5537271e8ca419d90352fb61d3c77d119dc951d699a2fab488482da533c648",
+    "crates/domain/Cargo.toml": "2800c46bd11f9f7181e99e1ed759d4631837f4798e148fb22d19a8071604dc4f",
+    "crates/domain/src/identity.rs": "3513dc205fcaac23c6f0bdc93ec35865b662f111322779b7102120b9c7764df3",
+    "crates/domain/src/identity_tests.rs": "1cbf5d15b9af70e68960b05152bb0a0b57b23a703524048d6cf1c7481b7c88d7",
+    "crates/domain/src/lib.rs": "615932943c09410b00da49b5be217128a907a4c19dc8b37cc7810a56239dbbe5",
+    "crates/domain/src/replay.rs": "5f5f5cf2d638f18787dc023bbd1247bc496389a1af93f8367c77ea5c0766959b",
+    "crates/domain/src/replay_tests.rs": "a60819a4c221e52a83874bf61107127f69a9965fdb8be47a10459118be6a9aa0",
+    "crates/domain/tests/replay_model.rs": "615e5c5f090f5e0f3654da1cbe99b082ecf6e58b34fb5f0f9d465f666f011872",
+    "crates/infrastructure/Cargo.toml": "36f9d85151ffd1b8e4cdc4afbaed57a5ef9aea040dc272f094ebb880615d3017",
+    "crates/infrastructure/src/lib.rs": "feb6899c3446486228e2dc5e7ba3e59fb169394fcbbf76cdcd3b23bbf8aefbf5",
+    "scripts/gate.py": "e80cada1341db7c61c7aa9e174515d4552b6b96233d9df9aa5a3b76921332aa3",
+    "scripts/tests/test_gate.py": "f8516e2f01a24caf04e81334d98a44f9028be01ab8902003f041e18823222be2",
+    "src/lib.rs": "ccc7832eac0981d96cba20a9c7ec9131765c1ad6018b5c0fc534b11ff7b4578f"
+  }
+}

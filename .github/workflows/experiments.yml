@@ -1,0 +1,78 @@
+name: PTY experiments
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Smoke validation or repeated performance qualification
+        type: choice
+        options: [smoke, qualification]
+        default: smoke
+      baseline_ref:
+        description: For a regression gate, a commit or tag containing this experiment protocol
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  experiments:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      PROFILE: ${{ inputs.profile || 'smoke' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare Rust tools
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - uses: actions/cache@v4
+        with:
+          path: work/experiment-cache
+          key: experiments-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json', 'experiments/pty/Cargo.lock') }}
+      - name: Check runner and Rust fixture
+        run: |
+          python3 -m unittest discover -s experiments/tests -v
+          cargo fmt --manifest-path experiments/pty/Cargo.toml --check
+          cargo clippy --manifest-path experiments/pty/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Check out comparison revision
+        if: inputs.profile == 'qualification' && inputs.baseline_ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          path: baseline-source
+      - name: Measure comparison revision on this runner
+        if: inputs.profile == 'qualification' && inputs.baseline_ref != ''
+        shell: bash
+        run: |
+          python3 baseline-source/experiments/run.py run --profile qualification --cache "$GITHUB_WORKSPACE/work/experiment-cache" --output "$RUNNER_TEMP/pty-baseline-results"
+          python3 experiments/run.py baseline --results "$RUNNER_TEMP/pty-baseline-results" --output "$RUNNER_TEMP/pty-baseline.json"
+      - name: Measure current revision and apply gate
+        shell: bash
+        run: |
+          comparison_args=()
+          if [[ -f "$RUNNER_TEMP/pty-baseline.json" ]]; then
+            comparison_args+=(--baseline "$RUNNER_TEMP/pty-baseline.json")
+          fi
+          python3 experiments/run.py run --profile "$PROFILE" --output work/current-results "${comparison_args[@]}"
+      - name: Preserve evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiments-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            work/current-results/
+            work/experiment-cache/build-logs/
+            ${{ runner.temp }}/pty-baseline-results/
+            ${{ runner.temp }}/pty-baseline.json
+          retention-days: 14
