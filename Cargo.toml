@@ -28,3 +28,13 @@ pty-runtime-infrastructure = { path = "crates/infrastructure" }
 
 [lints]
 workspace = true
+
+[features]
+default = ["ghostty"]
+ghostty = ["pty-runtime-infrastructure/ghostty"]
+
+[[bin]]
+name = "pty-runtime-fixture"
+path = "tests/fixtures/pty_fixture.rs"
+test = false
+bench = false

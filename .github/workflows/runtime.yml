@@ -17,6 +17,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: rustup toolchain install stable --profile minimal --component clippy --component rustfmt
+      - uses: actions/cache@v4
+        with:
+          path: work/experiment-cache
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('experiments/dependencies.json') }}
       - run: python3 scripts/gate.py
   msrv:
     runs-on: ubuntu-24.04
@@ -25,4 +29,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup toolchain install 1.85.0 --profile minimal
+      - run: python3 scripts/native/bootstrap.py
       - run: cargo test --locked --workspace --all-targets --all-features

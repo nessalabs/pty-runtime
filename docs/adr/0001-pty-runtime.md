@@ -1,7 +1,8 @@
 # ADR 0001: PTY runtime architecture and implementation plan
 
-**Status: proposed for review.** The Rust package is not implemented. Native
-scratch experiments are evidence for this design, not completed package features.
+**Status: implementation in progress; release requirements unqualified.** Raw
+sessions and concrete adapters exist. Native projection/parking orchestration
+and complete milestone proof remain pending in the [ledger](../verification/requirements.md).
 
 Design a reusable Rust package named `pty-runtime` under NessaLabs, with owned
 PTY sessions, bounded byte replay, and headless libghostty terminal state.

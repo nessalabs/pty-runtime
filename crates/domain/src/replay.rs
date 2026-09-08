@@ -13,6 +13,8 @@ pub enum ReplayError {
     OffsetExhausted,
     /// A read must allow at least one byte of progress.
     EmptyPageLimit,
+    /// Retention allocation failed without changing stream contents.
+    AllocationFailed,
 }
 
 /// One bounded read result. Its Debug representation never includes payload.
@@ -109,12 +111,41 @@ impl ReplayBuffer {
     /// Append produced bytes, retaining at most the configured suffix.
     /// Arithmetic failures leave this buffer unchanged.
     pub fn append(&mut self, bytes: &[u8]) -> Result<(), ReplayError> {
+        self.append_with_limit(bytes, self.limit)
+    }
+
+    /// Reserve requested byte capacity only after an external budget admits it.
+    /// Reports allocator-visible capacity, separate from logical retained length.
+    pub fn reserve_capacity(&mut self, capacity: usize) -> Result<usize, ReplayError> {
+        let target = capacity.min(self.limit);
+        if target > self.bytes.capacity() {
+            self.bytes
+                .try_reserve_exact(target - self.bytes.len())
+                .map_err(|_| ReplayError::AllocationFailed)?;
+        }
+        Ok(self.bytes.capacity())
+    }
+
+    /// Release all retention storage while preserving absolute stream position.
+    /// Subsequent observations receive a gap for every discarded byte.
+    pub fn release_storage(&mut self) {
+        self.bytes = VecDeque::new();
+    }
+
+    /// Allocator-visible capacity; logical eviction need not release this memory.
+    pub fn allocated_bytes(&self) -> usize {
+        self.bytes.capacity()
+    }
+
+    /// Append while retaining no more than an externally admitted byte ceiling.
+    pub fn append_with_limit(&mut self, bytes: &[u8], retention: usize) -> Result<(), ReplayError> {
+        let limit = self.limit.min(retention);
         let end = self
             .end
             .checked_add(bytes.len() as u64)
             .ok_or(ReplayError::OffsetExhausted)?;
-        let suffix = &bytes[bytes.len().saturating_sub(self.limit)..];
-        let keep_old = self.limit - suffix.len();
+        let suffix = &bytes[bytes.len().saturating_sub(limit)..];
+        let keep_old = limit - suffix.len();
         let discard = self.bytes.len().saturating_sub(keep_old);
         self.bytes.drain(..discard);
         self.bytes.extend(suffix);

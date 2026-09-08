@@ -1,8 +1,9 @@
 # ADR 0005: Domain models, ports, and infrastructure adapters
 
-**Status: proposed for review.** This defines the production package's structure.
-The executable code currently present is standalone experiment tooling, not the
-session library. Ghostty is the initial terminal engine and must remain replaceable.
+**Status: implementation in progress.** The Rust workspace enforces domain,
+application, infrastructure, and facade boundaries through its mechanical gate.
+Integrated orchestration remains under implementation and specialist review.
+Ghostty is the initial terminal engine and must remain replaceable.
 
 ## Decision
 
@@ -154,5 +155,6 @@ becoming interchangeable counters or Apple-specific domain rules.
   types and test conversions, unsupported capabilities, and compatibility errors.
 
 These gates extend [ADR 0004](0004-integration-and-release-qualification.md).
-The separate [experiment runner](../../experiments/README.md) validates measurement
-fixtures today; it does not yet enforce boundaries in an unimplemented runtime.
+The [mechanical gate](../../scripts/gate.py) now checks Cargo dependency direction,
+file sizes, formatting, lint, tests, and documentation. The separate
+[experiment runner](../../experiments/README.md) validates measurement fixtures.

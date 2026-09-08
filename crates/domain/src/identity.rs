@@ -37,6 +37,14 @@ impl SessionLifetime {
     pub fn new(owner: u64, sequence: u64) -> Self {
         Self { owner, sequence }
     }
+    /// Owner identity used to bind serialized checkpoint metadata.
+    pub fn owner(self) -> u64 {
+        self.owner
+    }
+    /// Monotonic session sequence within its owner.
+    pub fn sequence(self) -> u64 {
+        self.sequence
+    }
 }
 
 /// An absolute byte position scoped to exactly one session lifetime.

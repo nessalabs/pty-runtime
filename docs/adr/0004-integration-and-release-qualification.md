@@ -1,9 +1,9 @@
 # ADR 0004: Integration correctness and release qualification
 
-**Status: proposed for review.** The checks below describe work for the Rust
-implementation. They have not run. Existing evidence consists of the separate
-[OS transport](../experiments/0001-pty-speed-and-memory.md) and
-[native terminal](../experiments/0002-native-terminal-parking.md) experiments.
+**Status: qualification in progress.** Focused runtime and adapter tests have run;
+the full integrated gates below remain pending. The [proof ledger](../verification/requirements.md)
+distinguishes executed implementation tests from standalone experiments and
+unrun release requirements.
 
 The [architecture](0001-pty-runtime.md) defines the public contract;
 [ADR 0002](0002-performance-and-stability.md) owns resource limits and numeric

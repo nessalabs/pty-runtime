@@ -1,0 +1,185 @@
+//! Session policies, lifecycle facts and observation models.
+use crate::{
+    ReplayCursor, ReplayPage,
+    process::{DrainOutcome, ExitStatus, ProcessError, ProcessLimits},
+    terminal::TerminalSize,
+};
+
+/// Application failures do not expose registry locks or external errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeError {
+    /// Registry ID is already reserved or retained.
+    ExistingSession,
+    /// No registry entry matches this ID.
+    MissingSession,
+    /// A bounded resource cannot admit this operation.
+    Capacity,
+    /// Runtime is shutting down or has failed.
+    Closed,
+    /// Explicit removal requires process and drain completion.
+    NotFinished,
+    /// A supplied cursor is foreign or ahead of this session.
+    InvalidCursor,
+    /// Process boundary failure.
+    Process(ProcessError),
+    /// A core invariant or synchronization failed.
+    Internal,
+}
+impl std::fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+impl std::error::Error for RuntimeError {}
+impl From<ProcessError> for RuntimeError {
+    fn from(e: ProcessError) -> Self {
+        Self::Process(e)
+    }
+}
+
+/// Global application admission ceilings. All remain finite.
+#[derive(Debug, Clone)]
+pub struct RuntimeOptions {
+    /// Registered sessions, including completed entries awaiting explicit removal.
+    pub max_sessions: usize,
+    /// Attachments and completion waits combined across the runtime.
+    pub max_observers: usize,
+    /// Reserved replay buffer capacity across all surviving session contexts.
+    pub replay_bytes: usize,
+    /// Maximum returned output page bytes.
+    pub output_page_bytes: usize,
+    /// Aggregate admitted transient input bytes across all sessions.
+    pub input_bytes: usize,
+    /// Aggregate admitted input operations, including abandoned waits.
+    pub input_slots: usize,
+}
+impl Default for RuntimeOptions {
+    fn default() -> Self {
+        Self {
+            max_sessions: 512,
+            max_observers: 2048,
+            replay_bytes: 16 * 1024 * 1024,
+            output_page_bytes: 16384,
+            input_bytes: 4 * 1024 * 1024,
+            input_slots: 512,
+        }
+    }
+}
+impl RuntimeOptions {
+    /// Validate global admission bounds before starting infrastructure.
+    pub fn validate(&self) -> Result<(), RuntimeError> {
+        if self.max_sessions == 0
+            || self.max_observers == 0
+            || self.output_page_bytes == 0
+            || self.output_page_bytes > 65536
+            || self.input_slots == 0
+            || self.input_bytes == 0
+        {
+            return Err(RuntimeError::Capacity);
+        }
+        Ok(())
+    }
+}
+
+/// Per-session creation choices. Projection will be added through its own port.
+#[derive(Debug, Clone)]
+pub struct SessionOptions {
+    /// Initial PTY dimensions.
+    pub size: TerminalSize,
+    /// Maximum retained replay bytes; not allocated at spawn.
+    pub replay_bytes: usize,
+    /// Maximum simultaneous attachments/waits for this session.
+    pub max_observers: usize,
+    /// OS process work and lifecycle budgets.
+    pub process: ProcessLimits,
+}
+impl SessionOptions {
+    /// Construct a raw byte session with bounded default retention and work.
+    pub fn raw(size: TerminalSize) -> Self {
+        Self {
+            size,
+            replay_bytes: 65536,
+            max_observers: 16,
+            process: ProcessLimits::default(),
+        }
+    }
+}
+
+/// Starting cursor for an independent attachment.
+#[derive(Debug, Clone, Copy)]
+pub enum AttachPosition {
+    /// Start at the oldest currently retained byte.
+    Oldest,
+    /// Start after all output already produced.
+    Tail,
+    /// Resume an exact lifetime-bound cursor, reporting any gap first.
+    Cursor(ReplayCursor),
+}
+
+/// Separate process, drain, and cancellation facts.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SessionStatus {
+    /// Actual reaped exit if known.
+    pub exit: Option<ExitStatus>,
+    /// Final output drain if known.
+    pub drain: Option<DrainOutcome>,
+    /// Supervision failed without manufacturing an exit status.
+    pub supervision_error: Option<ProcessError>,
+    /// A cancellation request was admitted and remains owned by the runtime.
+    pub cancellation_requested: bool,
+}
+impl SessionStatus {
+    /// Preserve the first actual exit; contradictory reports are rejected.
+    pub fn record_exit(&mut self, status: ExitStatus) -> Result<(), RuntimeError> {
+        if self.exit.is_some_and(|existing| existing != status) {
+            return Err(RuntimeError::Internal);
+        }
+        self.exit = Some(status);
+        Ok(())
+    }
+    /// Preserve final drain independently from exit.
+    pub fn record_drain(&mut self, outcome: DrainOutcome) -> Result<(), RuntimeError> {
+        if self.drain.is_some_and(|existing| existing != outcome) {
+            return Err(RuntimeError::Internal);
+        }
+        self.drain = Some(outcome);
+        Ok(())
+    }
+    /// Record failed supervision without inventing an actual exit.
+    pub fn record_failure(&mut self, error: ProcessError) {
+        self.supervision_error.get_or_insert(error);
+    }
+    /// Cancellation is durable intent until process supervision completes.
+    pub fn admit_cancel(&mut self) -> Result<(), RuntimeError> {
+        if self.completion().is_some() {
+            return Err(RuntimeError::Closed);
+        }
+        self.cancellation_requested = true;
+        Ok(())
+    }
+
+    /// Whether terminal process supervision and output draining have both finished.
+    pub fn completion(self) -> Option<Completion> {
+        if (self.exit.is_some() || self.supervision_error.is_some()) && self.drain.is_some() {
+            Some(Completion { status: self })
+        } else {
+            None
+        }
+    }
+}
+
+/// Final outcome preserves real exit and incomplete drain independently.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Completion {
+    /// Separate facts; failure is never encoded as a successful exit.
+    pub status: SessionStatus,
+}
+
+/// Observation results. Completion follows retained output/gaps in cursor order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OutputEvent {
+    /// Raw output page or exact gap. Pending is never returned as an event.
+    Replay(ReplayPage),
+    /// Process and drain have completed; repeated reads return this stable result.
+    Complete(Completion),
+}

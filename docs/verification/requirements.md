@@ -42,6 +42,10 @@ the experiment report validate the evidence validator, not the runtime.
 | Experiment baseline self-comparison | Validator/gate self-consistency | Regression freedom against an independent implementation revision |
 | Configured platform workflow | Intended CI coverage | Executed target qualification |
 
+The [review-loop 2 record](loop2.md) adds executed raw-runtime and concrete-adapter
+tests. It is a partial implementation checkpoint and does not discharge a whole
+integrated milestone. Every row below still requires its full scoped proof.
+
 ## G1: identity, processes, bytes, and portable boundaries
 
 All rows pending. Source sections are given as ADR number and section name.

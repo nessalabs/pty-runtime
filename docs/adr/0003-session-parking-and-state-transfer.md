@@ -1,7 +1,8 @@
 # ADR 0003: Independent parking and terminal state transfer
 
-**Status: proposed for review.** Native capabilities have been exercised in
-scratch fixtures; integrated policies and the Rust wrapper remain unimplemented.
+**Status: implementation in progress.** The real Rust/native wrapper and encrypted
+checkpoint adapters have contract tests. Integrated parking policies and full G3
+proof remain pending; see the [ledger](../verification/requirements.md).
 
 Extend the [architecture plan](0001-pty-runtime.md) with separate policies for
 terminal storage, reader placement, and observer buffers. These are planned
@@ -61,8 +62,8 @@ The native follow-up built this exact library and exercised complete snapshots,
 partial parser state, compression, and restoration in scratch C fixtures. It
 also verified binary round trips, resumed parsing, resize, and replies. The
 [upstream C example](https://github.com/ghostty-org/ghostty/blob/82232ecde55405559dec29c5466cb9e39938cb41/example/c-vt-snapshot/src/main.c)
-documents the same API. Building and qualifying the Rust wrapper remain work for
-the implementation phase.
+documents the same API. The Rust wrapper now has native contract tests; complete
+integrated qualification remains work for the implementation phase.
 
 ## Terminal parking and restoration
 

@@ -45,8 +45,10 @@ def architecture():
                     raise SystemExit(f'Reversed workspace dependency: {name} -> {dep_name}')
                 if dep.get('path') is None or Path(dep['path']).resolve() != locations[dep_name].parent.resolve():
                     raise SystemExit(f'Workspace dependency points elsewhere: {name} -> {dep_name}')
-    for folder in ['src', 'crates']:
-        for path in (ROOT / folder).rglob('*.rs'):
+    for folder in ['src', 'crates', 'scripts/native', 'tests']:
+        for path in (ROOT / folder).rglob('*'):
+            if path.suffix not in ('.rs', '.c', '.h'):
+                continue
             count = sum(bool(line.strip()) for line in path.read_text().splitlines())
             if count > 350:
                 raise SystemExit(f'{path.relative_to(ROOT)}: {count} nonblank lines exceeds 350')
@@ -58,12 +60,15 @@ def main():
     for package in ['pty-runtime-domain', 'pty-runtime-application']:
         run('cargo', 'test', '--locked', '-p', package, '--no-default-features')
     run('cargo', 'fmt', '--all', '--check')
+    run('python3', 'scripts/native/bootstrap.py')
     run('cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--all-features', '--', '-D', 'warnings')
     run('cargo', 'test', '--locked', '--workspace', '--all-targets', '--all-features')
     run('cargo', 'test', '--locked', '--workspace', '--no-default-features')
     run('cargo', 'doc', '--locked', '--workspace', '--no-deps', '--all-features',
         env={**os.environ, 'RUSTDOCFLAGS': '-D warnings'})
     run('python3', '-m', 'unittest', 'discover', '-s', 'experiments/tests', '-v')
+    run('cargo', 'fmt', '--manifest-path', 'experiments/pty/Cargo.toml', '--check')
+    run('cargo', 'clippy', '--manifest-path', 'experiments/pty/Cargo.toml', '--locked', '--all-targets', '--', '-D', 'warnings')
     print('Mechanical gate passed. Specialist reviews and milestone proof remain required.')
 
 

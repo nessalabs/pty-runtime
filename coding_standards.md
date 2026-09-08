@@ -25,8 +25,9 @@ is necessary but does not replace the specialist reviews or ADR acceptance tests
 
 - Organize by responsibility with narrow entry modules. Separate process spawn,
   I/O, supervision, terminal ownership, storage, and boundary conversion concerns.
-- A production Rust source file over 350 nonblank lines requires a split before
-  this gate passes. Tests and fixtures belong in focused modules and also remain
+- A production Rust, C, or header source file over 350 nonblank lines requires a split before
+  this gate passes. Native build helpers and test sources are included in the same size inventory.
+  Tests and fixtures belong in focused modules and also remain
   reviewable. The threshold is an alarm, not permission for incoherent small files.
 - Public APIs have Rustdoc covering ownership, bounds, cancellation and failures.
   Expected failures use typed results; no panics/unwrap/expect in production paths.
