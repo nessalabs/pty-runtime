@@ -1,0 +1,3994 @@
+{
+  "workspace": {
+    "totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 866,
+        "covered": 744,
+        "percent": 85.91224018475751
+      },
+      "instantiations": {
+        "count": 3172,
+        "covered": 2269,
+        "percent": 71.53215636822195
+      },
+      "lines": {
+        "count": 8401,
+        "covered": 7801,
+        "percent": 92.85799309605999
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 12460,
+        "covered": 11278,
+        "notcovered": 1182,
+        "percent": 90.51364365971108
+      }
+    },
+    "files": [
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/diagnostics/counters.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 14,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 28,
+            "covered": 28,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 62,
+            "covered": 62,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 85,
+            "covered": 85,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/diagnostics/histogram.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 13,
+            "covered": 13,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 25,
+            "covered": 23,
+            "percent": 92.0
+          },
+          "lines": {
+            "count": 90,
+            "covered": 89,
+            "percent": 98.88888888888889
+          },
+          "regions": {
+            "count": 167,
+            "covered": 166,
+            "notcovered": 1,
+            "percent": 99.40119760479041
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/diagnostics/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 13,
+            "percent": 92.85714285714286
+          },
+          "instantiations": {
+            "count": 28,
+            "covered": 24,
+            "percent": 85.71428571428571
+          },
+          "lines": {
+            "count": 56,
+            "covered": 53,
+            "percent": 94.64285714285714
+          },
+          "regions": {
+            "count": 72,
+            "covered": 69,
+            "notcovered": 3,
+            "percent": 95.83333333333334
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/diagnostics/reader.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 6,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 66,
+            "covered": 66,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 118,
+            "covered": 118,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/diagnostics/tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 3,
+            "percent": 50.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 3,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 50,
+            "covered": 37,
+            "percent": 74.0
+          },
+          "regions": {
+            "count": 69,
+            "covered": 60,
+            "notcovered": 9,
+            "percent": 86.95652173913044
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/process/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 109,
+            "covered": 86,
+            "percent": 78.89908256880734
+          },
+          "lines": {
+            "count": 23,
+            "covered": 23,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 23,
+            "covered": 22,
+            "notcovered": 1,
+            "percent": 95.65217391304348
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/admission.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 16,
+            "covered": 11,
+            "percent": 68.75
+          },
+          "instantiations": {
+            "count": 40,
+            "covered": 27,
+            "percent": 67.5
+          },
+          "lines": {
+            "count": 181,
+            "covered": 165,
+            "percent": 91.16022099447514
+          },
+          "regions": {
+            "count": 303,
+            "covered": 262,
+            "notcovered": 41,
+            "percent": 86.46864686468648
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/budgets.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 12,
+            "covered": 10,
+            "percent": 83.33333333333334
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 18,
+            "percent": 75.0
+          },
+          "lines": {
+            "count": 106,
+            "covered": 104,
+            "percent": 98.11320754716981
+          },
+          "regions": {
+            "count": 149,
+            "covered": 139,
+            "notcovered": 10,
+            "percent": 93.28859060402685
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/completion.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 7,
+            "percent": 50.0
+          },
+          "instantiations": {
+            "count": 28,
+            "covered": 14,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 149,
+            "covered": 134,
+            "percent": 89.93288590604027
+          },
+          "regions": {
+            "count": 212,
+            "covered": 186,
+            "notcovered": 26,
+            "percent": 87.73584905660378
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/coordinator.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 13,
+            "covered": 8,
+            "percent": 61.53846153846154
+          },
+          "instantiations": {
+            "count": 26,
+            "covered": 15,
+            "percent": 57.692307692307686
+          },
+          "lines": {
+            "count": 146,
+            "covered": 134,
+            "percent": 91.78082191780823
+          },
+          "regions": {
+            "count": 213,
+            "covered": 179,
+            "notcovered": 34,
+            "percent": 84.03755868544602
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/io.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 17,
+            "covered": 11,
+            "percent": 64.70588235294117
+          },
+          "instantiations": {
+            "count": 50,
+            "covered": 30,
+            "percent": 60.0
+          },
+          "lines": {
+            "count": 215,
+            "covered": 177,
+            "percent": 82.32558139534883
+          },
+          "regions": {
+            "count": 328,
+            "covered": 266,
+            "notcovered": 62,
+            "percent": 81.09756097560977
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/journal.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 27,
+            "covered": 18,
+            "percent": 66.66666666666666
+          },
+          "instantiations": {
+            "count": 54,
+            "covered": 36,
+            "percent": 66.66666666666666
+          },
+          "lines": {
+            "count": 207,
+            "covered": 184,
+            "percent": 88.88888888888889
+          },
+          "regions": {
+            "count": 315,
+            "covered": 284,
+            "notcovered": 31,
+            "percent": 90.15873015873017
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/native.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 21,
+            "covered": 14,
+            "percent": 66.66666666666666
+          },
+          "instantiations": {
+            "count": 58,
+            "covered": 42,
+            "percent": 72.41379310344827
+          },
+          "lines": {
+            "count": 241,
+            "covered": 199,
+            "percent": 82.57261410788381
+          },
+          "regions": {
+            "count": 371,
+            "covered": 298,
+            "notcovered": 73,
+            "percent": 80.3234501347709
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/observation.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 11,
+            "percent": 78.57142857142857
+          },
+          "instantiations": {
+            "count": 96,
+            "covered": 60,
+            "percent": 62.5
+          },
+          "lines": {
+            "count": 74,
+            "covered": 69,
+            "percent": 93.24324324324324
+          },
+          "regions": {
+            "count": 109,
+            "covered": 101,
+            "notcovered": 8,
+            "percent": 92.66055045871559
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/snapshot.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 9,
+            "covered": 8,
+            "percent": 88.88888888888889
+          },
+          "instantiations": {
+            "count": 18,
+            "covered": 15,
+            "percent": 83.33333333333334
+          },
+          "lines": {
+            "count": 87,
+            "covered": 80,
+            "percent": 91.95402298850574
+          },
+          "regions": {
+            "count": 129,
+            "covered": 113,
+            "notcovered": 16,
+            "percent": 87.59689922480621
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/state.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 5,
+            "percent": 83.33333333333334
+          },
+          "lines": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 22,
+            "covered": 22,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/stream_end.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 5,
+            "covered": 3,
+            "percent": 60.0
+          },
+          "instantiations": {
+            "count": 10,
+            "covered": 6,
+            "percent": 60.0
+          },
+          "lines": {
+            "count": 36,
+            "covered": 32,
+            "percent": 88.88888888888889
+          },
+          "regions": {
+            "count": 64,
+            "covered": 52,
+            "notcovered": 12,
+            "percent": 81.25
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/teardown.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 28,
+            "covered": 17,
+            "percent": 60.714285714285715
+          },
+          "instantiations": {
+            "count": 96,
+            "covered": 32,
+            "percent": 33.33333333333333
+          },
+          "lines": {
+            "count": 138,
+            "covered": 121,
+            "percent": 87.68115942028986
+          },
+          "regions": {
+            "count": 222,
+            "covered": 193,
+            "notcovered": 29,
+            "percent": 86.93693693693693
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/transfer.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 13,
+            "covered": 12,
+            "percent": 92.3076923076923
+          },
+          "instantiations": {
+            "count": 26,
+            "covered": 23,
+            "percent": 88.46153846153845
+          },
+          "lines": {
+            "count": 56,
+            "covered": 52,
+            "percent": 92.85714285714286
+          },
+          "regions": {
+            "count": 64,
+            "covered": 60,
+            "notcovered": 4,
+            "percent": 93.75
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/projection/worker.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 19,
+            "covered": 8,
+            "percent": 42.10526315789473
+          },
+          "instantiations": {
+            "count": 38,
+            "covered": 12,
+            "percent": 31.57894736842105
+          },
+          "lines": {
+            "count": 202,
+            "covered": 184,
+            "percent": 91.0891089108911
+          },
+          "regions": {
+            "count": 356,
+            "covered": 321,
+            "notcovered": 35,
+            "percent": 90.1685393258427
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/attachment.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 9,
+            "covered": 9,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 18,
+            "covered": 9,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 93,
+            "covered": 90,
+            "percent": 96.7741935483871
+          },
+          "regions": {
+            "count": 132,
+            "covered": 123,
+            "notcovered": 9,
+            "percent": 93.18181818181817
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/context.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 33,
+            "covered": 31,
+            "percent": 93.93939393939394
+          },
+          "instantiations": {
+            "count": 84,
+            "covered": 56,
+            "percent": 66.66666666666666
+          },
+          "lines": {
+            "count": 288,
+            "covered": 259,
+            "percent": 89.93055555555556
+          },
+          "regions": {
+            "count": 398,
+            "covered": 345,
+            "notcovered": 53,
+            "percent": 86.68341708542714
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/context_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 6,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 6,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 87,
+            "covered": 87,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 168,
+            "covered": 168,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/lifecycle.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 11,
+            "covered": 7,
+            "percent": 63.63636363636363
+          },
+          "instantiations": {
+            "count": 22,
+            "covered": 12,
+            "percent": 54.54545454545454
+          },
+          "lines": {
+            "count": 45,
+            "covered": 39,
+            "percent": 86.66666666666667
+          },
+          "regions": {
+            "count": 71,
+            "covered": 54,
+            "notcovered": 17,
+            "percent": 76.05633802816901
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/owner.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 12,
+            "covered": 11,
+            "percent": 91.66666666666666
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 19,
+            "percent": 79.16666666666666
+          },
+          "lines": {
+            "count": 158,
+            "covered": 146,
+            "percent": 92.40506329113924
+          },
+          "regions": {
+            "count": 238,
+            "covered": 212,
+            "notcovered": 26,
+            "percent": 89.07563025210085
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/projected.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 10,
+            "percent": 71.42857142857143
+          },
+          "instantiations": {
+            "count": 28,
+            "covered": 18,
+            "percent": 64.28571428571429
+          },
+          "lines": {
+            "count": 118,
+            "covered": 108,
+            "percent": 91.52542372881356
+          },
+          "regions": {
+            "count": 167,
+            "covered": 140,
+            "notcovered": 27,
+            "percent": 83.8323353293413
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/quota.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 16,
+            "covered": 16,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 46,
+            "covered": 46,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 46,
+            "covered": 46,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/session.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 12,
+            "covered": 12,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 17,
+            "percent": 70.83333333333334
+          },
+          "lines": {
+            "count": 108,
+            "covered": 100,
+            "percent": 92.5925925925926
+          },
+          "regions": {
+            "count": 145,
+            "covered": 130,
+            "notcovered": 15,
+            "percent": 89.65517241379311
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/application/src/runtime/session_projection.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 7,
+            "percent": 87.5
+          },
+          "instantiations": {
+            "count": 16,
+            "covered": 7,
+            "percent": 43.75
+          },
+          "lines": {
+            "count": 40,
+            "covered": 39,
+            "percent": 97.5
+          },
+          "regions": {
+            "count": 56,
+            "covered": 45,
+            "notcovered": 11,
+            "percent": 80.35714285714286
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/checkpoint/cleanup.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 4,
+            "covered": 2,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 18,
+            "covered": 17,
+            "percent": 94.44444444444444
+          },
+          "regions": {
+            "count": 14,
+            "covered": 13,
+            "notcovered": 1,
+            "percent": 92.85714285714286
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/checkpoint/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 5,
+            "percent": 62.5
+          },
+          "lines": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 18,
+            "covered": 18,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/identity.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 5,
+            "covered": 5,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 10,
+            "covered": 7,
+            "percent": 70.0
+          },
+          "lines": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 24,
+            "covered": 24,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/identity_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 24,
+            "covered": 24,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 69,
+            "covered": 69,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/process/command.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 14,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 33,
+            "covered": 27,
+            "percent": 81.81818181818183
+          },
+          "lines": {
+            "count": 94,
+            "covered": 93,
+            "percent": 98.93617021276596
+          },
+          "regions": {
+            "count": 149,
+            "covered": 145,
+            "notcovered": 4,
+            "percent": 97.31543624161074
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/process/outcome.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 2,
+            "percent": 66.66666666666666
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 4,
+            "percent": 66.66666666666666
+          },
+          "lines": {
+            "count": 32,
+            "covered": 29,
+            "percent": 90.625
+          },
+          "regions": {
+            "count": 28,
+            "covered": 24,
+            "notcovered": 4,
+            "percent": 85.71428571428571
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/process/tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 68,
+            "covered": 68,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 117,
+            "covered": 117,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 3,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 9,
+            "covered": 9,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 9,
+            "covered": 9,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/options.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 7,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 14,
+            "covered": 11,
+            "percent": 78.57142857142857
+          },
+          "lines": {
+            "count": 80,
+            "covered": 79,
+            "percent": 98.75
+          },
+          "regions": {
+            "count": 81,
+            "covered": 78,
+            "notcovered": 3,
+            "percent": 96.29629629629629
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/policy.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 36,
+            "covered": 34,
+            "percent": 94.44444444444444
+          },
+          "lines": {
+            "count": 195,
+            "covered": 193,
+            "percent": 98.97435897435898
+          },
+          "regions": {
+            "count": 197,
+            "covered": 187,
+            "notcovered": 10,
+            "percent": 94.9238578680203
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 118,
+            "covered": 118,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 259,
+            "covered": 259,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/transfer.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 16,
+            "covered": 16,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 32,
+            "covered": 31,
+            "percent": 96.875
+          },
+          "lines": {
+            "count": 127,
+            "covered": 127,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 129,
+            "covered": 125,
+            "notcovered": 4,
+            "percent": 96.89922480620156
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/projection/transfer_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 85,
+            "covered": 85,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 149,
+            "covered": 149,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/redaction_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 3,
+            "covered": 3,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 72,
+            "covered": 72,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 73,
+            "covered": 73,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/replay.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 13,
+            "covered": 13,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 26,
+            "covered": 24,
+            "percent": 92.3076923076923
+          },
+          "lines": {
+            "count": 109,
+            "covered": 102,
+            "percent": 93.57798165137615
+          },
+          "regions": {
+            "count": 159,
+            "covered": 145,
+            "notcovered": 14,
+            "percent": 91.19496855345912
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/replay_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 118,
+            "covered": 117,
+            "percent": 99.15254237288136
+          },
+          "regions": {
+            "count": 241,
+            "covered": 240,
+            "notcovered": 1,
+            "percent": 99.5850622406639
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/session/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 16,
+            "covered": 15,
+            "percent": 93.75
+          },
+          "instantiations": {
+            "count": 32,
+            "covered": 23,
+            "percent": 71.875
+          },
+          "lines": {
+            "count": 102,
+            "covered": 97,
+            "percent": 95.09803921568627
+          },
+          "regions": {
+            "count": 113,
+            "covered": 105,
+            "notcovered": 8,
+            "percent": 92.92035398230088
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/session/tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 43,
+            "covered": 43,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 89,
+            "covered": 89,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/terminal/checkpoint.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 7,
+            "percent": 87.5
+          },
+          "lines": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 22,
+            "covered": 22,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/terminal/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 5,
+            "percent": 83.33333333333334
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 9,
+            "percent": 75.0
+          },
+          "lines": {
+            "count": 47,
+            "covered": 42,
+            "percent": 89.36170212765957
+          },
+          "regions": {
+            "count": 48,
+            "covered": 40,
+            "notcovered": 8,
+            "percent": 83.33333333333334
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/domain/src/terminal/view.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 1,
+            "covered": 1,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 2,
+            "covered": 1,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 7,
+            "covered": 7,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 11,
+            "covered": 11,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/arena.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 12,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 33,
+            "covered": 30,
+            "percent": 90.9090909090909
+          },
+          "regions": {
+            "count": 60,
+            "covered": 54,
+            "notcovered": 6,
+            "percent": 90.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/cleanup.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 48,
+            "covered": 24,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 88,
+            "covered": 78,
+            "percent": 88.63636363636364
+          },
+          "regions": {
+            "count": 136,
+            "covered": 114,
+            "notcovered": 22,
+            "percent": 83.82352941176471
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/file.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 19,
+            "covered": 17,
+            "percent": 89.47368421052632
+          },
+          "instantiations": {
+            "count": 171,
+            "covered": 132,
+            "percent": 77.19298245614034
+          },
+          "lines": {
+            "count": 206,
+            "covered": 194,
+            "percent": 94.1747572815534
+          },
+          "regions": {
+            "count": 286,
+            "covered": 251,
+            "notcovered": 35,
+            "percent": 87.76223776223776
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/file_tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 14,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 42,
+            "covered": 42,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 123,
+            "covered": 123,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 235,
+            "covered": 232,
+            "notcovered": 3,
+            "percent": 98.72340425531915
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/filesystem.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 19,
+            "covered": 18,
+            "percent": 94.73684210526316
+          },
+          "instantiations": {
+            "count": 114,
+            "covered": 93,
+            "percent": 81.57894736842105
+          },
+          "lines": {
+            "count": 192,
+            "covered": 180,
+            "percent": 93.75
+          },
+          "regions": {
+            "count": 292,
+            "covered": 263,
+            "notcovered": 29,
+            "percent": 90.06849315068493
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/inventory.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 12,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 43,
+            "covered": 35,
+            "percent": 81.3953488372093
+          },
+          "regions": {
+            "count": 52,
+            "covered": 45,
+            "notcovered": 7,
+            "percent": 86.53846153846155
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/checkpoint/protector.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 5,
+            "covered": 5,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 30,
+            "covered": 13,
+            "percent": 43.333333333333336
+          },
+          "lines": {
+            "count": 96,
+            "covered": 90,
+            "percent": 93.75
+          },
+          "regions": {
+            "count": 143,
+            "covered": 131,
+            "notcovered": 12,
+            "percent": 91.6083916083916
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/event_stream/codec.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 9,
+            "covered": 9,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 36,
+            "covered": 36,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 173,
+            "covered": 172,
+            "percent": 99.42196531791907
+          },
+          "regions": {
+            "count": 301,
+            "covered": 294,
+            "notcovered": 7,
+            "percent": 97.67441860465115
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/event_stream/errors.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 1,
+            "percent": 33.33333333333333
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 2,
+            "percent": 16.666666666666664
+          },
+          "lines": {
+            "count": 14,
+            "covered": 6,
+            "percent": 42.857142857142854
+          },
+          "regions": {
+            "count": 15,
+            "covered": 6,
+            "notcovered": 9,
+            "percent": 40.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/event_stream/publisher.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 6,
+            "percent": 85.71428571428571
+          },
+          "instantiations": {
+            "count": 36,
+            "covered": 18,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 89,
+            "covered": 87,
+            "percent": 97.75280898876404
+          },
+          "regions": {
+            "count": 110,
+            "covered": 100,
+            "notcovered": 10,
+            "percent": 90.9090909090909
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/event_stream/status.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 32,
+            "covered": 20,
+            "percent": 62.5
+          },
+          "lines": {
+            "count": 46,
+            "covered": 46,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 63,
+            "covered": 59,
+            "notcovered": 4,
+            "percent": 93.65079365079364
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/event_stream/tests.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 9,
+            "covered": 9,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 18,
+            "covered": 18,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 212,
+            "covered": 212,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 308,
+            "covered": 308,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/identity.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 12,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 20,
+            "covered": 20,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 30,
+            "covered": 28,
+            "notcovered": 2,
+            "percent": 93.33333333333333
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/../../../../scripts/guardian/protocol.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 19,
+            "covered": 19,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 99,
+            "covered": 93,
+            "percent": 93.93939393939394
+          },
+          "lines": {
+            "count": 202,
+            "covered": 188,
+            "percent": 93.06930693069307
+          },
+          "regions": {
+            "count": 352,
+            "covered": 325,
+            "notcovered": 27,
+            "percent": 92.32954545454545
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/backend.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 15,
+            "covered": 14,
+            "percent": 93.33333333333333
+          },
+          "instantiations": {
+            "count": 90,
+            "covered": 78,
+            "percent": 86.66666666666667
+          },
+          "lines": {
+            "count": 161,
+            "covered": 140,
+            "percent": 86.95652173913044
+          },
+          "regions": {
+            "count": 225,
+            "covered": 184,
+            "notcovered": 41,
+            "percent": 81.77777777777779
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/endpoints.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 12,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 52,
+            "covered": 44,
+            "percent": 84.61538461538461
+          },
+          "regions": {
+            "count": 77,
+            "covered": 68,
+            "notcovered": 9,
+            "percent": 88.31168831168831
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/guardian.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 27,
+            "covered": 26,
+            "percent": 96.29629629629629
+          },
+          "instantiations": {
+            "count": 162,
+            "covered": 150,
+            "percent": 92.5925925925926
+          },
+          "lines": {
+            "count": 270,
+            "covered": 244,
+            "percent": 90.37037037037037
+          },
+          "regions": {
+            "count": 350,
+            "covered": 314,
+            "notcovered": 36,
+            "percent": 89.71428571428571
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/image.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 4,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 24,
+            "covered": 24,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 55,
+            "covered": 52,
+            "percent": 94.54545454545455
+          },
+          "regions": {
+            "count": 87,
+            "covered": 74,
+            "notcovered": 13,
+            "percent": 85.0574712643678
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/io.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 7,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 42,
+            "covered": 39,
+            "percent": 92.85714285714286
+          },
+          "lines": {
+            "count": 147,
+            "covered": 122,
+            "percent": 82.99319727891157
+          },
+          "regions": {
+            "count": 186,
+            "covered": 156,
+            "notcovered": 30,
+            "percent": 83.87096774193549
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/lifecycle.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 21,
+            "covered": 20,
+            "percent": 95.23809523809523
+          },
+          "instantiations": {
+            "count": 126,
+            "covered": 111,
+            "percent": 88.09523809523807
+          },
+          "lines": {
+            "count": 193,
+            "covered": 180,
+            "percent": 93.26424870466322
+          },
+          "regions": {
+            "count": 255,
+            "covered": 240,
+            "notcovered": 15,
+            "percent": 94.11764705882352
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 1,
+            "covered": 1,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 3,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 6,
+            "covered": 5,
+            "percent": 83.33333333333334
+          },
+          "regions": {
+            "count": 6,
+            "covered": 5,
+            "notcovered": 1,
+            "percent": 83.33333333333334
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/registration.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 12,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 45,
+            "covered": 44,
+            "percent": 97.77777777777777
+          },
+          "regions": {
+            "count": 69,
+            "covered": 65,
+            "notcovered": 4,
+            "percent": 94.20289855072464
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/session.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 16,
+            "covered": 16,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 96,
+            "covered": 84,
+            "percent": 87.5
+          },
+          "lines": {
+            "count": 181,
+            "covered": 175,
+            "percent": 96.68508287292818
+          },
+          "regions": {
+            "count": 255,
+            "covered": 236,
+            "notcovered": 19,
+            "percent": 92.54901960784314
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/signals.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 1,
+            "covered": 1,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 6,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 10,
+            "covered": 9,
+            "percent": 90.0
+          },
+          "regions": {
+            "count": 14,
+            "covered": 13,
+            "notcovered": 1,
+            "percent": 92.85714285714286
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/spawn.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 7,
+            "percent": 87.5
+          },
+          "instantiations": {
+            "count": 48,
+            "covered": 42,
+            "percent": 87.5
+          },
+          "lines": {
+            "count": 123,
+            "covered": 108,
+            "percent": 87.8048780487805
+          },
+          "regions": {
+            "count": 239,
+            "covered": 200,
+            "notcovered": 39,
+            "percent": 83.68200836820083
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/spawner.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 5,
+            "covered": 5,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 30,
+            "covered": 30,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 73,
+            "covered": 60,
+            "percent": 82.1917808219178
+          },
+          "regions": {
+            "count": 107,
+            "covered": 78,
+            "notcovered": 29,
+            "percent": 72.89719626168224
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/supervisor.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 7,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 42,
+            "covered": 39,
+            "percent": 92.85714285714286
+          },
+          "lines": {
+            "count": 87,
+            "covered": 80,
+            "percent": 91.95402298850574
+          },
+          "regions": {
+            "count": 151,
+            "covered": 139,
+            "notcovered": 12,
+            "percent": 92.05298013245032
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/process/watch.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 2,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 12,
+            "percent": 100.0
+          },
+          "lines": {
+            "count": 34,
+            "covered": 31,
+            "percent": 91.17647058823528
+          },
+          "regions": {
+            "count": 29,
+            "covered": 26,
+            "notcovered": 3,
+            "percent": 89.65517241379311
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/registry/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 6,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 36,
+            "covered": 18,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 56,
+            "covered": 52,
+            "percent": 92.85714285714286
+          },
+          "regions": {
+            "count": 71,
+            "covered": 61,
+            "notcovered": 10,
+            "percent": 85.91549295774648
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/scheduling/blocking.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 12,
+            "covered": 7,
+            "percent": 58.333333333333336
+          },
+          "instantiations": {
+            "count": 69,
+            "covered": 36,
+            "percent": 52.17391304347826
+          },
+          "lines": {
+            "count": 83,
+            "covered": 76,
+            "percent": 91.56626506024097
+          },
+          "regions": {
+            "count": 128,
+            "covered": 115,
+            "notcovered": 13,
+            "percent": 89.84375
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/scheduling/pool.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 29,
+            "covered": 20,
+            "percent": 68.96551724137932
+          },
+          "instantiations": {
+            "count": 171,
+            "covered": 78,
+            "percent": 45.614035087719294
+          },
+          "lines": {
+            "count": 203,
+            "covered": 186,
+            "percent": 91.6256157635468
+          },
+          "regions": {
+            "count": 308,
+            "covered": 277,
+            "notcovered": 31,
+            "percent": 89.93506493506493
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/scheduling/signals.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 9,
+            "covered": 5,
+            "percent": 55.55555555555556
+          },
+          "instantiations": {
+            "count": 54,
+            "covered": 15,
+            "percent": 27.77777777777778
+          },
+          "lines": {
+            "count": 28,
+            "covered": 24,
+            "percent": 85.71428571428571
+          },
+          "regions": {
+            "count": 47,
+            "covered": 39,
+            "notcovered": 8,
+            "percent": 82.9787234042553
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/scheduling/workers.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 2,
+            "percent": 33.33333333333333
+          },
+          "instantiations": {
+            "count": 36,
+            "covered": 12,
+            "percent": 33.33333333333333
+          },
+          "lines": {
+            "count": 26,
+            "covered": 21,
+            "percent": 80.76923076923077
+          },
+          "regions": {
+            "count": 54,
+            "covered": 41,
+            "notcovered": 13,
+            "percent": 75.92592592592592
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/terminal/ffi.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 1,
+            "covered": 1,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 2,
+            "covered": 1,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 21,
+            "covered": 21,
+            "percent": 100.0
+          },
+          "regions": {
+            "count": 5,
+            "covered": 5,
+            "notcovered": 0,
+            "percent": 100.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/terminal/mod.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 8,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 16,
+            "covered": 8,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 94,
+            "covered": 91,
+            "percent": 96.80851063829788
+          },
+          "regions": {
+            "count": 111,
+            "covered": 104,
+            "notcovered": 7,
+            "percent": 93.6936936936937
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/terminal/projection.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 5,
+            "covered": 5,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 10,
+            "covered": 5,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 129,
+            "covered": 119,
+            "percent": 92.24806201550388
+          },
+          "regions": {
+            "count": 194,
+            "covered": 173,
+            "notcovered": 21,
+            "percent": 89.17525773195877
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure/src/terminal/state.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 7,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 14,
+            "covered": 7,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 104,
+            "covered": 95,
+            "percent": 91.34615384615384
+          },
+          "regions": {
+            "count": 163,
+            "covered": 144,
+            "notcovered": 19,
+            "percent": 88.34355828220859
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/src/adapters.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 2,
+            "percent": 66.66666666666666
+          },
+          "instantiations": {
+            "count": 14,
+            "covered": 4,
+            "percent": 28.57142857142857
+          },
+          "lines": {
+            "count": 35,
+            "covered": 29,
+            "percent": 82.85714285714286
+          },
+          "regions": {
+            "count": 46,
+            "covered": 32,
+            "notcovered": 14,
+            "percent": 69.56521739130434
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/src/runtime.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 10,
+            "covered": 10,
+            "percent": 100.0
+          },
+          "instantiations": {
+            "count": 60,
+            "covered": 30,
+            "percent": 50.0
+          },
+          "lines": {
+            "count": 60,
+            "covered": 59,
+            "percent": 98.33333333333333
+          },
+          "regions": {
+            "count": 89,
+            "covered": 78,
+            "notcovered": 11,
+            "percent": 87.64044943820225
+          }
+        }
+      }
+    ]
+  },
+  "helper": {
+    "totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 106,
+        "covered": 17,
+        "percent": 16.037735849056602
+      },
+      "instantiations": {
+        "count": 106,
+        "covered": 17,
+        "percent": 16.037735849056602
+      },
+      "lines": {
+        "count": 1449,
+        "covered": 168,
+        "percent": 11.594202898550725
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 2212,
+        "covered": 301,
+        "notcovered": 1911,
+        "percent": 13.60759493670886
+      }
+    },
+    "files": [
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/../../../scripts/guardian/protocol.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 19,
+            "covered": 17,
+            "percent": 89.47368421052632
+          },
+          "instantiations": {
+            "count": 19,
+            "covered": 17,
+            "percent": 89.47368421052632
+          },
+          "lines": {
+            "count": 202,
+            "covered": 168,
+            "percent": 83.16831683168317
+          },
+          "regions": {
+            "count": 352,
+            "covered": 301,
+            "notcovered": 51,
+            "percent": 85.51136363636364
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/anchor.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 6,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 6,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 137,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 191,
+            "covered": 0,
+            "notcovered": 191,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/cancellation.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 14,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 14,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 147,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 186,
+            "covered": 0,
+            "notcovered": 186,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/cleanup.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 8,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 8,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 115,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 132,
+            "covered": 0,
+            "notcovered": 132,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/discovery.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 3,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 31,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 43,
+            "covered": 0,
+            "notcovered": 43,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/discovery_macos.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 3,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 3,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 42,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 44,
+            "covered": 0,
+            "notcovered": 44,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/drain.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 4,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 39,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 56,
+            "covered": 0,
+            "notcovered": 56,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/guardian.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 2,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 173,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 302,
+            "covered": 0,
+            "notcovered": 302,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/links.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 15,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 15,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 95,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 154,
+            "covered": 0,
+            "notcovered": 154,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/main.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 7,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 7,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 61,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 132,
+            "covered": 0,
+            "notcovered": 132,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/os.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 12,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 12,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 114,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 125,
+            "covered": 0,
+            "notcovered": 125,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/sentinel.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 1,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 1,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 100,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 191,
+            "covered": 0,
+            "notcovered": 191,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/successor.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 2,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 2,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 107,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 189,
+            "covered": 0,
+            "notcovered": 189,
+            "percent": 0.0
+          }
+        }
+      },
+      {
+        "filename": "/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian/src/workload.rs",
+        "summary": {
+          "branches": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "mcdc": {
+            "count": 0,
+            "covered": 0,
+            "notcovered": 0,
+            "percent": 0.0
+          },
+          "functions": {
+            "count": 10,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "instantiations": {
+            "count": 10,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "lines": {
+            "count": 86,
+            "covered": 0,
+            "percent": 0.0
+          },
+          "regions": {
+            "count": 115,
+            "covered": 0,
+            "notcovered": 115,
+            "percent": 0.0
+          }
+        }
+      }
+    ]
+  }
+}

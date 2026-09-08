@@ -204,7 +204,13 @@ impl ProjectionCoordinator {
             if let Ok(services) = self.services() {
                 services.capacity.notify();
             }
-            self.wake()?;
+            // An already scheduled worker may finish closure and release its
+            // handle before this wake. Preserve its durable cleanup result;
+            // an unfinished close still reports a genuine scheduler failure.
+            match self.wake() {
+                Err(error) if self.close_outcome().is_none() => return Err(error),
+                _ => (),
+            }
         }
         pair.map(|(_, wait)| wait)
     }

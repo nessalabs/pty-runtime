@@ -1,0 +1,21 @@
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   Compiling libc v0.2.189
+   Compiling pty-runtime-guardian v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/helpers/guardian)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.64s
+     Running unittests tests/fixture.rs (work/coverage-run-wmbjmxcq/helper/llvm-cov-target/debug/deps/guardian_fixture-66cea635bfa1132d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (work/coverage-run-wmbjmxcq/helper/llvm-cov-target/debug/deps/pty_runtime_guardian-7db862002ce4438c)
+
+running 5 tests
+test protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+test protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control ... ok
+test protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof ... ok
+test protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

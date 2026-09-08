@@ -122,6 +122,10 @@ publisher is a caller decision; capacity errors do not silently evict the store.
 
 ## Workspace service integration
 
+The [workspace-sdk adapter sketch](examples/workspace-sdk-integration.md) maps
+the inspected SDK boundaries and identifies the required target-side owner.
+It is a proposed sibling integration, not an implemented transport.
+
 A backend service can retain `Runtime` in its own long-lived state, map authorized
 workspace/session IDs to `SessionId`, expose write/cancel/resize operations, and
 create one admitted attachment per authorized transport connection. Persist no
@@ -152,7 +156,9 @@ not infer timing from process exit or from enqueueing a Guardian command. Fixtur
 round-trip latency and OS/kernel scheduling need their own measurements.
 
 `aggregate()` reports fixed byte, gap, saturation, process-failure and cleanup
-counters plus current unfinished-session and logical replay-retention gauges.
+counters plus current unfinished-session, logical replay-retention, live-reader
+and actual reader-scratch-capacity gauges. Reader capacity excludes allocator
+overhead and stacks; observe settled readers before using it in memory attribution.
 `resources()` reads the runtime's existing admission quotas, including active
 observers, input, replay capacity, projection staging, native reservations,
 checkpoint/storage/view buffers and continuation pins. These reservations are

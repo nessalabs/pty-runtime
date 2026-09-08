@@ -16,6 +16,7 @@ mod ready;
 mod shutdown;
 
 mod admission_rollback;
+mod close_race;
 mod control_capacity;
 mod io_faults;
 mod native_faults;

@@ -1,0 +1,258 @@
+{
+  "conclusion": "failure",
+  "databaseId": 34278967513,
+  "headSha": "71c1d6f42bbd1c547f747fdd7d20ed69e3000c4e",
+  "jobs": [
+    {
+      "completedAt": "2026-09-08T21:11:34Z",
+      "conclusion": "failure",
+      "databaseId": 102238840601,
+      "name": "gate (ubuntu-24.04)",
+      "startedAt": "2026-09-08T21:09:27Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-08T21:09:29Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-08T21:09:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:30Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-09-08T21:09:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:30Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-09-08T21:09:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:44Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install stable --profile minimal --component clippy --component rustfmt",
+          "number": 4,
+          "startedAt": "2026-09-08T21:09:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:57Z",
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 5,
+          "startedAt": "2026-09-08T21:09:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:32Z",
+          "conclusion": "failure",
+          "name": "Run python3 scripts/gate.py",
+          "number": 6,
+          "startedAt": "2026-09-08T21:09:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:32Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/cache@v4",
+          "number": 10,
+          "startedAt": "2026-09-08T21:11:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:32Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 11,
+          "startedAt": "2026-09-08T21:11:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:33Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 12,
+          "startedAt": "2026-09-08T21:11:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:33Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-09-08T21:11:33Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/nessalabs/pty-runtime/actions/runs/34278967513/job/102238840601"
+    },
+    {
+      "completedAt": "2026-09-08T21:11:57Z",
+      "conclusion": "success",
+      "databaseId": 102238840769,
+      "name": "gate (macos-15)",
+      "startedAt": "2026-09-08T21:09:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-08T21:09:31Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-08T21:09:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:33Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-09-08T21:09:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:33Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-09-08T21:09:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:40Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install stable --profile minimal --component clippy --component rustfmt",
+          "number": 4,
+          "startedAt": "2026-09-08T21:09:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:49Z",
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 5,
+          "startedAt": "2026-09-08T21:09:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:53Z",
+          "conclusion": "success",
+          "name": "Run python3 scripts/gate.py",
+          "number": 6,
+          "startedAt": "2026-09-08T21:09:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:54Z",
+          "conclusion": "success",
+          "name": "Post Run actions/cache@v4",
+          "number": 10,
+          "startedAt": "2026-09-08T21:11:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:54Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 11,
+          "startedAt": "2026-09-08T21:11:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:54Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 12,
+          "startedAt": "2026-09-08T21:11:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:11:55Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-09-08T21:11:54Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/nessalabs/pty-runtime/actions/runs/34278967513/job/102238840769"
+    },
+    {
+      "completedAt": "2026-09-08T21:14:28Z",
+      "conclusion": "success",
+      "databaseId": 102238841066,
+      "name": "msrv",
+      "startedAt": "2026-09-08T21:09:27Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-08T21:09:29Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-08T21:09:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:32Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-09-08T21:09:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:09:40Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install 1.85.0 --profile minimal",
+          "number": 3,
+          "startedAt": "2026-09-08T21:09:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:13:18Z",
+          "conclusion": "success",
+          "name": "Run python3 scripts/native/bootstrap.py",
+          "number": 4,
+          "startedAt": "2026-09-08T21:09:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:14:25Z",
+          "conclusion": "success",
+          "name": "Run cargo test --locked --workspace --all-targets --all-features",
+          "number": 5,
+          "startedAt": "2026-09-08T21:13:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:14:26Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 10,
+          "startedAt": "2026-09-08T21:14:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-08T21:14:26Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-09-08T21:14:26Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/nessalabs/pty-runtime/actions/runs/34278967513/job/102238841066"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/nessalabs/pty-runtime/actions/runs/34278967513"
+}

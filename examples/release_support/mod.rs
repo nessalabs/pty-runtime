@@ -95,13 +95,38 @@ impl Harness {
         })
     }
     pub async fn finish(&self, child: Child, cancel: bool) -> Result<()> {
+        self.finish_observed(child, cancel, None).await
+    }
+    async fn finish_observed(&self, child: Child, cancel: bool, turn: Option<u64>) -> Result<()> {
         let mut child = child;
         if cancel {
-            child.session.cancel()?;
+            soak::diagnose(
+                child.session.cancel(),
+                "transient_cancel",
+                turn,
+                Some(&child),
+            )?;
         } else {
-            child.control.write_all(b"x")?;
+            soak::diagnose(
+                child.control.write_all(b"x"),
+                "transient_exit_request",
+                turn,
+                Some(&child),
+            )?;
         }
-        let done = tokio::time::timeout(DEADLINE, child.session.wait()?).await??;
+        let wait = soak::diagnose(
+            child.session.wait(),
+            "transient_wait_admit",
+            turn,
+            Some(&child),
+        )?;
+        let completion = soak::diagnose(
+            tokio::time::timeout(DEADLINE, wait).await,
+            "transient_wait_timeout",
+            turn,
+            Some(&child),
+        )?;
+        let done = soak::diagnose(completion, "transient_wait_complete", turn, Some(&child))?;
         assert!(done.status.supervision_error.is_none(), "{done:?}");
         assert!(done.status.admission_error.is_none(), "{done:?}");
         assert!(done.status.exit.is_some(), "{done:?}");
@@ -109,7 +134,12 @@ impl Harness {
             assert_eq!(done.status.exit, Some(ExitStatus::Code(0)));
         }
         assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
-        self.owner.forget(&child.id)?;
+        soak::diagnose(
+            self.owner.forget(&child.id),
+            "transient_forget",
+            turn,
+            Some(&child),
+        )?;
         Ok(())
     }
 }

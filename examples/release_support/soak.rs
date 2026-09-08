@@ -2,6 +2,51 @@ use super::{Attachment, Child, DEADLINE, Harness, Result, verify};
 use pty_runtime::*;
 use std::time::{Duration, Instant};
 
+// Preserve the exact error value. Diagnostics are best-effort and inspect public
+// state only after failure, before the caller drops its session or harness.
+pub(super) fn diagnose<T, E: std::fmt::Debug>(
+    result: std::result::Result<T, E>,
+    phase: &str,
+    turn: Option<u64>,
+    child: Option<&Child>,
+) -> std::result::Result<T, E> {
+    if let (Err(error), Some(turn)) = (&result, turn) {
+        use std::io::Write;
+        let mut stderr = std::io::stderr().lock();
+        if let Some(child) = child {
+            let _ = writeln!(
+                stderr,
+                "soak_error phase={phase} turn={turn} seed={} lifetime={:?} error={error:?} session_status={:?} projection_status={:?}",
+                child.pattern_seed,
+                child.session.lifetime(),
+                child.session.status(),
+                child.session.projection_status(),
+            );
+        } else {
+            let _ = writeln!(
+                stderr,
+                "soak_error phase={phase} turn={turn} error={error:?} session_status=unavailable projection_status=unavailable",
+            );
+        }
+    }
+    result
+}
+
+async fn observe_projection<T>(
+    operation: std::result::Result<ProjectionOperation<T>, RuntimeError>,
+    phase: &str,
+    turn: u64,
+    child: &Child,
+) -> Result<T> {
+    let result: Result<T> = async {
+        Ok(tokio::time::timeout(DEADLINE, operation?)
+            .await?
+            .map_err(RuntimeError::from)?)
+    }
+    .await;
+    diagnose(result, phase, Some(turn), Some(child))
+}
+
 #[derive(Default)]
 struct Accounting {
     commanded: u64,
@@ -140,23 +185,32 @@ pub async fn run(seconds: u64) -> Result<()> {
         if turns % 16 == 0 {
             harness.metrics("soak", false)?;
             drop(
-                tokio::time::timeout(DEADLINE, children[1].session.projected_view()?)
-                    .await?
-                    .map_err(RuntimeError::from)?,
+                observe_projection(
+                    children[1].session.projected_view(),
+                    "periodic_view",
+                    turns,
+                    &children[1],
+                )
+                .await?,
             );
             drop(
-                tokio::time::timeout(DEADLINE, children[3].session.terminal_checkpoint()?)
-                    .await?
-                    .map_err(RuntimeError::from)?,
+                observe_projection(
+                    children[3].session.terminal_checkpoint(),
+                    "periodic_checkpoint",
+                    turns,
+                    &children[3],
+                )
+                .await?,
             );
-            let outcome = tokio::time::timeout(
-                DEADLINE,
+            let outcome = observe_projection(
                 children[1].session.resize_projected(
                     TerminalSize::new(if turns % 32 == 0 { 90 } else { 80 }, 24).unwrap(),
-                )?,
+                ),
+                "periodic_resize",
+                turns,
+                &children[1],
             )
-            .await?
-            .map_err(RuntimeError::from)?;
+            .await?;
             assert!(outcome.os.is_ok() && outcome.model.is_ok());
             let bytes: u64 = accounting.iter().map(|value| value.observed).sum();
             let gaps: u64 = accounting.iter().map(|value| value.gaps).sum();
@@ -166,8 +220,19 @@ pub async fn run(seconds: u64) -> Result<()> {
             );
         }
         if turns % 32 == 0 {
-            let transient = harness.spawn(turns % 64 == 0)?;
-            harness.finish(transient, turns % 64 != 0).await?;
+            let transient = diagnose(
+                harness.spawn(turns % 64 == 0),
+                if turns % 64 == 0 {
+                    "transient_spawn_projected"
+                } else {
+                    "transient_spawn_raw"
+                },
+                Some(turns),
+                None,
+            )?;
+            harness
+                .finish_observed(transient, turns % 64 != 0, Some(turns))
+                .await?;
         }
         turns += 1;
         tokio::time::sleep(Duration::from_millis(250)).await;

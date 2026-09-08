@@ -1,0 +1,15 @@
+{
+  "sibling_git_revision": null,
+  "scope": "read-only current sibling source; no integration execution",
+  "source_files": {
+    "src/runtime/i_runtime_host.rs": "1b077bfb081a3140f1dc931d9f06eff5e6065cbd9511ff904182bbf8b27ee61b",
+    "src/runtime/backend_host.rs": "17634642385566491530b8328e759515914f477d920d39cd61386a1d45e519c2",
+    "src/runtime/domain/runtime_process.rs": "c87a3e3e86022958fce1b73b0c8bd21f1c2abb8d55ea2a963f90c18c6d47276a",
+    "src/runtime/domain/runtime_interaction.rs": "85c095bbd69e7655769ecc0b0491035658367c14e095634180602da7deb018d7",
+    "src/domain/execution/output.rs": "4bc45ec75629a0dad8adb80772dcea36d9e0c9f60a070ba4f5cc89fa026caa80",
+    "src/ports/i_backend.rs": "493faed14cf303921afdf9aa51df604df7fa06395015a1d9493e2730adeeaa44",
+    "src/providers/managed/managed_backend.rs": "f1b9327790f376bb904c4cb195ab4123654e372cbe6feedcea476eb4ef53699a",
+    "src/supervisor/cli.rs": "592ae815f579061153dff7b4b4f4c7e8472efbd5d9e2fffdd23bcb611da2b111",
+    "src/bin/workspace-supervisor.rs": "ab22c4566d9536b15ce85e83dec64eda7f6e913c25dea7113873f3817bd9d3b4"
+  }
+}

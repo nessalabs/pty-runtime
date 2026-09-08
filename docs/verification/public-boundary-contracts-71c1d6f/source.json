@@ -1,0 +1,26 @@
+{
+  "checkpoint": "71c1d6f",
+  "read_only": true,
+  "files": {
+    "src/lib.rs": "f71ce82a28df095f08c580d6f06a03931648fbbe168828750e8c2788f461f569",
+    "crates/domain/src/redaction_tests.rs": "289558eecb86114201c5294b0ed93587ee6edd6ea37686976168ef87a936c2ff",
+    "crates/domain/src/process/tests.rs": "ca02e4a36e3db26cd7b7ba21a01a81ad516bb5e71c5d8192847ca391e9448d5c",
+    "crates/domain/src/identity_tests.rs": "1cbf5d15b9af70e68960b05152bb0a0b57b23a703524048d6cf1c7481b7c88d7",
+    "crates/domain/src/session/mod.rs": "846c0401317ce3f4de0c44ab64ebe9d3ba2aa7c8da368ab57a89fe8c5f29e8d8",
+    "crates/domain/src/checkpoint/mod.rs": "7f2d852655e5ebba92a5b86f48460c164b63655001e21eb5caac351f1a4700f5",
+    "crates/domain/src/projection/mod.rs": "7026428278269b1286094a9a6f04bb6c6ac5d4efab1cf88eb86fd3d2aebddd86",
+    "crates/application/src/projection/coordinator.rs": "1d4a2f5bf79ae25de2a4f1c03a7c213568156fed5627b97b313cd5b3d57181b0",
+    "crates/application/src/projection/tests/admission_rollback.rs": "0b758f840f920433889988ef8920de10d4196c777a32e6fe9a2e9de42458e912",
+    "crates/infrastructure/src/terminal/projection.rs": "c4632f2f571832b9f1ee142d6d26f6ae11d1b9187fa402a72525a6362aa0dcb6",
+    "crates/infrastructure/src/event_stream/codec.rs": "04539ec12994e19d2dcde9fb87a6045914dc8cf5433b914cc46809e8490ae98f",
+    "crates/infrastructure/src/event_stream/errors.rs": "44bdb5e7cd333e9db037405dc43d40690077749b29c365f58f4e7ec41adffe27",
+    "crates/infrastructure/src/event_stream/publisher.rs": "3153c88e2d7d15d188f1c2ad7583b5cbda8fd33e0601130f9745d1e01c5b0c62",
+    "crates/infrastructure/src/event_stream/tests.rs": "fc67c722849fe11e6ffa327dadba0f5f75802a70dd32725eaae859143f7f0fed",
+    "tests/event_stream_decode_contract.rs": "a6489326f7f4d9ad4c2dc9b0defa067eaaef767d5a32474385700bc755d8e25c",
+    "tests/event_stream_failures.rs": "51c34206517cf3400ae21985dd24f304941555612e0028fd6164b22c331e7a6b",
+    "crates/infrastructure/tests/checkpoint_contract.rs": "c2d6faf25577e22836aed85c9c2e2bb81018f77f787c314e51c553d13c8cb421",
+    "tests/runtime_diagnostics.rs": "a43dc586b6a75bf8d3ba969365e4fe46463a8a2077280cb498c4da3508f75cf8",
+    "docs/verification/reader-memory-gauges/macos-gate-reviewed/command.log": "ba3e4474fadafa2f0e7dee213251ec50f057fb462431ad8bb89c28e296fc634f",
+    "docs/verification/reader-memory-gauges/macos-gate-reviewed/metadata.json": "33e15bd3735f0ca1b7348df8c248c0456d7801925316f6d08f482d0476486525"
+  }
+}
