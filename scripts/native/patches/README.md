@@ -33,20 +33,31 @@ it. Requests beyond capacity now return allocation failure with existing content
 and accounting intact. The independent allocator tests retain the failing and
 passing evidence in `docs/verification/bitmap-capacity-independent`.
 
+PAGE decoding also rejects a header whose advertised capacity needs more page
+memory than a native page can address. Page creation only asserts that the
+layout fits `size.max_page_size`, which release builds drop, so an untrusted
+capacity above the limit truncated the layout arithmetic: the page was
+allocated for the truncated size while its string allocator still handed out
+the advertised capacity past the end of that memory. The completed layout is
+now measured before anything is allocated, and a native test covers the string,
+grapheme, and dimension capacities that each exceed the limit on their own.
+
 | Input | SHA-256 |
 | --- | --- |
-| Patch | `84b1b7a84db7342a95a9cff941f2cb866f2370859c83daa25a8d106e06acc91d` |
+| Patch | `2f94f382946d59e97b6d03b625092964e8cb62662acff75e9aec09866d4b71e7` |
 | Original `src/terminal/snapshot/screen.zig` | `abc550e1b8cbee843f2ee5b2168602aff1ef66b11368f5c38394b7b27704fca7` |
 | Corrected screen source | `4ae17bd3be6851083d4e60f8378ece70f6910a6e9de75a2fdfa1c9afb3beb819` |
 | Original `src/terminal/PageList.zig` | `cd926e56749c014a8df7f30fff1f5c32548cb4a8731451e726d7171d25818fcb` |
 | Corrected PageList source | `a7703d31bfc95c68446e466ba3cf5cc329bed405e3527fe5503d344547e50462` |
 | Original `src/terminal/bitmap_allocator.zig` | `bac61a65b5a3141ccfad2d9d0a6a452be7106a647182470fcf38e1289b5f86e1` |
 | Corrected bitmap allocator source | `32673b2a73f1cf5135fbb1aa4f07855bff6a0c3e42789a178e9ee93da046debc` |
+| Original `src/terminal/snapshot/page.zig` | `2e58c7f15983cd365fc3b7f1aa7e28b515f3fe40654e950c1175761ed2acca6e` |
+| Corrected snapshot page source | `3d10248e58c4b4019ff463e6bcc829fe808e82b9c88a448433d4cc7a178f5052` |
 
 `experiments/run.py` calls `scripts/native/verify_source.py --prepare` after
 verifying/extracting the original archive, before selecting or rebuilding the
 library. The verifier checks every existing archive native input; only these
-three source files may be in their recorded original or corrected states. It
+four source files may be in their recorded original or corrected states. It
 patches temporary copies of the originals and checks all results before writing
 corrected source. This also upgrades an existing cursor-only patched cache.
 Repeated preparation accepts the exact corrected files without reapplying them.
@@ -65,12 +76,14 @@ uncorrected codec do not silently cross this compatibility boundary. Optional
 historical baseline measurements use a separate cache to avoid compiling the
 current patched source as an earlier revision.
 
-This is a fixed patch for four roundtrip defects and one allocator capacity defect, not an extensible patch
+This is a fixed patch for four roundtrip defects, one allocator capacity defect,
+and one decoder capacity-admission defect, not an extensible patch
 mechanism. The source diagnoses and verification limits are recorded in
 `docs/reviews/terminal-resize-roundtrip.md` and
 `docs/reviews/terminal-row-wrap-roundtrip.md` and
 `docs/reviews/terminal-wide-cutoff.md` and
-`docs/reviews/terminal-viewport-pin.md`. The earlier cursor-only patch
+`docs/reviews/terminal-viewport-pin.md` and
+`docs/reviews/terminal-page-capacity-admission.md`. The earlier cursor-only patch
 identity `0a945af64ff9636971fe89b88d1aca95eb5867ae4e61397b1e8b1e92f5e0c67b`
 and its gate/performance evidence are superseded for the combined source;
 its cursor regression evidence remains a valid pre/post record of that defect.
@@ -89,3 +102,11 @@ The viewport-pin-only patch identity
 `c50f296f19e488833dc1c57a16a3f2c631546bb2e1070343d33763b1b2e3c1f0`
 is superseded by the allocator capacity correction. Corpus and final gate
 acceptance must use the newest combined source.
+
+The allocator-capacity patch identity
+`84b1b7a84db7342a95a9cff941f2cb866f2370859c83daa25a8d106e06acc91d`
+is superseded by the decoder capacity-admission correction. Its evidence
+remains a valid record of the earlier defects; corpus and gate acceptance must
+use the newest combined source. That identity also appears in the previous
+runtime compatibility marker, so checkpoints written by it are rejected by
+this build rather than decoded.

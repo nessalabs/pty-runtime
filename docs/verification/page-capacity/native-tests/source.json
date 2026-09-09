@@ -1,0 +1,7 @@
+{
+  "note": "mutation-red.log removed only the max_page_size bound in Header.pageCapacity; filtered-green.log and full-green.log ran on the restored source recorded above.",
+  "scripts/native/patches/snapshot-pending-wrap.patch": "2f94f382946d59e97b6d03b625092964e8cb62662acff75e9aec09866d4b71e7",
+  "scripts/native/verify_source.py": "a8643b76f56d85fa716d90f63ef83702fb91db4e087da9d34c0940845339a2de",
+  "work/experiment-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41/experiment-build.json": "1d2f1e7bd6f14e45ef5b521f9868005c54e083217eb6552b173f4c71d6ca0b65",
+  "work/experiment-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41/src/terminal/snapshot/page.zig": "3d10248e58c4b4019ff463e6bcc829fe808e82b9c88a448433d4cc7a178f5052"
+}

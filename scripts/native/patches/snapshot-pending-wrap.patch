@@ -295,3 +295,131 @@
 +    allocator.free(buf, full);
 +    try testing.expectEqual(@as(usize, 0), allocator.usedBytes(buf));
 +}
+--- a/src/terminal/snapshot/page.zig
++++ b/src/terminal/snapshot/page.zig
+@@ -103,6 +103,7 @@
+ const style = @import("style.zig");
+ const terminal_hyperlink = @import("../hyperlink.zig");
+ const terminal_page = @import("../page.zig");
++const terminal_size = @import("../size.zig");
+ const terminal_style = @import("../style.zig");
+ 
+ // Frequent constants we use
+@@ -559,6 +560,10 @@
+ 
+     pub const CapacityError = error{
+         InvalidDimensions,
++
++        /// The advertised capacity needs more page memory than a native
++        /// page can address.
++        CapacityTooLarge,
+     };
+ 
+     /// Validate native allocation requirements and produce the page capacity.
+@@ -567,7 +572,7 @@
+             return error.InvalidDimensions;
+         }
+ 
+-        return .{
++        const capacity: TerminalPageCapacity = .{
+             .cols = self.columns,
+             .rows = self.rows,
+             .styles = self.style_capacity,
+@@ -575,6 +580,23 @@
+             .grapheme_bytes = self.grapheme_capacity_bytes,
+             .string_bytes = self.string_capacity_bytes,
+         };
++
++        // A page addresses its members with `size.OffsetInt`, so page
++        // creation requires the whole layout to fit `size.max_page_size`
++        // and only asserts it. Release builds drop that assertion, so an
++        // untrusted capacity above the limit would truncate the layout
++        // arithmetic: the page is allocated for the truncated size while
++        // its allocators still hand out the advertised capacity, past the
++        // end of the backing memory. Reject it before anything is
++        // allocated. Every capacity field is independently able to exceed
++        // the limit, so the completed layout is the check.
++        if (terminal_page.Page.layout(capacity).total_size >
++            terminal_size.max_page_size)
++        {
++            return error.CapacityTooLarge;
++        }
++
++        return capacity;
+     }
+ 
+     fn computeLen() usize {
+@@ -1338,6 +1360,73 @@
+     }
+ }
+ 
++test "decode validates that the capacity fits a native page" {
++    // Each capacity field can independently demand more page memory than
++    // native page offsets can address. The first case is the string
++    // capacity observed from a corrupted snapshot.
++    const cases = [_]Header{
++        .{
++            .columns = 82,
++            .rows = 83,
++            .style_count = 0,
++            .hyperlink_count = 1,
++            .style_capacity = 128,
++            .hyperlink_capacity_bytes = 192,
++            .grapheme_capacity_bytes = 8192,
++            .string_capacity_bytes = 0xffff0800,
++        },
++        .{
++            .columns = 80,
++            .rows = 24,
++            .style_count = 0,
++            .hyperlink_count = 0,
++            .style_capacity = 0,
++            .hyperlink_capacity_bytes = 0,
++            .grapheme_capacity_bytes = std.math.maxInt(u32),
++            .string_capacity_bytes = 0,
++        },
++        .{
++            .columns = std.math.maxInt(u16),
++            .rows = std.math.maxInt(u16),
++            .style_count = 0,
++            .hyperlink_count = 0,
++            .style_capacity = 0,
++            .hyperlink_capacity_bytes = 0,
++            .grapheme_capacity_bytes = 0,
++            .string_capacity_bytes = 0,
++        },
++    };
++
++    for (cases) |header| {
++        var encoded: [Header.len]u8 = undefined;
++        var writer: std.Io.Writer = .fixed(&encoded);
++        try header.encode(&writer);
++
++        var reader: std.Io.Reader = .fixed(writer.buffered());
++        try std.testing.expectError(
++            error.CapacityTooLarge,
++            decodePayload(&reader, std.testing.allocator),
++        );
++    }
++
++    // The largest capacity that still fits remains acceptable.
++    const accepted: Header = .{
++        .columns = 80,
++        .rows = 24,
++        .style_count = 0,
++        .hyperlink_count = 0,
++        .style_capacity = 0,
++        .hyperlink_capacity_bytes = 0,
++        .grapheme_capacity_bytes = 0,
++        .string_capacity_bytes = 0,
++    };
++    const capacity = try accepted.pageCapacity();
++    try std.testing.expect(
++        terminal_page.Page.layout(capacity).total_size <=
++            terminal_size.max_page_size,
++    );
++}
++
+ test "decode propagates a style table read failure" {
+     const FailOnceReader = struct {
+         source: std.Io.Reader,

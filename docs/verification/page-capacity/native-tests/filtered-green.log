@@ -1,0 +1,81 @@
+Build Summary: 46/46 steps succeeded; 65/65 tests passed
+test-lib-vt success
++- run test 32 pass (32 total) 371ms MaxRSS:4M
+|  +- compile test Debug aarch64-macos.13.0 success 3s MaxRSS:570M
+|     +- WriteFile  cached
+|     +- compile lib simdutf Debug aarch64-macos.13.0 cached 47ms MaxRSS:30M
+|     |  +- WriteFile libc.txt cached
+|     +- WriteFile hwy cached
+|     +- compile lib highway Debug aarch64-macos.13.0 cached 38ms MaxRSS:31M
+|     |  +- WriteFile libc.txt (reused)
+|     +- compile lib simdutf Debug aarch64-macos.13.0 (+1 more reused dependencies)
+|     +- compile lib highway Debug aarch64-macos.13.0 (+1 more reused dependencies)
+|     +- options cached
+|     +- options cached
+|     +- WriteFile props.zig cached
+|     |  +- run exe props-unigen cached
+|     |  |  +- compile exe props-unigen Debug native cached 49ms MaxRSS:31M
+|     |  |     +- run exe uucode_generate (tables.zig) cached
+|     |  |        +- compile exe uucode_generate Debug native cached 56ms MaxRSS:31M
+|     |  +- run exe symbols-unigen cached
+|     |     +- compile exe symbols-unigen Debug native cached 50ms MaxRSS:31M
+|     |        +- run exe uucode_generate (tables.zig) (+1 more reused dependencies)
+|     +- WriteFile props.zig (+2 more reused dependencies)
+|     +- run exe uucode_generate (tables.zig) (+1 more reused dependencies)
+|     +- translate-c wuffs_c.h cached
+|        +- compile exe translate-c Debug native cached 46ms MaxRSS:31M
+|        |  +- options cached
+|        |  +- options cached
+|        |  +- options cached
+|        |  +- run exe generate-def (aarch64.zig) cached
+|        |  |  +- compile exe generate-def Debug native cached 50ms MaxRSS:31M
+|        |  +- run exe generate-def (amdgcn.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (arm.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (bpf.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (common.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (hexagon.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (loongarch.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (mips.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (neon.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (nvptx.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (powerpc.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (riscv.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (s390x.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (ve.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (wasm.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (x86_64.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (x86.zig) cached
+|        |  |  +- compile exe generate-def Debug native (reused)
+|        |  +- run exe generate-def (xcore.zig) cached
+|        |     +- compile exe generate-def Debug native (reused)
+|        +- WriteFile wuffs_c.h cached
++- run test 33 pass (33 total) 518ms MaxRSS:4M
+   +- compile test Debug aarch64-macos.13.0 success 3s MaxRSS:572M
+      +- WriteFile  (reused)
+      +- compile lib simdutf Debug aarch64-macos.13.0 (+1 more reused dependencies)
+      +- WriteFile hwy (reused)
+      +- compile lib highway Debug aarch64-macos.13.0 (+1 more reused dependencies)
+      +- compile lib simdutf Debug aarch64-macos.13.0 (+1 more reused dependencies)
+      +- compile lib highway Debug aarch64-macos.13.0 (+1 more reused dependencies)
+      +- options cached
+      +- options cached
+      +- WriteFile props.zig (+2 more reused dependencies)
+      +- WriteFile props.zig (+2 more reused dependencies)
+      +- run exe uucode_generate (tables.zig) (+1 more reused dependencies)
+      +- translate-c wuffs_c.h (+2 more reused dependencies)
+
