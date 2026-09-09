@@ -47,6 +47,15 @@ abandoned prefix still exports byte-identically. Native tests cover the
 reachable introducers after an unfinished APC string, the re-export identity,
 and the unchanged inert case.
 
+Decoded page bytes are additionally held to a running total across the whole
+decode, `PageList.max_decode_bytes`, checked before each page is created rather
+than after the memory is taken. A capacity records what a page allocated, not
+what it holds, so a blank wide page and an over-declared one are identical on
+the wire and no payload-derived bound is both tight and non-rejecting. The
+remaining control is to bound the resource. The value, its placement as a
+constant rather than a decoder option, and the refusal being `OutOfMemory` are
+judgements recorded in `docs/reviews/terminal-page-admission.md`.
+
 PAGE admission also bounds what a header can make a decoder allocate. The
 capacity ceiling is a fixed 64 MiB, the shape the Kitty graphics decoder uses
 for declared image sizes, because page memory comes from `mmap` and no

@@ -127,13 +127,85 @@
      var trimmed: size.CellCountInt = 0;
      var invalidated_node: ?*List.Node = null;
      const bl_pin = self.getBottomRight(.screen).?;
-@@ -15256,6 +15281,35 @@
-         const rac = offset.rowAndCell();
-         const cells = offset.node.page().getCells(rac.row);
-         try testing.expectEqual(@as(usize, 5), cells.len);
-+    }
+@@ -7459,6 +7484,24 @@
+ /// This was specifically built to help facilitate snapshot decoding
+ /// which transfers pages directly, but could be generally useful
+ /// for other purposes as well.
++/// Total page bytes one decode may allocate.
++///
++/// A capacity is the page's allocated size, not its content, so the wire
++/// deliberately cannot distinguish a blank wide page from an over-declared
++/// one: no payload-derived bound is both tight and non-rejecting. The
++/// remaining honest control is to bound the resource rather than predict
++/// intent, which is what the kitty graphics decoder does with a fixed
++/// ceiling and what this format already does for continuations with a
++/// caller-supplied `max_continuation_bytes`.
++///
++/// This is a running total across the whole decode, so it bounds a single
++/// oversized page and a long run of ordinary ones with one rule. It is far
++/// above any restore this runtime produces, whose page bytes are bounded by
++/// the configured scrollback, and far below what a hostile header asks for.
++/// A caller needing more cannot currently raise it; making it an option
++/// belongs upstream alongside `max_continuation_bytes`.
++pub const max_decode_bytes = 512 * 1024 * 1024;
++
+ pub const Builder = struct {
+     pool: MemoryPool,
+     pages: List = .{},
+@@ -7511,6 +7554,14 @@
+         self: *Builder,
+         capacity: Capacity,
+     ) Allocator.Error!*Page {
++        // Page memory comes from the OS page allocator rather than the
++        // caller's, so nothing downstream observes this allocation. Hold the
++        // running total here, before the pages exist, rather than in `finish`
++        // where the memory has already been taken.
++        if (Page.layout(capacity).total_size > max_decode_bytes -| self.page_size) {
++            return error.OutOfMemory;
++        }
++
+         const node = try createPageExt(
+             &self.pool,
+             .{ .cap = capacity },
+@@ -7602,7 +7653,34 @@
+         return result;
+     }
+ };
++
++test "PageList Builder bounds total decoded page bytes" {
++    const testing = std.testing;
++
++    // The budget is a running total, so a decode is refused by an accumulation
++    // of ordinary pages just as it is by one oversized page. Both are shapes a
++    // hostile header can ask for and neither is observable downstream.
++    var builder = try Builder.init(testing.allocator, .{
++        .cols = 4,
++        .rows = 3,
++        .max_size = null,
++    });
++    defer builder.deinit();
+ 
++    // Addressable, so representability does not refuse it, but far past the
++    // budget a decode may spend.
++    var huge = std_capacity;
++    huge.string_bytes = 1024 * 1024 * 1024;
++    try testing.expect(huge.representable());
++    try testing.expect(Page.layout(huge).total_size > max_decode_bytes);
++    try testing.expectError(error.OutOfMemory, builder.allocatePage(huge));
++
++    // An ordinary page is unaffected, and the total advances by its layout.
++    const cap = try std_capacity.adjust(.{ .cols = 4 });
++    _ = try builder.allocatePage(cap);
++    try testing.expectEqual(Page.layout(cap).total_size, builder.page_size);
 +}
 +
+ test "PageList Builder transfers mixed-width pages" {
+     const testing = std.testing;
+ 
+@@ -15259,6 +15337,35 @@
+     }
+ }
+ 
 +test "PageList resize (no reflow) less cols clears split wide glyph" {
 +    for ([_]size.CellCountInt{ 1, 5 }) |cols| {
 +        var s = try init(std.testing.allocator, .{
@@ -160,10 +232,13 @@
 +        const grown = s.pages.first.?.page();
 +        try std.testing.expectEqual(@as(u21, 0), grown.getRowAndCell(cols, 0).cell.codepoint());
 +        try std.testing.expectEqual(pagepkg.Cell.Wide.narrow, grown.getRowAndCell(cols, 0).cell.wide);
-     }
- }
- 
-@@ -15410,6 +15464,28 @@
++    }
++}
++
+ test "PageList resize (no reflow) less cols pin in trimmed cols" {
+     const testing = std.testing;
+     const alloc = testing.allocator;
+@@ -15410,6 +15517,28 @@
      }
  }
  
@@ -192,7 +267,7 @@
  // Regression test for fuzz crash. When we shrink cols and then
  // grow back, the page retains capacity from the original size so the grow
  // takes the fast path (just bumps page.size.cols). If any row has a
-@@ -20334,9 +20410,41 @@
+@@ -20334,9 +20463,41 @@
          try testing.expectEqual(.none, row.semantic_prompt);
          const cells = row.cells.ptr(page.memory.ptr)[0..page.size.cols];
          for (cells) |cell| try testing.expect(cell.isZero());
