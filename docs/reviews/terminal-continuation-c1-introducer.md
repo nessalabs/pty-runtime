@@ -14,8 +14,16 @@ Corpus seed 509 aborts with `EngineFailure` from
 `ITerminal::checkpoint`. Unlike the page-capacity defect this is not a crash:
 `ghostty_snapshot_encode` returns `error.ReplayWouldCommit`, which
 `mapEncodeError` maps to `invalid_value`, `rt_checkpoint` reports `-1`, and
-`state.rs` converts it to `TerminalError::EngineFailure` while setting
-`failed = true`, so the terminal can never be checkpointed again.
+`state.rs` converts it to `TerminalError::EngineFailure`.
+
+Checkpointing then fails for as long as the stream stays in that parser state;
+later input that clears the retained window restores it. An earlier revision of
+this document and of the commit message claimed the wrapper latched the
+terminal as failed so it could never checkpoint again. That is wrong:
+`crates/infrastructure/src/terminal/state.rs:47-78` does not latch, and the
+only three latch sites are in `restore_history_step`, `compress_history_step`,
+and `mutation`. Both the DDD and correctness reviews caught the overstatement
+independently.
 
 The failure is independent of the page-capacity correction. Rebuilding the
 library without that correction reproduces it identically

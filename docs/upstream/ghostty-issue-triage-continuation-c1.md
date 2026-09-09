@@ -44,7 +44,8 @@ replays nothing already committed, and `ghostty_snapshot_encode` succeeds.
 
 `writeContinuation` returns the untrimmed bytes; `validate` rejects them with
 `error.ReplayWouldCommit`, and `ghostty_snapshot_encode` returns
-`invalid_value`. The terminal cannot be snapshotted again.
+`invalid_value`. Encoding keeps failing for as long as the stream stays in that
+parser state.
 
 ## Reproduction Steps
 
