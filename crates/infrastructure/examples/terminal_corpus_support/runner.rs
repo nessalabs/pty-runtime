@@ -108,18 +108,19 @@ fn malformed(cp: &TerminalCheckpoint, rng: &mut Random, counts: &mut Counts, siz
         let mut mutated = cp.clone();
         rng.mutate(&mut mutated.bytes, kind);
         counts.malformed += 1;
-        let result = GhosttyTerminalFactory
+        // Decoding is allowed to reject a mutation at any point up to the end
+        // of history restoration. Beyond that the terminal has claimed to be
+        // usable, so a later failure is engine misbehavior rather than a
+        // rejection and must not be counted as one: an encoder defect reached
+        // through a decoded mutation would otherwise be indistinguishable from
+        // a clean refusal.
+        let decoded = GhosttyTerminalFactory
             .restore(mutated, TerminalConfig { size, ..config() })
             .and_then(|mut t| {
                 finish(t.as_mut())?;
-                // Successfully decoded mutations can be valid; require bounded usable state.
-                t.view()?;
-                t.feed(b"\x18\x1b[0mprobe")?;
-                t.view()?;
-                Ok(())
+                Ok(t)
             });
-        match result {
-            Ok(()) => counts.accepted_mutations += 1,
+        match decoded {
             Err(
                 TerminalError::CorruptCheckpoint
                 | TerminalError::InvalidConfiguration
@@ -127,6 +128,15 @@ fn malformed(cp: &TerminalCheckpoint, rng: &mut Random, counts: &mut Counts, siz
                 | TerminalError::EngineFailure,
             ) => counts.rejected += 1,
             Err(other) => panic!("unexpected malformed-snapshot outcome {other:?}"),
+            Ok(mut t) => {
+                // Successfully decoded mutations can be valid; a terminal that
+                // decoded completely must then be bounded and usable.
+                t.view().expect("decoded mutation must project");
+                t.feed(b"\x18\x1b[0mprobe")
+                    .expect("decoded mutation must accept input");
+                t.view().expect("decoded mutation must project after input");
+                counts.accepted_mutations += 1;
+            }
         }
     }
 }

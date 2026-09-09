@@ -47,6 +47,16 @@ abandoned prefix still exports byte-identically. Native tests cover the
 reachable introducers after an unfinished APC string, the re-export identity,
 and the unchanged inert case.
 
+PAGE admission also bounds what a header can make a decoder allocate. The
+capacity ceiling is a fixed 64 MiB, the shape the Kitty graphics decoder uses
+for declared image sizes, because page memory comes from `mmap` and no
+allocator limit observes it. The declared row count must additionally be paid
+for by the record: every row costs `grid.row_header_len` bytes on the wire even
+when entirely default, so a count the payload cannot support is one no encoder
+produced. An earlier attempt bounded the running total by the scrollback budget
+instead and refused legitimate alternate screens; that is reverted and recorded
+in `docs/reviews/terminal-page-admission.md`.
+
 PAGE decoding also rejects a header whose advertised capacity needs more page
 memory than a native page can address. Page creation only asserts that the
 layout fits `size.max_page_size`, which release builds drop, so an untrusted
@@ -75,7 +85,7 @@ grapheme, and dimension capacities that each exceed the limit on their own.
 `experiments/run.py` calls `scripts/native/verify_source.py --prepare` after
 verifying/extracting the original archive, before selecting or rebuilding the
 library. The verifier checks every existing archive native input; only these
-six source files may be in their recorded original or corrected states. It
+eight source files may be in their recorded original or corrected states. It
 patches temporary copies of the originals and checks all results before writing
 corrected source. This also upgrades an existing cursor-only patched cache.
 Repeated preparation accepts the exact corrected files without reapplying them.
@@ -95,14 +105,15 @@ historical baseline measurements use a separate cache to avoid compiling the
 current patched source as an earlier revision.
 
 This is a fixed patch for four roundtrip defects, one allocator capacity defect,
-one decoder capacity-admission defect, and one continuation-export defect, not
-an extensible patch mechanism. The source diagnoses and verification limits are recorded in
+two decoder admission defects, and one continuation-export defect, not an
+extensible patch mechanism. The source diagnoses and verification limits are recorded in
 `docs/reviews/terminal-resize-roundtrip.md` and
 `docs/reviews/terminal-row-wrap-roundtrip.md` and
 `docs/reviews/terminal-wide-cutoff.md` and
 `docs/reviews/terminal-viewport-pin.md` and
 `docs/reviews/terminal-page-capacity-admission.md` and
-`docs/reviews/terminal-continuation-c1-introducer.md`. The earlier cursor-only patch
+`docs/reviews/terminal-continuation-c1-introducer.md` and
+`docs/reviews/terminal-page-admission.md`. The earlier cursor-only patch
 identity `0a945af64ff9636971fe89b88d1aca95eb5867ae4e61397b1e8b1e92f5e0c67b`
 and its gate/performance evidence are superseded for the combined source;
 its cursor regression evidence remains a valid pre/post record of that defect.
@@ -141,3 +152,8 @@ than decoded.
 Both snapshot decoder defects are reported upstream as Ghostty discussions
 14185 and 14186. Drafts and the reporting constraints are in `docs/upstream/`.
 The corrections remain local until upstream resolves them.
+
+Identities are no longer maintained by hand. The patch, every recorded source
+hash, and the runtime compatibility marker are regenerated from the corrected
+tree together, because `--prepare` re-applies the patch and a hand-edited
+source without a regenerated identity is silently restored.

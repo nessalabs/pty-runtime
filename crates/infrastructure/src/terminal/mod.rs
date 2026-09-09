@@ -10,7 +10,7 @@ use std::{ffi::c_void, ptr::NonNull};
 #[derive(Debug, Default)]
 pub struct GhosttyTerminalFactory;
 /// Binary compatibility includes the exact upstream revision and adapter version.
-pub const COMPATIBILITY: &str = "ghostty-vt:82232ecde55405559dec29c5466cb9e39938cb41:snapshot-wrap-745b5e98703259704c7ad9a5c2e1357817efda85cb6f60cd3db730d6d42f4947:runtime-1";
+pub const COMPATIBILITY: &str = "ghostty-vt:82232ecde55405559dec29c5466cb9e39938cb41:snapshot-wrap-694237797f04b8e755554ce03f673a61d52749c0c5f2e43e6baab519a97f2d6c:runtime-1";
 
 impl ITerminalFactory for GhosttyTerminalFactory {
     fn capabilities(&self) -> TerminalCapabilities {

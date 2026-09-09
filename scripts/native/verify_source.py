@@ -21,9 +21,15 @@ TARGET_HASHES = {
     pathlib.Path("src/terminal/bitmap_allocator.zig"): (
         "bac61a65b5a3141ccfad2d9d0a6a452be7106a647182470fcf38e1289b5f86e1",
         "32673b2a73f1cf5135fbb1aa4f07855bff6a0c3e42789a178e9ee93da046debc"),
+    pathlib.Path("src/terminal/page.zig"): (
+        "012f93dbcc636749ba6aa3905751c2c93a7b7ca826e403c9f3b5aba3605ebb43",
+        "207f9db72cefe44fd1caad35f85735d1c77ed7435e1619b78e714a88dfafa9a1"),
     pathlib.Path("src/terminal/snapshot/page.zig"): (
         "2e58c7f15983cd365fc3b7f1aa7e28b515f3fe40654e950c1175761ed2acca6e",
-        "3d10248e58c4b4019ff463e6bcc829fe808e82b9c88a448433d4cc7a178f5052"),
+        "67ff313aa924a893302668d5c15e752a1763122d6f9a0b187622d67b4fdc77de"),
+    pathlib.Path("src/terminal/snapshot/grid.zig"): (
+        "d7d9631bdb514c27cb0b0bd87173e642de96b89dea16ddd68e678438ca2ed4a3",
+        "52a6988f6bf3916c87595192853d1e50f0d31a7556c966f7cbf7cfc7f5641cf0"),
     pathlib.Path("src/terminal/stream_continuation.zig"): (
         "a86feef9e53dc62349e64ddb6d25f1d6d971b9813578a24e915e39daeb39a9a2",
         "8d36a4991ce7a9432857e2d12052d5f212c0faac619ff3e38901b11ada726734"),
@@ -34,8 +40,9 @@ TARGET_HASHES = {
 PREVIOUS_PAGE_LIST_SHA256S = (
     "8b844ab0976ecf9551db24508d7e934d9aa9739d79849baeb0c8492de63ce393",
     "a288b692c579a47411affc8d543e89d57690a587bc4e7eebe6d95c9010fd3aa7",
+    "a7703d31bfc95c68446e466ba3cf5cc329bed405e3527fe5503d344547e50462",
 )
-PATCH_SHA256 = "745b5e98703259704c7ad9a5c2e1357817efda85cb6f60cd3db730d6d42f4947"
+PATCH_SHA256 = "694237797f04b8e755554ce03f673a61d52749c0c5f2e43e6baab519a97f2d6c"
 PATCH = pathlib.Path(__file__).resolve().parent / "patches/snapshot-pending-wrap.patch"
 
 
