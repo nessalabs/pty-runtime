@@ -24,12 +24,18 @@ TARGET_HASHES = {
     pathlib.Path("src/terminal/snapshot/page.zig"): (
         "2e58c7f15983cd365fc3b7f1aa7e28b515f3fe40654e950c1175761ed2acca6e",
         "3d10248e58c4b4019ff463e6bcc829fe808e82b9c88a448433d4cc7a178f5052"),
+    pathlib.Path("src/terminal/stream_continuation.zig"): (
+        "a86feef9e53dc62349e64ddb6d25f1d6d971b9813578a24e915e39daeb39a9a2",
+        "8d36a4991ce7a9432857e2d12052d5f212c0faac619ff3e38901b11ada726734"),
+    pathlib.Path("src/terminal/stream.zig"): (
+        "1cb5d8b8f6493e8264fd1cd027821a36f0a6f88aae5e1eeeb291affdcd1ca6d6",
+        "7e2f63d504bdf558de243b837017a834a951faeecbe7691218a217b11d75f6bc"),
 }
 PREVIOUS_PAGE_LIST_SHA256S = (
     "8b844ab0976ecf9551db24508d7e934d9aa9739d79849baeb0c8492de63ce393",
     "a288b692c579a47411affc8d543e89d57690a587bc4e7eebe6d95c9010fd3aa7",
 )
-PATCH_SHA256 = "2f94f382946d59e97b6d03b625092964e8cb62662acff75e9aec09866d4b71e7"
+PATCH_SHA256 = "745b5e98703259704c7ad9a5c2e1357817efda85cb6f60cd3db730d6d42f4947"
 PATCH = pathlib.Path(__file__).resolve().parent / "patches/snapshot-pending-wrap.patch"
 
 

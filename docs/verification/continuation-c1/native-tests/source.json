@@ -1,0 +1,8 @@
+{
+  "note": "mutation-red.log dropped only the C1 introducer result from Tracker.replayStart; full-green.log is the unfiltered suite on the restored source. seed509-pre-existing.log is the identical failure on a rebuilt library without the page-capacity correction, proving the defect predates it. diagnosis-repro.zig.txt is the throwaway Stream test used to isolate the four feeds; it is not part of the patch.",
+  "scripts/native/patches/snapshot-pending-wrap.patch": "745b5e98703259704c7ad9a5c2e1357817efda85cb6f60cd3db730d6d42f4947",
+  "scripts/native/verify_source.py": "ee1f6b1ffeaf028b82d8b75380c422aada2c2fd6586096354cfc36c5fb217dfa",
+  "work/experiment-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41/experiment-build.json": "477cd82437c85480b3621b63c96003d8f20641daa25def651615c7c196afb3c0",
+  "work/experiment-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41/src/terminal/stream.zig": "7e2f63d504bdf558de243b837017a834a951faeecbe7691218a217b11d75f6bc",
+  "work/experiment-cache/ghostty-82232ecde55405559dec29c5466cb9e39938cb41/src/terminal/stream_continuation.zig": "8d36a4991ce7a9432857e2d12052d5f212c0faac619ff3e38901b11ada726734"
+}

@@ -1,0 +1,5 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.52s
+     Running `target/debug/examples/terminal_corpus 509 1 64`
+corpus=v1 case=0 seed=509 steps=64
+PASS corpus=v1 seed=509 cases=1 steps=64 elapsed_ms=2176 Counts { feeds: 31, resizes: 17, restores: 17, malformed: 102, rejected: 102, accepted_mutations: 0 }

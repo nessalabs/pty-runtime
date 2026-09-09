@@ -423,3 +423,191 @@
  test "decode propagates a style table read failure" {
      const FailOnceReader = struct {
          source: std.Io.Reader,
+--- a/src/terminal/stream_continuation.zig
++++ b/src/terminal/stream_continuation.zig
+@@ -186,17 +186,99 @@
+         self.bytes.appendSlice(self.alloc, fragment) catch self.markBroken();
+     }
+ 
+-    /// Write the replay-safe continuation suffix to `writer`. The retained
+-    /// bytes already begin at the replay start; this omits only bytes that
+-    /// would repeat committed terminal effects without contributing to the
+-    /// unfinished parser state (e.g. a BEL inside an unfinished CSI). The
+-    /// tracker must not be broken.
++    /// Where replay of the still-unfinished sequence must begin.
++    const ReplayStart = struct {
++        /// Index of the introducing byte within the retained bytes.
++        index: usize = 0,
++
++        /// Set when that byte is a C1 introducer, which only introduces
++        /// mid-stream. Replay starts from ground, so the exported suffix
++        /// spells it as `ESC` plus this byte minus 0x40 instead.
++        c1: ?u8 = null,
++    };
++
++    /// Locate the sequence the VT parser is still building.
++    ///
++    /// The retained bytes begin at the replay start recorded on the feed
++    /// path, which only recognizes ESC. A C1 introducer also abandons the
++    /// current sequence and begins a new one, so the retained bytes can
++    /// still open with an earlier sequence that has since completed. Ending
++    /// a sequence is committed work that replay must not repeat and that
++    /// `write` cannot omit, because it changes a parser state tag. Trimming
++    /// to the final introducer removes it.
++    ///
++    /// Retained bytes that already replay nothing committed keep their
++    /// recorded start, so an abandoned but inert prefix stays byte-identical
++    /// across export and re-export.
++    fn replayStart(self: *const Tracker) ReplayStart {
++        var scanner: BoundaryScanner = .init();
++        var found: ?ReplayStart = null;
++        var committed = false;
++        for (self.bytes.items, 0..) |c, i| {
++            const before = scanner.parser.state;
++            if (scanner.next(c) == .committed) committed = true;
++
++            // ESC introduces from every state, including ground.
++            if (c == 0x1b) {
++                found = .{ .index = i };
++                continue;
++            }
++
++            // A C1 introducer only introduces where it is not payload: the
++            // ground state decodes high bytes as UTF-8 and the DCS and OSC
++            // string states keep them. Both leave the state tag alone or
++            // move it somewhere other than the introduced state.
++            const entry = c1Introducer(c) orelse continue;
++            if (before != scanner.parser.state and
++                entry == scanner.parser.state)
++            {
++                found = .{ .index = i, .c1 = c };
++            }
++        }
++
++        // Only a sequence the VT parser is still building can be trimmed.
++        // A grounded scan ends inside a UTF-8 codepoint, whose retained
++        // bytes are already minimal.
++        if (!committed or scanner.parser.state == .ground) return .{};
++        return found orelse .{};
++    }
++
++    /// The state a C1 introducer enters, or null for every other byte.
++    fn c1Introducer(c: u8) ?Parser.State {
++        return switch (c) {
++            0x90 => .dcs_entry,
++            0x9b => .csi_entry,
++            0x9d => .osc_string,
++            0x98, 0x9e, 0x9f => .sos_pm_apc_string,
++            else => null,
++        };
++    }
++
++    /// Write the replay-safe continuation suffix to `writer`.
++    ///
++    /// This trims the retained bytes to the sequence still unfinished at the
++    /// end, spelling a C1 introducer as its `ESC` equivalent so replay from
++    /// ground reproduces the same state. It also omits bytes that would
++    /// repeat committed terminal effects without contributing to that state
++    /// (e.g. a BEL inside an unfinished CSI). The tracker must not be broken.
+     pub fn write(
+         self: *const Tracker,
+         writer: *std.Io.Writer,
+     ) std.Io.Writer.Error!void {
++        const start = self.replayStart();
+         var scanner: BoundaryScanner = .init();
+-        for (self.bytes.items) |c| {
++        var index = start.index;
++        if (start.c1) |c| {
++            // The 7-bit spelling replaces the introducer itself. Feeding it
++            // to the scanner keeps the remaining classification exact.
++            const final = c - 0x40;
++            _ = scanner.next(0x1b);
++            _ = scanner.next(final);
++            try writer.writeByte(0x1b);
++            try writer.writeByte(final);
++            index += 1;
++        }
++        for (self.bytes.items[index..]) |c| {
+             if (scanner.next(c) == .omittable) continue;
+             try writer.writeByte(c);
+         }
+--- a/src/terminal/stream.zig
++++ b/src/terminal/stream.zig
+@@ -4947,6 +4947,77 @@
+     }
+ }
+ 
++test "stream: continuation trims a completed sequence before a C1 introducer" {
++    // An unfinished APC string is the one committed-exit state that keeps
++    // the "anywhere" C1 transitions, so a C1 introducer there both ends it
++    // and opens a new sequence. Replay must open the new sequence only, and
++    // from ground that needs the introducer's seven-bit spelling.
++    const Case = struct {
++        input: []const u8,
++        expected: []const u8,
++    };
++    const cases = [_]Case{
++        .{ .input = "\x1b_apc\x90qdata", .expected = "\x1bPqdata" },
++        .{ .input = "\x1b_apc\x9b12;", .expected = "\x1b[12;" },
++        .{ .input = "\x1b_apc\x9d2;title", .expected = "\x1b]2;title" },
++        // The same trimming applies when ESC opened the abandoned string.
++        .{ .input = "\x1b_apc\x1b_next", .expected = "\x1b_next" },
++    };
++
++    const S = Stream(ContinuationTestHandler);
++    for (cases) |case| {
++        var stream = S.init(.{
++            .allocator = testing.allocator,
++            .handler = .{},
++            .continuation_max_bytes = 1024,
++        });
++        defer stream.deinit();
++        stream.nextSlice(case.input);
++
++        var buf: [1024]u8 = undefined;
++        var writer: std.Io.Writer = .fixed(&buf);
++        try stream.writeContinuation(&writer);
++        try testing.expectEqualStrings(case.expected, writer.buffered());
++
++        // The exported suffix is a valid continuation and re-exports itself.
++        try continuationpkg.validate(writer.buffered());
++
++        var restored = S.init(.{
++            .allocator = testing.allocator,
++            .handler = .{},
++            .continuation_max_bytes = 1024,
++        });
++        defer restored.deinit();
++        restored.nextSlice(writer.buffered());
++        var again: [1024]u8 = undefined;
++        var again_writer: std.Io.Writer = .fixed(&again);
++        try restored.writeContinuation(&again_writer);
++        try testing.expectEqualStrings(
++            case.expected,
++            again_writer.buffered(),
++        );
++    }
++}
++
++test "stream: continuation keeps an inert abandoned prefix" {
++    // Leaving an unfinished CSI commits nothing, so those retained bytes
++    // already replay safely and keep their recorded replay start.
++    const S = Stream(ContinuationTestHandler);
++    var stream = S.init(.{
++        .allocator = testing.allocator,
++        .handler = .{},
++        .continuation_max_bytes = 1024,
++    });
++    defer stream.deinit();
++    stream.nextSlice("text\x1b[12\x9d2;title");
++
++    var buf: [1024]u8 = undefined;
++    var writer: std.Io.Writer = .fixed(&buf);
++    try stream.writeContinuation(&writer);
++    try testing.expectEqualStrings("\x1b[12\x9d2;title", writer.buffered());
++    try continuationpkg.validate(writer.buffered());
++}
++
+ test "stream: continuation reconstructs every unfinished VT state" {
+     const Case = struct {
+         input: []const u8,

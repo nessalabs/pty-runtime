@@ -1,9 +1,16 @@
 # PAGE decoding must reject a capacity a native page cannot address
 
 Status: author targeted tests pass, seed 201 now passes, and the full macOS gate
-is recorded under `docs/verification/page-capacity/`. The seeds 1-1000 corpus is
-still running. Root owns independent DDD, design, and correctness review, and
-the Linux gate. No release acceptance is claimed here.
+is recorded under `docs/verification/page-capacity/`. Root owns independent DDD,
+design, and correctness review, and the Linux gate. No release acceptance is
+claimed here.
+
+The corpus run that this correction unblocked then stopped at seed 509 on a
+second, independent native defect, diagnosed in
+`terminal-continuation-c1-introducer.md`. The complete seeds 1-1000 corpus is
+recorded under `docs/verification/continuation-c1/corpus-1-1000/`, which is the
+first run of that range covering both corrections. This defect is reported
+upstream as Ghostty discussion 14185.
 
 ## Failure
 
@@ -93,9 +100,9 @@ macOS arm64, pinned Zig 0.16.0, baseline CPU configuration.
   mutation, recorded in `docs/verification/page-capacity/seed201/`.
 - `python3 scripts/gate.py` passed with an unchanged source inventory, recorded
   in `docs/verification/page-capacity/macos-gate/`.
-- Corpus seeds 1-1000 are running under the recorder at the time of this commit
-  and land in `docs/verification/page-capacity/corpus-1-1000/`. Until that
-  metadata is complete, seed 201 is the only recorded corpus result.
+- Corpus seeds 1-1000 is recorded against the later combined source in
+  `docs/verification/continuation-c1/corpus-1-1000/`, since a second defect
+  blocked the range at seed 509 under this correction alone.
 
 This is scoped evidence for one decoder admission defect. It is not a complete
 native corpus beyond the recorded range, and no release acceptance follows.
