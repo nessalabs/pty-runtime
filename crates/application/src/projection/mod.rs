@@ -16,8 +16,10 @@ pub use transfer::{
 };
 mod native;
 mod observation;
+mod reaper;
 mod state;
 mod teardown;
+mod wiring;
 mod worker;
 
 pub use budgets::ProjectionBudgets;

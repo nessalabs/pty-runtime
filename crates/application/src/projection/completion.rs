@@ -40,7 +40,7 @@ impl ProjectionCoordinator {
                         let source = CommittedSource {
                             reference,
                             descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: self.compatibility.clone(),
+                                compatibility: self.wiring.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },
@@ -62,7 +62,7 @@ impl ProjectionCoordinator {
                             workspace.resident = None;
                             workspace.source = Some(source);
                         } else {
-                            workspace.pending_deletes.push_back((source, 0));
+                            workspace.reaper.retire(source);
                         }
                     }
                     CommitOutcome::Uncertain(error) => {
@@ -73,7 +73,7 @@ impl ProjectionCoordinator {
                                 generation: attempt.generation,
                             },
                             _descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: self.compatibility.clone(),
+                                compatibility: self.wiring.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },
@@ -143,14 +143,11 @@ impl ProjectionCoordinator {
                     &self.journal,
                 );
             }
-            PendingIo::Delete {
-                source,
-                attempts,
-                mailbox,
-            } => {
+            PendingIo::Delete { attempt, mailbox } => {
+                // A successful delete drops the source here, releasing its disk
+                // reservation. A failure is only durable once retries are spent.
                 if let Err(error) = collect(&mailbox) {
-                    workspace.pending_deletes.push_front((source, attempts + 1));
-                    if attempts + 1 >= self.options.max_park_attempts {
+                    if let Some(error) = workspace.reaper.give_up_or_retry(attempt, error) {
                         let mut admission =
                             self.admission.lock().unwrap_or_else(|e| e.into_inner());
                         admission.cleanup_failure = Some(error);
@@ -178,7 +175,7 @@ impl ProjectionCoordinator {
         if progress.is_finished() {
             workspace.restore_memory = None;
             if let Some(source) = workspace.source.take() {
-                workspace.pending_deletes.push_back((source, 0));
+                workspace.reaper.retire(source);
             }
         }
     }

@@ -43,7 +43,7 @@ impl ProjectionCoordinator {
                             generation: attempt.generation,
                         },
                         _descriptor: CheckpointDescriptor {
-                            compatibility: self.compatibility.clone(),
+                            compatibility: self.wiring.compatibility.clone(),
                             processed: attempt.processed,
                             control_generation: attempt.control_generation,
                         },
@@ -56,13 +56,13 @@ impl ProjectionCoordinator {
                         .unwrap_or_else(|e| e.into_inner())
                         .push(source);
                 }
-                PendingIo::Delete { source, .. } => self
+                PendingIo::Delete { attempt, .. } => self
                     .quotas
                     .shared
                     .unreclaimed
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
-                    .push(source.into()),
+                    .push(attempt.source.into()),
                 PendingIo::Transfer { request, .. } => {
                     self.contain_panic(|| request.fail(ProjectionError::Worker))
                 }
@@ -70,7 +70,7 @@ impl ProjectionCoordinator {
             }
         }
         if let Some(source) = workspace.source.take() {
-            workspace.pending_deletes.push_back((source, 0));
+            workspace.reaper.retire(source);
         }
         {
             let mut ledger = self
@@ -79,9 +79,7 @@ impl ProjectionCoordinator {
                 .unreclaimed
                 .lock()
                 .unwrap_or_else(|e| e.into_inner());
-            for (source, _) in workspace.pending_deletes.drain(..) {
-                ledger.push(source.into());
-            }
+            ledger.extend(workspace.reaper.surrender());
         }
         self.discard_operations(&mut workspace);
         let terminal = workspace.terminal.take();
@@ -100,22 +98,14 @@ impl ProjectionCoordinator {
         for waiter in waiters {
             self.contain_panic(|| waiter.complete(Err(ProjectionError::Worker)));
         }
-        let process = self
-            .process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let process = self.wiring.take_process();
         self.contain_panic(|| drop(process));
         if let Ok(services) = self.services() {
             self.contain_panic(|| services.capacity.notify());
         }
-        let services = self
-            .services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let services = self.wiring.take_services();
         self.contain_panic(|| drop(services));
-        let handle = self.handle.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let handle = self.wiring.take_handle();
         self.contain_panic(|| drop(handle));
     }
     pub(super) fn discard_operations(&self, workspace: &mut NativeWorkspace) {

@@ -62,7 +62,7 @@ impl ProjectionCoordinator {
         if bytes.is_empty() {
             return OutputAcceptance::Accepted;
         }
-        if bytes.len() > self.options.terminal.feed_bytes {
+        if bytes.len() > self.wiring.options.terminal.feed_bytes {
             return OutputAcceptance::Backpressure;
         }
         let Ok(mut lease) = self.reserve_staging(bytes.len()) else {

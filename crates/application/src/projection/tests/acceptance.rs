@@ -42,5 +42,5 @@ fn cancelled_parked_transfer_keeps_inflight_memory_charged_until_close_drains_re
     assert_eq!(released.stored_slots.used, 0);
     assert_eq!(released.requests.used, 0);
     assert_eq!(released.staging_slots.used, 0);
-    assert!(h.owner.services.lock().unwrap().is_none());
+    assert!(h.owner.wiring.services_released());
 }

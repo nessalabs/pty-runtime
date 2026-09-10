@@ -22,20 +22,12 @@ impl ProjectionCoordinator {
         &self,
         workspace: &mut NativeWorkspace,
     ) -> Option<WorkSchedule> {
-        let handle = self
-            .handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()?;
+        let handle = self.wiring.handle()?;
         let waker = Waker::from(Arc::new(WorkWake(handle)));
         let mut context = Context::from_waker(&waker);
         if let Some(reply) = &mut workspace.reply {
             if reply.operation.is_none() {
-                let process = self
-                    .process
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .clone();
+                let process = self.wiring.process();
                 let Some(process) = process else {
                     return Some(WorkSchedule::Dormant);
                 };
@@ -169,11 +161,7 @@ impl ProjectionCoordinator {
                 }
             }
             Command::Resize(size, ticket, mut staging) => {
-                let process = self
-                    .process
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .clone();
+                let process = self.wiring.process();
                 let Some(process) = process else {
                     self.requeue(Command::Resize(size, ticket, staging));
                     return WorkSchedule::Dormant;
@@ -202,7 +190,7 @@ impl ProjectionCoordinator {
             }
             Command::View(ticket, _staging) => {
                 if !ticket.cancelled() {
-                    let mut options = self.options;
+                    let mut options = self.wiring.options;
                     options.terminal = workspace.config;
                     let result = options
                         .view_reservation()
@@ -252,11 +240,7 @@ impl ProjectionCoordinator {
     }
     pub(super) fn closing_resize(&self, workspace: &mut NativeWorkspace) -> Option<WorkSchedule> {
         let resize = workspace.resize.as_mut()?;
-        let handle = self
-            .handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()?;
+        let handle = self.wiring.handle()?;
         let waker = Waker::from(Arc::new(WorkWake(handle)));
         let mut context = Context::from_waker(&waker);
         match resize.operation.as_mut().poll(&mut context) {
@@ -275,7 +259,7 @@ impl ProjectionCoordinator {
     pub(super) fn descriptor(&self) -> CheckpointDescriptor {
         let status = self.status();
         CheckpointDescriptor {
-            compatibility: self.compatibility.clone(),
+            compatibility: self.wiring.compatibility.clone(),
             processed: status.processed,
             control_generation: status.control_generation,
         }

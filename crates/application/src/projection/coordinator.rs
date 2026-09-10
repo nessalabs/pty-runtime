@@ -2,14 +2,13 @@ use super::{
     ProjectionBudgets, ProjectionError, ProjectionOptions, ProjectionStatus,
     budgets::{InputQuotas, Lease, SessionQuotas},
     state::{Admission, NativeWorkspace},
+    wiring::Wiring,
 };
 use crate::{
     checkpoint::{ICheckpointProtector, ICheckpointStore},
     process::IProcessSession,
     runtime::quota::Quota,
-    scheduling::{
-        IBlockingExecutor, ICapacitySignal, IClock, IScheduledWork, IWorkHandle, IWorkScheduler,
-    },
+    scheduling::{IBlockingExecutor, ICapacitySignal, IClock, IScheduledWork, IWorkScheduler},
     terminal::ITerminalFactory,
 };
 use pty_runtime_domain::{
@@ -47,18 +46,11 @@ pub struct ProjectionServices {
 /// state and cancellation never require the native ownership mutex.
 pub struct ProjectionCoordinator {
     pub(super) journal: Arc<super::journal::Journal>,
-    pub(super) options: ProjectionOptions,
-    /// Validated once at creation and cloned into every descriptor, so no later
-    /// path has to re-check the identity or invent a fallback for it.
-    pub(super) compatibility: CompatibilityId,
-    pub(super) protected_bytes: usize,
-    pub(super) services: Mutex<Option<ProjectionServices>>,
+    pub(super) wiring: Wiring,
     pub(super) quotas: SessionQuotas,
     pub(super) admission: Mutex<Admission>,
     pub(super) workspace: Mutex<NativeWorkspace>,
-    pub(super) handle: Mutex<Option<Arc<dyn IWorkHandle>>>,
     pub(super) input: InputQuotas,
-    pub(super) process: Mutex<Option<Arc<dyn IProcessSession>>>,
     pub(super) stall_generation: AtomicU64,
 }
 impl ProjectionCoordinator {
@@ -134,18 +126,13 @@ impl ProjectionCoordinator {
                 io: None,
                 reply: None,
                 resize: None,
-                pending_deletes: VecDeque::new(),
+                reaper: super::reaper::SourceReaper::new(options.max_park_attempts),
                 config: options.terminal,
                 history_step_owed: false,
             }),
-            options,
-            compatibility,
-            protected_bytes,
-            services: Mutex::new(Some(services)),
+            wiring: Wiring::new(options, compatibility, protected_bytes, services),
             quotas,
-            handle: Mutex::new(None),
             input: InputQuotas::new(input_bytes, input_slots),
-            process: Mutex::new(None),
             stall_generation: AtomicU64::new(0),
         });
         let work: Arc<dyn IScheduledWork> = owner.clone();
@@ -154,24 +141,19 @@ impl ProjectionCoordinator {
             .scheduler
             .register(Arc::downgrade(&work))
             .map_err(|_| ProjectionError::Worker)?;
-        *owner.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
+        owner.wiring.attach_handle(handle);
         owner.wake()?;
         Ok(owner)
     }
     /// Bind exactly one admitted process, then wake any replies waiting for startup.
     pub fn bind_process(&self, process: Arc<dyn IProcessSession>) -> Result<(), ProjectionError> {
-        let mut slot = self.process.lock().unwrap_or_else(|e| e.into_inner());
-        if slot.is_some() {
-            return Err(ProjectionError::InvalidConfiguration);
-        }
         if matches!(
             self.status().residency,
             super::Residency::Closing | super::Residency::Closed
         ) {
             return Err(ProjectionError::Closed);
         }
-        *slot = Some(process);
-        drop(slot);
+        self.wiring.bind_process(process)?;
         let result = self.wake();
         if let Err(error) = result {
             self.fail(error);
@@ -201,19 +183,9 @@ impl ProjectionCoordinator {
         }
     }
     pub(super) fn services(&self) -> Result<ProjectionServices, ProjectionError> {
-        self.services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-            .ok_or(ProjectionError::Closed)
+        self.wiring.services()
     }
     pub(super) fn wake(&self) -> Result<(), ProjectionError> {
-        let handle = self
-            .handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-            .ok_or(ProjectionError::Worker)?;
-        handle.wake().map_err(|_| ProjectionError::Worker)
+        self.wiring.wake()
     }
 }

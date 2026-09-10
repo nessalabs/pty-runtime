@@ -74,7 +74,9 @@ fn observed_protector(h: &Harness, fault: ProtectFault) -> Arc<FaultProtector> {
         fault: Mutex::new(fault),
         calls: AtomicUsize::new(0),
     });
-    h.owner.services.lock().unwrap().as_mut().unwrap().protector = protector.clone();
+    h.owner
+        .wiring
+        .inject_services(|services| services.protector = protector.clone());
     protector
 }
 fn retained_after_rejection(h: &Harness, expected: ProjectionError) {

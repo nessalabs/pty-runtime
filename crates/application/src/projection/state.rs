@@ -1,6 +1,7 @@
 use super::{
     budgets::{DiskLease, IoMemory, Lease, StagingLease},
     observation::{ProjectedView, Ticket},
+    reaper::SourceReaper,
     snapshot::SnapshotRequest,
 };
 use crate::{process::ProcessOperation, terminal::ITerminal};
@@ -147,8 +148,7 @@ pub(super) enum PendingIo {
         mailbox: Mailbox<TerminalCheckpoint>,
     },
     Delete {
-        source: CommittedSource,
-        attempts: u32,
+        attempt: super::reaper::DeleteAttempt,
         mailbox: Mailbox<()>,
     },
 }
@@ -191,5 +191,6 @@ pub(super) struct NativeWorkspace {
     pub io: Option<PendingIo>,
     pub reply: Option<Reply>,
     pub resize: Option<Resizing>,
-    pub pending_deletes: VecDeque<(CommittedSource, u32)>,
+    /// Superseded sources awaiting bounded deletion, with their retry policy.
+    pub reaper: SourceReaper,
 }

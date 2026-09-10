@@ -23,11 +23,7 @@ impl ProjectionCoordinator {
         let services = self.services()?;
         let mailbox: Mailbox<T> = Arc::new(Mutex::new(None));
         let output = mailbox.clone();
-        let wake = self
-            .handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone();
+        let wake = self.wiring.handle();
         let job = Box::new(move || {
             let result =
                 catch_unwind(AssertUnwindSafe(work)).unwrap_or(Err(ProjectionError::Worker));
@@ -56,7 +52,7 @@ impl ProjectionCoordinator {
         let memory = match IoMemory::acquire(
             &self.quotas.shared,
             workspace.config.checkpoint_bytes,
-            self.protected_bytes,
+            self.wiring.protected_bytes,
         ) {
             Ok(memory) => memory,
             Err(error) => {
@@ -70,7 +66,7 @@ impl ProjectionCoordinator {
         let protector = services.protector.clone();
         let reference = source.reference;
         let descriptor = source.descriptor.clone();
-        let max = self.protected_bytes;
+        let max = self.wiring.protected_bytes;
         let plaintext_max = workspace.config.checkpoint_bytes;
         let job = move || {
             let bytes = store.read(reference, max)?;
@@ -149,11 +145,11 @@ impl ProjectionCoordinator {
             }
         };
         let result = (|| {
-            let max = self.protected_bytes;
+            let max = self.wiring.protected_bytes;
             let memory = IoMemory::acquire(
                 &self.quotas.shared,
                 workspace.config.checkpoint_bytes,
-                self.protected_bytes,
+                self.wiring.protected_bytes,
             )?;
             let disk = DiskLease::acquire(&self.quotas.shared, max)?;
             let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
@@ -175,7 +171,7 @@ impl ProjectionCoordinator {
                     .unwrap_or_else(|e| e.into_inner())
                     .policy
                     .park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.options.retry_after);
+                return WorkSchedule::After(self.wiring.options.retry_after);
             }
         };
         let store = services.store.clone();
@@ -185,7 +181,7 @@ impl ProjectionCoordinator {
             generation: attempt.generation,
         };
         let descriptor = checkpoint.descriptor.clone();
-        let max = self.protected_bytes;
+        let max = self.wiring.protected_bytes;
         // A commit always resolves to some CommitOutcome; the distinction between
         // Rejected (nothing was stored) and Uncertain (something may have been)
         // is the job's to make, so it is carried in the value, not in an error.
@@ -230,7 +226,7 @@ impl ProjectionCoordinator {
                     .unwrap_or_else(|e| e.into_inner())
                     .policy
                     .park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.options.retry_after);
+                return WorkSchedule::After(self.wiring.options.retry_after);
             }
         }
         WorkSchedule::Dormant
@@ -239,26 +235,18 @@ impl ProjectionCoordinator {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
-        let Some((source, attempts)) = workspace.pending_deletes.pop_front() else {
+        let Some(attempt) = workspace.reaper.check_out() else {
             return WorkSchedule::Dormant;
         };
-        if attempts >= self.options.max_park_attempts {
-            workspace.pending_deletes.push_front((source, attempts));
-            return WorkSchedule::Dormant;
-        }
         let store = services.store.clone();
-        let reference = source.reference;
+        let reference = attempt.source.reference;
         match self.submit_io(move || store.delete(reference).map_err(ProjectionError::from)) {
             Ok(mailbox) => {
-                workspace.io = Some(PendingIo::Delete {
-                    source,
-                    attempts,
-                    mailbox,
-                });
+                workspace.io = Some(PendingIo::Delete { attempt, mailbox });
                 WorkSchedule::Dormant
             }
             Err(_) => {
-                workspace.pending_deletes.push_front((source, attempts));
+                workspace.reaper.return_unsubmitted(attempt);
                 WorkSchedule::After(Duration::from_millis(5))
             }
         }

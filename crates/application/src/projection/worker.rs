@@ -142,7 +142,7 @@ impl ProjectionCoordinator {
         workspace: &mut NativeWorkspace,
         services: &super::ProjectionServices,
     ) -> WorkSchedule {
-        let maintenance = if workspace.io.is_none() && !workspace.pending_deletes.is_empty() {
+        let maintenance = if workspace.io.is_none() && workspace.reaper.holds_sources() {
             Some(self.start_delete(workspace))
         } else {
             None
@@ -162,7 +162,7 @@ impl ProjectionCoordinator {
         if workspace.io.is_some() {
             return WorkSchedule::Dormant;
         }
-        if !workspace.pending_deletes.is_empty() {
+        if workspace.reaper.holds_sources() {
             return self.start_delete(workspace);
         }
         let delay = self
@@ -202,7 +202,7 @@ impl ProjectionCoordinator {
         }
     }
     fn work_while_failed(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
-        if workspace.io.is_none() && !workspace.pending_deletes.is_empty() {
+        if workspace.io.is_none() && workspace.reaper.holds_sources() {
             return self.start_delete(workspace);
         }
         WorkSchedule::Dormant
@@ -219,7 +219,7 @@ impl ProjectionCoordinator {
             return WorkSchedule::Dormant;
         }
         if let Some(source) = workspace.source.take() {
-            workspace.pending_deletes.push_back((source, 0));
+            workspace.reaper.retire(source);
         }
         let (failed, retry) = {
             let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
@@ -229,11 +229,9 @@ impl ProjectionCoordinator {
             )
         };
         if retry {
-            for (_, attempts) in &mut workspace.pending_deletes {
-                *attempts = 0;
-            }
+            workspace.reaper.restore_attempts();
         }
-        if !workspace.pending_deletes.is_empty() {
+        if workspace.reaper.holds_sources() {
             if failed.is_some() {
                 // Slots were reserved before commit, so this preallocated ledger
                 // cannot grow beyond its independently admitted identity limit.
@@ -243,9 +241,7 @@ impl ProjectionCoordinator {
                     .unreclaimed
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());
-                for (source, _) in workspace.pending_deletes.drain(..) {
-                    ledger.push(source.into());
-                }
+                ledger.extend(workspace.reaper.surrender());
             } else {
                 return self.start_delete(workspace);
             }
@@ -260,23 +256,16 @@ impl ProjectionCoordinator {
             admission.policy.mark_closed();
             (std::mem::take(&mut admission.close_waiters), failed)
         };
-        self.process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        self.wiring.take_process();
         for waiter in waiters {
             waiter.complete(failed.map_or(Ok(()), Err));
         }
         if let Ok(services) = self.services() {
             services.capacity.notify();
         }
-        let services = self
-            .services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let services = self.wiring.take_services();
         drop(services);
-        let handle = self.handle.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let handle = self.wiring.take_handle();
         drop(handle);
         WorkSchedule::Finished
     }
