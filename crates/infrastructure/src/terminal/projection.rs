@@ -42,11 +42,24 @@ impl GhosttyTerminal {
             .checked_mul(available as usize)
             .ok_or(TerminalError::BudgetExceeded)?;
 
+        // ADR 0006 admits a range against `view_bytes` before serving it. The
+        // cell storage is the dominant cost and blank rows carry no grapheme
+        // text, so charging only for text would let an all-blank range reserve
+        // without limit; the reservation is therefore charged first and the
+        // remainder is what text may still draw down.
+        let cell_bytes = cells_wanted
+            .checked_mul(core::mem::size_of::<TerminalCell>())
+            .ok_or(TerminalError::BudgetExceeded)?;
+        let mut remaining = self
+            .config
+            .view_bytes
+            .checked_sub(cell_bytes)
+            .ok_or(TerminalError::BudgetExceeded)?;
+
         let mut cells = Vec::new();
         cells
             .try_reserve_exact(cells_wanted)
             .map_err(|_| TerminalError::BudgetExceeded)?;
-        let mut remaining = self.config.view_bytes;
         for row in 0..available {
             let y = u16::try_from(start + row).map_err(|_| TerminalError::BudgetExceeded)?;
             for x in 0..size.cols() {

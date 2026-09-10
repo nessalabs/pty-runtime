@@ -225,7 +225,9 @@ export function mouseBytes({
     // The legacy encoding has no release button; 3 means "some button up".
     code = 3;
   } else {
-    code = { left: 0, middle: 1, right: 2 }[button] ?? 0;
+    // 3 is "no button". Motion with nothing held is what mode 1003 asks for,
+    // and encoding it as button 0 would report a left-drag that never happened.
+    code = { left: 0, middle: 1, right: 2, none: 3 }[button] ?? 0;
     if (type === "move") code += 32;
   }
   if (shift) code += 4;
@@ -720,14 +722,29 @@ export function Terminal({
     },
     [sendMouse],
   );
+  const hoverRef = useRef(null);
   const onMouseMove = useCallback(
     (event) => {
-      // Only drags are reported. Without knowing whether the program asked for
-      // any-event tracking, sending every hover would flood a program that
-      // only wanted button events.
-      if (draggingRef.current) sendMouse("move", event, draggingRef.current);
+      if (draggingRef.current) {
+        sendMouse("move", event, draggingRef.current);
+        return;
+      }
+      // Mode 1003 asks for motion with no button held; anything narrower does
+      // not. Report only when the pointer changes cell, because the grid is
+      // what the program addresses and a pixel of movement inside one cell is
+      // not an event it can act on.
+      if (modesRef.current.mouse !== "any_motion") {
+        hoverRef.current = null;
+        return;
+      }
+      const at = cellAt(event);
+      if (!at) return;
+      const last = hoverRef.current;
+      if (last && last.col === at.col && last.row === at.row) return;
+      hoverRef.current = at;
+      sendMouse("move", event, "none");
     },
-    [sendMouse],
+    [cellAt, sendMouse],
   );
   const onWheel = useCallback(
     (event) => {

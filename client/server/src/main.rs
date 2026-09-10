@@ -319,7 +319,12 @@ async fn serve(mut socket: WebSocket, state: AppState) {
         }
     }
 
-    // Dropping the command channel ends the session loop.
+    // Dropping the command channel ends the session loop, but the worker can
+    // be parked in `blocking_send` on a full frame channel with nothing left
+    // to drain it. Dropping the receiver first makes that send fail so the
+    // worker reaches its own shutdown and reaps the child; joining while still
+    // holding the receiver would deadlock instead.
     drop(command_tx);
+    drop(frame_rx);
     let _ = tokio::task::spawn_blocking(move || worker.join()).await;
 }

@@ -114,6 +114,9 @@ pub fn run(
     };
     let mut options = SessionOptions::raw(size);
     options.replay_bytes = 1024 * 1024;
+    // A write larger than this is refused outright, and an ordinary paste is
+    // easily bigger, so the queue is drained a chunk at a time.
+    let input_chunk = options.process.input_chunk;
 
     let session = match runtime.spawn(id.clone(), &command, options) {
         Ok(session) => session,
@@ -220,7 +223,8 @@ pub fn run(
             }
         }
         if writing.is_none() && !pending_input.is_empty() {
-            let bytes: Vec<u8> = pending_input.drain(..).collect();
+            let take = pending_input.len().min(input_chunk);
+            let bytes: Vec<u8> = pending_input.drain(..take).collect();
             match session.write(&bytes) {
                 Ok(operation) => writing = Some(operation),
                 Err(error) => {
@@ -242,9 +246,17 @@ pub fn run(
             match observer.try_next() {
                 Ok(Some(OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }))) => {
                     for chunk in bytes.chunks(4096) {
-                        if terminal.feed(chunk).is_err() {
-                            fail(&outbound, "terminal rejected output");
-                            return;
+                        match terminal.feed(chunk) {
+                            // A query such as DSR or device attributes is
+                            // answered by the terminal, not the child. The
+                            // reply is input as far as the child is concerned,
+                            // so it joins the same queue; dropping it leaves a
+                            // program waiting for an answer that never comes.
+                            Ok(effects) => pending_input.extend(effects.0),
+                            Err(_) => {
+                                fail(&outbound, "terminal rejected output");
+                                return;
+                            }
                         }
                     }
                     fed = true;

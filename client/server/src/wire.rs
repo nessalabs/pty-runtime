@@ -303,6 +303,7 @@ pub struct Sent {
     palette: Option<WirePalette>,
     modes: Option<TerminalModes>,
     cursor: Option<TerminalCursor>,
+    totals: Option<(u64, u64)>,
     seq: u64,
 }
 
@@ -402,7 +403,14 @@ impl Sent {
         let cursor_moved = self.cursor != Some(view.cursor);
         self.cursor = Some(view.cursor);
 
-        if !changed.is_empty() || cursor_moved || self.seq == 0 {
+        // History can grow or evict while the visible cells and the cursor
+        // stay exactly as they were -- blank output at a pinned prompt does
+        // both. The client clamps its scroll requests against these counts, so
+        // leaving them unsent strands it at a position it can no longer leave.
+        let totals_moved = self.totals != Some((total, scrollback));
+        self.totals = Some((total, scrollback));
+
+        if !changed.is_empty() || cursor_moved || totals_moved || self.seq == 0 {
             self.seq += 1;
             messages.push(ServerMessage::Frame {
                 v: VERSION,
