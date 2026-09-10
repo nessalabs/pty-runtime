@@ -146,10 +146,13 @@ What changed:
 
   | | before | after |
   | --- | --- | --- |
-  | raw locks into admission state outside its owner | 16 | **0** |
-  | files reaching into that state directly | 6 | **0** |
+  | `admission.lock()` call sites | 19 | **0** |
+  | files reaching into that state directly | 7 | **0** |
   | named operations on the new owner | — | 32 |
   | coordinator methods | 45 | 49 |
+
+  (`journal.rs` and `observation.rs` still lock their own state, as they should
+  — they were already independent collaborators.)
 
   The method count is the point worth being careful about: it did **not** fall,
   because the coordinator's methods are now mostly thin delegation. What changed
