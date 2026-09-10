@@ -63,7 +63,7 @@ static RuntimeColor color(GhosttyStyleColor c) {
 /* Rows outside the active screen are read through the screen tag, which
  * addresses retained history and the active area in one absolute space and
  * moves nothing. Reading history must not disturb what anyone else sees. */
-int rt_cell(RuntimeTerminal *o, int history, uint16_t x, uint16_t y, uint32_t *text,
+int rt_cell(RuntimeTerminal *o, int history, uint16_t x, uint32_t y, uint32_t *text,
             size_t cap, size_t *len, RuntimeStyle *out) {
   GhosttyGridRef ref = {.size = sizeof(ref)};
   GhosttyPoint point = {

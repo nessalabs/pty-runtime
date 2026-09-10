@@ -61,7 +61,7 @@ impl GhosttyTerminal {
             .try_reserve_exact(cells_wanted)
             .map_err(|_| TerminalError::BudgetExceeded)?;
         for row in 0..available {
-            let y = u16::try_from(start + row).map_err(|_| TerminalError::BudgetExceeded)?;
+            let y = u32::try_from(start + row).map_err(|_| TerminalError::BudgetExceeded)?;
             for x in 0..size.cols() {
                 cells.push(self.read_cell(1, x, y, &mut remaining)?);
             }
@@ -85,7 +85,7 @@ impl GhosttyTerminal {
         &mut self,
         history: i32,
         x: u16,
-        y: u16,
+        y: u32,
         remaining: &mut usize,
     ) -> Result<TerminalCell, TerminalError> {
         let mut style = ffi::Style::default();
@@ -155,7 +155,7 @@ impl GhosttyTerminal {
         let mut remaining = self.config.view_bytes;
         for y in 0..size.rows() {
             for x in 0..size.cols() {
-                cells.push(self.read_cell(0, x, y, &mut remaining)?);
+                cells.push(self.read_cell(0, x, u32::from(y), &mut remaining)?);
             }
         }
         Ok(TerminalView {

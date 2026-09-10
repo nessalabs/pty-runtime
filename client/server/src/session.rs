@@ -7,8 +7,8 @@
 use crate::wire::{self, ServerMessage, Sent, StyleTable, VERSION};
 use pty_runtime::{
     AttachPosition, CommandSpec, EnvironmentPolicy, ExitStatus, OutputEvent, ReplayPage, Runtime,
-    RuntimeOptions, SessionId, SessionOptions, TerminalSize,
-    ports::ITerminalFactory,
+    RuntimeOptions, SessionId, SessionOptions, TerminalSize, WriteOutcome,
+    ports::{ITerminalFactory, ProcessOperation},
     terminal::TerminalConfig,
 };
 use std::{
@@ -147,7 +147,9 @@ pub fn run(
         indexed: [[0; 3]; 256],
     };
     let mut pending_input: std::collections::VecDeque<u8> = std::collections::VecDeque::new();
-    let mut writing = None;
+    // The submitted chunk is retained beside the operation so the part the OS
+    // did not accept can be requeued rather than lost.
+    let mut writing: Option<(ProcessOperation<WriteOutcome>, Vec<u8>)> = None;
     let mut resizing = None;
     let mut generation = 0u64;
     let mut next_frame = Instant::now();
@@ -217,16 +219,32 @@ pub fn run(
             Err(mpsc::error::TryRecvError::Disconnected) => break,
         }
 
-        if let Some(operation) = &mut writing {
-            if poll(operation).is_some() {
-                writing = None;
+        // A write reports how much the OS actually accepted. Treating a ready
+        // operation as a delivered one drops the remainder silently, which at a
+        // prompt looks like the terminal swallowing what was typed.
+        let finished = match &mut writing {
+            Some((operation, _)) => poll(operation),
+            None => None,
+        };
+        if let Some(outcome) = finished {
+            if let Some((_, chunk)) = writing.take() {
+                let accepted = outcome.written.min(chunk.len());
+                // Requeue the unaccepted tail ahead of anything typed since, so
+                // the child still sees one ordered stream.
+                for byte in chunk[accepted..].iter().rev() {
+                    pending_input.push_front(*byte);
+                }
+            }
+            if let Some(error) = outcome.error {
+                fail(&outbound, format!("write failed: {error:?}"));
+                break;
             }
         }
         if writing.is_none() && !pending_input.is_empty() {
             let take = pending_input.len().min(input_chunk);
             let bytes: Vec<u8> = pending_input.drain(..take).collect();
             match session.write(&bytes) {
-                Ok(operation) => writing = Some(operation),
+                Ok(operation) => writing = Some((operation, bytes)),
                 Err(error) => {
                     fail(&outbound, format!("write failed: {error:?}"));
                     break;

@@ -93,7 +93,11 @@ unsafe extern "C" {
         owner: *mut c_void,
         history: i32,
         x: u16,
-        y: u16,
+        // Ghostty's point coordinate is a u32 row and documents that it "may
+        // exceed page size for screen/history tags". Narrowing it here would
+        // put a 65,535-row ceiling on retained history that nothing else in
+        // the contract states.
+        y: u32,
         text: *mut u32,
         cap: usize,
         len: *mut usize,
