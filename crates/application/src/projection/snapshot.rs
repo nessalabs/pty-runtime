@@ -83,9 +83,7 @@ impl ProjectionCoordinator {
             request.complete(result, &self.journal);
         }
     }
-}
 
-impl ProjectionCoordinator {
     /// Admit a bounded checkpoint plus independent ordered continuation observer.
     /// Cancelling the wait releases provisional observer admission. A parked source
     /// supplies the snapshot without native restoration; staged mutations follow it.

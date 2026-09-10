@@ -36,8 +36,8 @@ impl ITerminalFactory for Factory {
             history_compression: false,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        "test-native-v1"
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new("test-native-v1")
     }
     fn create(&self, config: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         self.0.alive.fetch_add(1, Ordering::AcqRel);

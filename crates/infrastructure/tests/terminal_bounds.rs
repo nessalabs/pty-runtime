@@ -17,7 +17,7 @@ fn config() -> TerminalConfig {
 }
 fn descriptor() -> CheckpointDescriptor {
     CheckpointDescriptor {
-        compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
+        compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset: 0,

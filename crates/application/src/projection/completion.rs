@@ -46,14 +46,8 @@ impl ProjectionCoordinator {
                             },
                             _disk: disk,
                         };
-                        let release = {
-                            let mut admission =
-                                self.admission.lock().unwrap_or_else(|e| e.into_inner());
-                            let empty = admission.queue.is_empty()
-                                && workspace.reply.is_none()
-                                && workspace.resize.is_none();
-                            admission.policy.commit_park(attempt, empty)
-                        };
+                        let engine_idle = workspace.reply.is_none() && workspace.resize.is_none();
+                        let release = self.queue.commit_park(attempt, engine_idle);
                         if release {
                             // Logical release was atomic with the empty/activity check.
                             // Drop native state outside the aggregate lock; new output
@@ -66,36 +60,23 @@ impl ProjectionCoordinator {
                         }
                     }
                     CommitOutcome::Uncertain(error) => {
-                        let entry = UnreclaimedSource {
-                            _reference: None,
-                            _key: pty_runtime_domain::checkpoint::CheckpointKey {
-                                lifetime: attempt.processed.lifetime,
-                                generation: attempt.generation,
-                            },
-                            _descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: self.wiring.compatibility.clone(),
-                                processed: attempt.processed,
-                                control_generation: attempt.control_generation,
-                            },
-                            _disk: disk,
-                        };
+                        let entry = UnreclaimedSource::from_uncertain_park(
+                            &self.wiring.compatibility,
+                            attempt,
+                            disk,
+                        );
                         self.quotas
                             .shared
                             .unreclaimed
                             .lock()
                             .unwrap_or_else(|e| e.into_inner())
                             .push(entry);
-                        let mut admission =
-                            self.admission.lock().unwrap_or_else(|e| e.into_inner());
-                        admission.unreclaimed_failure = Some(error);
-                        admission.policy.park_failed(error, services.clock.now());
+                        self.queue
+                            .park_outcome_uncertain(error, services.clock.now());
                     }
-                    CommitOutcome::Rejected(error) => self
-                        .admission
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .policy
-                        .park_failed(error, services.clock.now()),
+                    CommitOutcome::Rejected(error) => {
+                        self.queue.park_failed(error, services.clock.now())
+                    }
                 }
             }
             PendingIo::Restore {
@@ -148,10 +129,7 @@ impl ProjectionCoordinator {
                 // reservation. A failure is only durable once retries are spent.
                 if let Err(error) = collect(&mailbox) {
                     if let Some(error) = workspace.reaper.give_up_or_retry(attempt, error) {
-                        let mut admission =
-                            self.admission.lock().unwrap_or_else(|e| e.into_inner());
-                        admission.cleanup_failure = Some(error);
-                        admission.policy.maintenance_failed(error);
+                        self.queue.maintenance_failed(error);
                     }
                 }
             }
@@ -162,12 +140,7 @@ impl ProjectionCoordinator {
         workspace: &mut NativeWorkspace,
         progress: RestorationProgress,
     ) {
-        let result = self
-            .admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .policy
-            .restoration_progress(progress);
+        let result = self.queue.record_restoration_progress(progress);
         if let Err(error) = result {
             self.fail(error);
             return;

@@ -1,6 +1,7 @@
 use super::{
     PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionError, ProjectionOperation,
-    Residency, ResizeOutcome, budgets::StagingLease, observation::Ticket, state::Command,
+    Residency, ResizeOutcome, budgets::StagingLease, observation::Ticket, queue::CloseRequest,
+    state::Command,
 };
 use crate::process::OutputAcceptance;
 use pty_runtime_domain::terminal::TerminalSize;
@@ -49,46 +50,49 @@ impl ProjectionCoordinator {
         };
         let generation = services.capacity.generation();
         self.stall_generation.store(generation, Ordering::Release);
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        if matches!(
-            admission.policy.status().residency,
-            Residency::Closing | Residency::Closed
-        ) {
-            return OutputAcceptance::Closed;
-        }
-        if admission.output_drain.is_some() {
-            return OutputAcceptance::Closed;
-        }
-        if bytes.is_empty() {
-            return OutputAcceptance::Accepted;
-        }
-        if bytes.len() > self.wiring.options.terminal.feed_bytes {
-            return OutputAcceptance::Backpressure;
-        }
-        let Ok(mut lease) = self.reserve_staging(bytes.len()) else {
-            return OutputAcceptance::Backpressure;
-        };
-        let mut owned = Vec::new();
-        if owned.try_reserve_exact(bytes.len()).is_err() {
-            return OutputAcceptance::Backpressure;
-        }
-        owned.extend_from_slice(bytes);
-        if admission
-            .policy
-            .admit_output(bytes.len(), services.clock.now())
-            .is_err()
-        {
-            return OutputAcceptance::Closed;
-        }
-        lease.timing = observed.map(|(diagnostics, started)| {
-            crate::diagnostics::Timing::new(
-                diagnostics,
-                crate::diagnostics::LatencyKind::ProjectedOutput,
-                started,
-            )
+        let accepted = self.queue.admit_output(|admission| {
+            if matches!(
+                admission.policy.status().residency,
+                Residency::Closing | Residency::Closed
+            ) {
+                return Err(OutputAcceptance::Closed);
+            }
+            if admission.output_drain.is_some() {
+                return Err(OutputAcceptance::Closed);
+            }
+            if bytes.is_empty() {
+                return Err(OutputAcceptance::Accepted);
+            }
+            if bytes.len() > self.wiring.options.terminal.feed_bytes {
+                return Err(OutputAcceptance::Backpressure);
+            }
+            let Ok(mut lease) = self.reserve_staging(bytes.len()) else {
+                return Err(OutputAcceptance::Backpressure);
+            };
+            let mut owned = Vec::new();
+            if owned.try_reserve_exact(bytes.len()).is_err() {
+                return Err(OutputAcceptance::Backpressure);
+            }
+            owned.extend_from_slice(bytes);
+            if admission
+                .policy
+                .admit_output(bytes.len(), services.clock.now())
+                .is_err()
+            {
+                return Err(OutputAcceptance::Closed);
+            }
+            lease.timing = observed.map(|(diagnostics, started)| {
+                crate::diagnostics::Timing::new(
+                    diagnostics,
+                    crate::diagnostics::LatencyKind::ProjectedOutput,
+                    started,
+                )
+            });
+            Ok(Command::Output(owned, lease))
         });
-        admission.queue.push_back(Command::Output(owned, lease));
-        drop(admission);
+        if accepted != OutputAcceptance::Accepted {
+            return accepted;
+        }
         // Accepted staging is never rolled back after ownership transfer, even if
         // scheduler failure is reported. Failure preserves bytes for diagnostics.
         if self.wake().is_err() {
@@ -149,35 +153,28 @@ impl ProjectionCoordinator {
     /// closure is still requested and the caller receives Capacity; inspect status.
     pub fn close(&self) -> Result<ProjectionOperation<()>, ProjectionError> {
         let pair = self.reserve_request_slot();
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        if admission.policy.status().residency == Residency::Closed {
-            let outcome = admission.cleanup_failure.map_or(Ok(()), Err);
-            drop(admission);
-            if let Ok((ticket, _)) = &pair {
-                ticket.complete(outcome);
+        let waiter = pair.as_ref().ok().map(|(ticket, _)| ticket);
+        match self.queue.request_close(waiter) {
+            CloseRequest::AlreadyClosed(outcome) => {
+                if let Ok((ticket, _)) = &pair {
+                    ticket.complete(outcome);
+                }
             }
-        } else {
-            admission.policy.close();
-            admission.cleanup_failure = None;
-            admission.retry_cleanup = true;
-            if let Ok((ticket, _)) = &pair {
-                admission.close_waiters.push(ticket.clone());
-            }
-            let rejected = std::mem::take(&mut admission.queue);
-            drop(admission);
-            self.journal.close();
-            for event in rejected {
-                event.fail(ProjectionError::Closed);
-            }
-            if let Ok(services) = self.services() {
-                services.capacity.notify();
-            }
-            // An already scheduled worker may finish closure and release its
-            // handle before this wake. Preserve its durable cleanup result;
-            // an unfinished close still reports a genuine scheduler failure.
-            match self.wake() {
-                Err(error) if self.close_outcome().is_none() => return Err(error),
-                _ => (),
+            CloseRequest::Started(rejected) => {
+                self.journal.close();
+                for event in rejected {
+                    event.fail(ProjectionError::Closed);
+                }
+                if let Ok(services) = self.services() {
+                    services.capacity.notify();
+                }
+                // An already scheduled worker may finish closure and release its
+                // handle before this wake. Preserve its durable cleanup result;
+                // an unfinished close still reports a genuine scheduler failure.
+                match self.wake() {
+                    Err(error) if self.close_outcome().is_none() => return Err(error),
+                    _ => (),
+                }
             }
         }
         pair.map(|(_, wait)| wait)
@@ -200,26 +197,9 @@ impl ProjectionCoordinator {
         &self,
         build: impl FnOnce(&mut super::state::Admission) -> Result<Command, ProjectionError>,
     ) -> Result<(), ProjectionError> {
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        self.ensure_accepting(&admission)?;
-        let command = build(&mut admission)?;
-        admission.queue.push_back(command);
-        drop(admission);
+        self.queue.admit(build)?;
         if let Err(error) = self.wake() {
             self.fail(error);
-        }
-        Ok(())
-    }
-    pub(super) fn ensure_accepting(
-        &self,
-        admission: &super::state::Admission,
-    ) -> Result<(), ProjectionError> {
-        let status = admission.policy.status();
-        if matches!(status.residency, Residency::Closing | Residency::Closed) {
-            return Err(ProjectionError::Closed);
-        }
-        if let Some(error) = status.failure {
-            return Err(error);
         }
         Ok(())
     }

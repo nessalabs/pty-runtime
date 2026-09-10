@@ -1,6 +1,7 @@
 use super::{
     ProjectionCoordinator, ProjectionError,
     budgets::{DiskLease, IoMemory, Lease},
+    queue::ParkStart,
     state::{Command, CommitOutcome, Mailbox, NativeWorkspace, PendingIo},
 };
 use crate::scheduling::WorkSchedule;
@@ -110,12 +111,7 @@ impl ProjectionCoordinator {
             };
             match self.submit_io(job) {
                 Ok(mailbox) => {
-                    let result = self
-                        .admission
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .policy
-                        .begin_restore();
+                    let result = self.queue.begin_restore();
                     if let Err(error) = result {
                         self.fail(error);
                     }
@@ -134,15 +130,10 @@ impl ProjectionCoordinator {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
-        let attempt = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            if !admission.queue.is_empty() {
-                return WorkSchedule::After(Duration::ZERO);
-            }
-            match admission.policy.begin_park(services.clock.now()) {
-                Ok(attempt) => attempt,
-                Err(_) => return WorkSchedule::Dormant,
-            }
+        let attempt = match self.queue.begin_park(services.clock.now()) {
+            ParkStart::Ready(attempt) => attempt,
+            ParkStart::Busy => return WorkSchedule::After(Duration::ZERO),
+            ParkStart::NotDue => return WorkSchedule::Dormant,
         };
         let result = (|| {
             let max = self.wiring.protected_bytes;
@@ -166,11 +157,7 @@ impl ProjectionCoordinator {
         let (checkpoint, memory, disk) = match result {
             Ok(values) => values,
             Err(error) => {
-                self.admission
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .policy
-                    .park_failed(error, services.clock.now());
+                self.queue.park_failed(error, services.clock.now());
                 return WorkSchedule::After(self.wiring.options.retry_after);
             }
         };
@@ -221,11 +208,7 @@ impl ProjectionCoordinator {
                 })
             }
             Err(error) => {
-                self.admission
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .policy
-                    .park_failed(error, services.clock.now());
+                self.queue.park_failed(error, services.clock.now());
                 return WorkSchedule::After(self.wiring.options.retry_after);
             }
         }

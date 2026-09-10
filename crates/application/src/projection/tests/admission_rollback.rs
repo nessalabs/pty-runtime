@@ -13,7 +13,8 @@ use pty_runtime_domain::{
     SessionId, SessionLifetime,
     process::{CommandSpec, DrainOutcome, ProcessError, ProcessLimits},
     terminal::{
-        TerminalCapabilities, TerminalCheckpoint, TerminalConfig, TerminalError, TerminalSize,
+        CompatibilityId, TerminalCapabilities, TerminalCheckpoint, TerminalConfig, TerminalError,
+        TerminalSize,
     },
 };
 use std::{
@@ -42,8 +43,8 @@ impl ITerminalFactory for RejectedFactory {
             history_compression: false,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        "rejected-admission-v1"
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new("rejected-admission-v1")
     }
     fn create(&self, _: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         self.entered.send(()).unwrap();
@@ -243,10 +244,9 @@ fn rejected_projection_admission_settles_published_waiter_and_releases_identity_
 
 /// A factory whose compatibility identity violates the domain's bound.
 ///
-/// After the identity rule was consolidated into `CompatibilityId`, the check in
-/// `ProjectionCoordinator::create` became the only production guard against an
-/// embedder-supplied factory: the two defence-in-depth copies inside the
-/// protector and the checkpoint store were deleted as duplication.
+/// The port returns `Result<CompatibilityId, _>`, so an adapter validates its own
+/// identity. This proves the coordinator propagates that rejection and refuses
+/// the session rather than proceeding with an unvalidated identity.
 struct BadIdentityFactory(&'static str);
 impl ITerminalFactory for BadIdentityFactory {
     fn capabilities(&self) -> TerminalCapabilities {
@@ -257,8 +257,8 @@ impl ITerminalFactory for BadIdentityFactory {
             history_compression: false,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        self.0
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new(self.0)
     }
     fn create(&self, _: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         panic!("admission must be refused before any native state is created")

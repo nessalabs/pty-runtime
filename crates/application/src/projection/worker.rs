@@ -81,16 +81,10 @@ impl ProjectionCoordinator {
         if workspace.io.is_some() {
             return WorkSchedule::Dormant;
         }
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        if admission.queue.is_empty() {
+        if self.queue.is_idle() {
             return WorkSchedule::Dormant;
         }
-        let transfer = if matches!(admission.queue.front(), Some(Command::Checkpoint(..))) {
-            admission.queue.pop_front()
-        } else {
-            None
-        };
-        drop(admission);
+        let transfer = self.queue.take_checkpoint_at_head();
         self.start_read(workspace, transfer)
     }
     /// Active screens are observable but history is still being validated.
@@ -104,20 +98,16 @@ impl ProjectionCoordinator {
         workspace: &mut NativeWorkspace,
         services: &super::ProjectionServices,
     ) -> WorkSchedule {
-        let command = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            let allowed = match admission.queue.front() {
-                Some(Command::View(..)) => true,
-                Some(Command::Output(..) | Command::Resize(..)) => {
+        let command = if workspace.history_step_owed {
+            None
+        } else {
+            self.queue.take_next_if(|command| match command {
+                Command::View(..) => true,
+                Command::Output(..) | Command::Resize(..) => {
                     services.terminal.capabilities().mutation_during_restore
                 }
                 _ => false,
-            };
-            if allowed && !workspace.history_step_owed {
-                admission.queue.pop_front()
-            } else {
-                None
-            }
+            })
         };
         if let Some(command) = command {
             workspace.history_step_owed = true;
@@ -147,12 +137,7 @@ impl ProjectionCoordinator {
         } else {
             None
         };
-        let command = self
-            .admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .queue
-            .pop_front();
+        let command = self.queue.take_next();
         if let Some(command) = command {
             return self.apply_command(workspace, command);
         }
@@ -165,12 +150,7 @@ impl ProjectionCoordinator {
         if workspace.reaper.holds_sources() {
             return self.start_delete(workspace);
         }
-        let delay = self
-            .admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .policy
-            .park_delay(services.clock.now());
+        let delay = self.queue.park_delay(services.clock.now());
         match delay {
             Some(delay) if delay.is_zero() => self.start_park(workspace),
             Some(delay) => WorkSchedule::After(delay),
@@ -178,21 +158,9 @@ impl ProjectionCoordinator {
         }
     }
     pub(super) fn fail(&self, error: ProjectionError) {
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        admission.policy.fail(error);
         // Preserve every parser byte under its staging lease, but failed projection
         // cannot leave already-admitted observation/control futures hanging.
-        let queue = std::mem::take(&mut admission.queue);
-        let mut rejected = Vec::new();
-        for event in queue {
-            if matches!(event, Command::Output(..)) {
-                admission.queue.push_back(event);
-            } else {
-                rejected.push(event);
-            }
-        }
-        let drain = admission.output_drain;
-        drop(admission);
+        let (rejected, drain) = self.queue.fail(error);
         self.journal.end(drain, Some(error));
         for event in rejected {
             event.fail(error);
@@ -221,13 +189,7 @@ impl ProjectionCoordinator {
         if let Some(source) = workspace.source.take() {
             workspace.reaper.retire(source);
         }
-        let (failed, retry) = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            (
-                admission.cleanup_failure,
-                std::mem::take(&mut admission.retry_cleanup),
-            )
-        };
+        let (failed, retry) = self.queue.take_cleanup_retry();
         if retry {
             workspace.reaper.restore_attempts();
         }
@@ -246,16 +208,7 @@ impl ProjectionCoordinator {
                 return self.start_delete(workspace);
             }
         }
-        let (waiters, failed) = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            let failed = failed.or(admission.unreclaimed_failure);
-            admission.cleanup_failure = failed;
-            if let Some(error) = failed {
-                admission.policy.cleanup_failed(error);
-            }
-            admission.policy.mark_closed();
-            (std::mem::take(&mut admission.close_waiters), failed)
-        };
+        let (waiters, failed) = self.queue.finish_close(failed);
         self.wiring.take_process();
         for waiter in waiters {
             waiter.complete(failed.map_or(Ok(()), Err));

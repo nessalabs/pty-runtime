@@ -21,8 +21,8 @@ impl ITerminalFactory for GhosttyTerminalFactory {
             history_compression: true,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        COMPATIBILITY
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new(COMPATIBILITY)
     }
     fn create(&self, config: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         let config = config.validate()?;

@@ -32,7 +32,11 @@ impl ControlGeneration {
         self.0
     }
 
-    /// Rebuild from a previously serialized counter.
+    /// Build from a bare counter.
+    ///
+    /// No production path needs this — controls only ever advance through
+    /// [`Self::next`]. It exists so tests in other crates can construct a
+    /// specific generation, which a `#[cfg(test)]` seam here could not reach.
     pub fn from_raw(value: u64) -> Self {
         Self(value)
     }

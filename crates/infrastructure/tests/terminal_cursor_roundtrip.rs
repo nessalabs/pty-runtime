@@ -22,7 +22,7 @@ fn restore(
     generation: ControlGeneration,
 ) -> Box<dyn ITerminal> {
     let descriptor = CheckpointDescriptor {
-        compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
+        compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset: 0,
@@ -153,7 +153,7 @@ unsafe extern "C" {
 fn full_state(t: &mut dyn ITerminal, generation: ControlGeneration) -> Vec<u8> {
     let cp = t
         .checkpoint(CheckpointDescriptor {
-            compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
+            compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
             processed: ReplayCursor {
                 lifetime: SessionLifetime::new(1, 1),
                 offset: 0,

@@ -2,14 +2,11 @@ use super::{
     ProjectionCoordinator, ProjectionError, Residency,
     state::{NativeWorkspace, PendingIo, UnreclaimedSource},
 };
-use pty_runtime_domain::{checkpoint::CheckpointKey, terminal::CheckpointDescriptor};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 impl ProjectionCoordinator {
     /// Durable cleanup result, independent of observer admission or abandoned waits.
     pub(crate) fn close_outcome(&self) -> Option<Result<(), ProjectionError>> {
-        let admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        (admission.policy.status().residency == Residency::Closed)
-            .then(|| admission.cleanup_failure.map_or(Ok(()), Err))
+        self.queue.close_outcome()
     }
 
     /// Last-resort owner cleanup after BOTH scheduler and blocking executor shutdown
@@ -22,12 +19,7 @@ impl ProjectionCoordinator {
             return;
         }
         self.journal.close();
-        let rejected = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            admission.policy.close();
-            admission.cleanup_failure = Some(ProjectionError::Worker);
-            std::mem::take(&mut admission.queue)
-        };
+        let rejected = self.queue.abandon_close();
         for event in rejected {
             self.contain_panic(|| event.fail(ProjectionError::Worker));
         }
@@ -36,19 +28,11 @@ impl ProjectionCoordinator {
         if let Some(pending) = workspace.io.take() {
             match pending {
                 PendingIo::Commit { attempt, disk, .. } => {
-                    let source = UnreclaimedSource {
-                        _reference: None,
-                        _key: CheckpointKey {
-                            lifetime: attempt.processed.lifetime,
-                            generation: attempt.generation,
-                        },
-                        _descriptor: CheckpointDescriptor {
-                            compatibility: self.wiring.compatibility.clone(),
-                            processed: attempt.processed,
-                            control_generation: attempt.control_generation,
-                        },
-                        _disk: disk,
-                    };
+                    let source = UnreclaimedSource::from_uncertain_park(
+                        &self.wiring.compatibility,
+                        attempt,
+                        disk,
+                    );
                     self.quotas
                         .shared
                         .unreclaimed
@@ -89,12 +73,7 @@ impl ProjectionCoordinator {
         self.contain_panic(|| drop(terminal));
         drop(resident);
         drop(memory);
-        let waiters = {
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            admission.policy.cleanup_failed(ProjectionError::Worker);
-            admission.policy.mark_closed();
-            std::mem::take(&mut admission.close_waiters)
-        };
+        let waiters = self.queue.abandon_waiters();
         for waiter in waiters {
             self.contain_panic(|| waiter.complete(Err(ProjectionError::Worker)));
         }
@@ -120,11 +99,7 @@ impl ProjectionCoordinator {
     }
     pub(super) fn contain_panic(&self, work: impl FnOnce()) {
         if catch_unwind(AssertUnwindSafe(work)).is_err() {
-            self.admission
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .policy
-                .fail(ProjectionError::Worker);
+            self.queue.mark_failed(ProjectionError::Worker);
         }
     }
 }

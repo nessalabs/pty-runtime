@@ -8,7 +8,9 @@ use crate::{process::ProcessOperation, terminal::ITerminal};
 use pty_runtime_domain::{
     checkpoint::CheckpointRef,
     projection::{ParkAttempt, ProjectionError, ProjectionPolicy, ResizeOutcome},
-    terminal::{CheckpointDescriptor, ControlGeneration, TerminalCheckpoint, TerminalSize},
+    terminal::{
+        CheckpointDescriptor, CompatibilityId, ControlGeneration, TerminalCheckpoint, TerminalSize,
+    },
 };
 use std::{
     collections::VecDeque,
@@ -50,12 +52,24 @@ impl Command {
 ///   worker ──▶ [workspace lock] ──▶ native ─┘ holding the workspace lock
 /// ```
 ///
-/// Lock order when both are needed is **workspace → admission**: the worker
-/// takes the workspace lock for the whole run and reaches into admission inside
-/// it (`worker::run`, `worker::failed`, `teardown::finish_after_shutdown` are
-/// the only three sites that take workspace at all). Callers only ever take
-/// admission, so they can never invert the order. Never hold either lock across
-/// a blocking store or OS call.
+/// Six mutexes are reachable from a projection, in three tiers:
+///
+/// ```text
+///   tier 1   workspace              taken only by worker::run, worker::failed
+///                                   and teardown::finish_after_shutdown
+///   tier 2   AdmissionQueue         taken under tier 1, or alone by callers
+///   tier 3   Wiring::{services,     leaf locks: each is taken, cloned out of,
+///            handle, process},      and released before anything else runs.
+///            ProjectionBudgets::    None of them may be held across a call to
+///            unreclaimed            an injected port.
+/// ```
+///
+/// Acquiring downward is always safe; nothing acquires upward. Callers only ever
+/// take tier 2 and below, so they cannot invert the order against the worker.
+/// The tier-3 leaf property is load-bearing rather than incidental: `Wiring::wake`
+/// clones the handle out and drops its guard *before* calling `wake()`, because
+/// the scheduler may re-enter this projection. Never hold any of these across a
+/// blocking store or OS call.
 pub(super) struct Admission {
     pub policy: ProjectionPolicy,
     pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,
@@ -82,6 +96,32 @@ pub(super) struct UnreclaimedSource {
     pub _key: pty_runtime_domain::checkpoint::CheckpointKey,
     pub _descriptor: CheckpointDescriptor,
     pub _disk: DiskLease,
+}
+impl UnreclaimedSource {
+    /// Charge a park whose commit outcome was never confirmed.
+    ///
+    /// No `CheckpointRef` exists because the store never acknowledged one; the
+    /// key and descriptor are rebuilt from the attempt so the reservation stays
+    /// attributable to the storage it may have created.
+    pub fn from_uncertain_park(
+        compatibility: &CompatibilityId,
+        attempt: ParkAttempt,
+        disk: DiskLease,
+    ) -> Self {
+        Self {
+            _reference: None,
+            _key: pty_runtime_domain::checkpoint::CheckpointKey {
+                lifetime: attempt.processed.lifetime,
+                generation: attempt.generation,
+            },
+            _descriptor: CheckpointDescriptor {
+                compatibility: compatibility.clone(),
+                processed: attempt.processed,
+                control_generation: attempt.control_generation,
+            },
+            _disk: disk,
+        }
+    }
 }
 impl From<CommittedSource> for UnreclaimedSource {
     fn from(source: CommittedSource) -> Self {

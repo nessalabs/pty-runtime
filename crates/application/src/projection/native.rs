@@ -76,10 +76,7 @@ impl ProjectionCoordinator {
                     };
                     if model.is_ok() {
                         workspace.config.size = resize.size;
-                        let mut admission =
-                            self.admission.lock().unwrap_or_else(|e| e.into_inner());
-                        let controlled = admission.policy.record_control_applied(resize.generation);
-                        drop(admission);
+                        let controlled = self.queue.record_control_applied(resize.generation);
                         if let Err(error) = controlled {
                             self.fail(error);
                         } else {
@@ -128,12 +125,7 @@ impl ProjectionCoordinator {
                             effects.0.fill(0);
                             self.fail(ProjectionError::Capacity);
                         } else {
-                            let processed = self
-                                .admission
-                                .lock()
-                                .unwrap_or_else(|e| e.into_inner())
-                                .policy
-                                .record_processed(bytes.len());
+                            let processed = self.queue.record_processed(bytes.len());
                             if let Err(error) = processed {
                                 self.fail(error);
                             } else {
@@ -265,15 +257,6 @@ impl ProjectionCoordinator {
         }
     }
     pub(super) fn requeue(&self, event: Command) {
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        if matches!(
-            admission.policy.status().residency,
-            Residency::Closing | Residency::Closed
-        ) {
-            drop(admission);
-            event.fail(ProjectionError::Closed);
-        } else {
-            admission.queue.push_front(event);
-        }
+        self.queue.requeue(event);
     }
 }

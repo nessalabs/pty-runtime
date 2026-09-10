@@ -16,6 +16,7 @@ pub use transfer::{
 };
 mod native;
 mod observation;
+mod queue;
 mod reaper;
 mod state;
 mod teardown;

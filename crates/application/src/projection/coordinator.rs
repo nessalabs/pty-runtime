@@ -1,6 +1,7 @@
 use super::{
     ProjectionBudgets, ProjectionError, ProjectionOptions, ProjectionStatus,
     budgets::{InputQuotas, Lease, SessionQuotas},
+    queue::AdmissionQueue,
     state::{Admission, NativeWorkspace},
     wiring::Wiring,
 };
@@ -11,9 +12,7 @@ use crate::{
     scheduling::{IBlockingExecutor, ICapacitySignal, IClock, IScheduledWork, IWorkScheduler},
     terminal::ITerminalFactory,
 };
-use pty_runtime_domain::{
-    SessionLifetime, projection::ProjectionPolicy, terminal::CompatibilityId,
-};
+use pty_runtime_domain::{SessionLifetime, projection::ProjectionPolicy};
 use std::{
     collections::VecDeque,
     sync::{
@@ -48,7 +47,7 @@ pub struct ProjectionCoordinator {
     pub(super) journal: Arc<super::journal::Journal>,
     pub(super) wiring: Wiring,
     pub(super) quotas: SessionQuotas,
-    pub(super) admission: Mutex<Admission>,
+    pub(super) queue: AdmissionQueue,
     pub(super) workspace: Mutex<NativeWorkspace>,
     pub(super) input: InputQuotas,
     pub(super) stall_generation: AtomicU64,
@@ -96,7 +95,9 @@ impl ProjectionCoordinator {
             return Err(ProjectionError::InvalidConfiguration);
         }
         let resident = Lease::shared(budgets.resident.clone(), options.terminal.native_bytes)?;
-        let compatibility = CompatibilityId::new(services.terminal.compatibility())
+        let compatibility = services
+            .terminal
+            .compatibility()
             .map_err(|_| ProjectionError::InvalidConfiguration)?;
         let terminal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             services.terminal.create(options.terminal)
@@ -107,13 +108,13 @@ impl ProjectionCoordinator {
             .try_reserve_exact(queue_slots)
             .map_err(|_| ProjectionError::Capacity)?;
         let reaper = super::reaper::SourceReaper::new(
-            options.max_park_attempts,
+            options.max_delete_attempts,
             budgets.limits.stored_slots,
         )?;
         let quotas = SessionQuotas::new(budgets, &options);
         let owner = Arc::new(Self {
             journal: super::journal::Journal::new(lifetime, options, &quotas.shared),
-            admission: Mutex::new(Admission {
+            queue: AdmissionQueue::new(Admission {
                 policy: ProjectionPolicy::new(lifetime, options, services.clock.now())?,
                 queue,
                 output_drain: None,
@@ -166,11 +167,7 @@ impl ProjectionCoordinator {
     }
     /// Independent exact parser positions, residency and failure facts.
     pub fn status(&self) -> ProjectionStatus {
-        self.admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .policy
-            .status()
+        self.queue.status()
     }
     /// Sleep using the generation observed before the preceding rejected admission.
     /// A notification between rejection and this call is never lost. One PTY reader
