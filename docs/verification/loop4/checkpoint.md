@@ -7,14 +7,14 @@ crash investigation; its failing evidence and open requirement remain retained.
 The source includes the packaged Guardian process adapter, ordered continuation,
 optional event-stream forwarding, READY/history progress, aggregate diagnostics,
 checkpoint cleanup, and release qualification harnesses. Review records include
-`../../reviews/loop4-ddd-consolidated.md`,
-`../../reviews/loop4-organization-consolidated.md`,
-`../../reviews/guardian-correctness.md`, and
-`../../reviews/independent-acceptance-tests.md`.
+`../../archive/reviews/loop4-ddd-consolidated.md`,
+`../../archive/reviews/loop4-organization-consolidated.md`,
+`../../archive/reviews/guardian-correctness.md`, and
+`../../archive/reviews/independent-acceptance-tests.md`.
 Later scoped fixes and tests have independent follow-up records, including
-`../../reviews/projection-fault-architecture-followup.md`,
-`../../reviews/load-harness-independent.md`, and
-`../../reviews/bitmap-capacity-integration-review.md`.
+`../../archive/reviews/projection-fault-architecture-followup.md`,
+`../../archive/reviews/load-harness-independent.md`, and
+`../../archive/reviews/bitmap-capacity-integration-review.md`.
 
 The canonical source inventory exactly matches the 281-file candidate 2 inventory
 that passed the mandatory gate on macOS arm64 and Linux x86_64, with unchanged

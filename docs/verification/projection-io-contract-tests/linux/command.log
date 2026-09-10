@@ -1,0 +1,22 @@
+   Compiling pty-runtime-application v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.42s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_application-9216427a99f9310f)
+
+running 10 tests
+test projection::tests::io_faults::rejected_transfer_read_releases_admission_and_can_be_retried ... ok
+test projection::tests::io_faults::opened_checkpoint_contract_violation_is_invalid_configuration_and_releases_read_permits ... ok
+test projection::tests::io_faults::transfer_read_rejects_short_ciphertext_without_restoring_or_losing_source ... ok
+
+thread 'projection::tests::io_faults::panicking_read_settles_transfer_as_worker_error_and_allows_a_fresh_read' (338017) panicked at crates/application/src/projection/tests/providers.rs:56:9:
+injected read panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test projection::tests::io_faults::malformed_restore_read_fails_pending_view_but_retains_unprocessed_bytes ... ok
+test projection::tests::io_parking_faults::parking_rejects_wrong_descriptor_or_excess_capacity_before_protection ... ok
+test projection::tests::io_faults::panicking_read_settles_transfer_as_worker_error_and_allows_a_fresh_read ... ok
+test projection::tests::io_pressure::rejected_garbage_delete_retains_the_same_source_and_live_output_keeps_progressing ... ok
+test projection::tests::io_parking_faults::failed_or_malformed_protection_never_publishes_and_allows_a_valid_retry ... ok
+test projection::tests::io_pressure::transfer_memory_pressure_releases_partial_admission_and_preserves_saved_source ... ok
+test projection::tests::io_pressure::restore_memory_or_resident_pressure_keeps_ordered_output_until_capacity_returns ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 57 filtered out; finished in 0.00s
+

@@ -23,7 +23,7 @@ collection, helper execution, native C, build tooling, other platform branches,
 and final-source remeasurement remain required. The helper was intentionally
 uninstrumented for the exact workload environment contract; its binary hash and
 override are in [instrumentation.json](instrumentation.json). The
-[independent diagnosis](../../reviews/coverage-environment-fixture.md) documents
+[independent diagnosis](../../archive/reviews/coverage-environment-fixture.md) documents
 why helper coverage must use a separate run. The strict environment assertion
 continues to reject unexpected exec-boundary variables.
 
@@ -42,6 +42,6 @@ It uses fresh run-owned build/profile directories, records each matrix phase,
 and requires 100% plus zero uncovered lines/functions/regions. Its Rust/helper
 result cannot by itself establish whole-project readiness. See the separate
 [own-C coverage record](../native-coverage/README.md), the
-[independent test gap audit](../../reviews/independent-acceptance-tests.md), and
+[independent test gap audit](../../archive/reviews/independent-acceptance-tests.md), and
 [A-10](../requirements.md) for remaining requirements. Code coverage cannot
 substitute for behavioral assertions or the full ADR workload counts and soak.

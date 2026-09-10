@@ -15,7 +15,9 @@ SPEC.loader.exec_module(load)
 
 
 class FinalCensus(unittest.TestCase):
-    def run_fixture(self, final_phase='closed', complete=True, exit_code=0, tree_processes=1, zombies=(), advance_clock=True):
+    def run_fixture(self, final_phase=None, complete=True, exit_code=0, tree_processes=1, zombies=(), advance_clock=True):
+        if final_phase is None:
+            final_phase = load.FINAL_CENSUS_PHASE
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / 'fixture'
@@ -73,7 +75,7 @@ sys.exit({exit_code})
     def test_closed_census_stops_periodic_sampling_before_normal_exit(self):
         passed, samples, events = self.run_fixture()
         self.assertTrue(passed, events)
-        self.assertEqual(samples, ['measurement_start', 'measurement_end', 'closed'])
+        self.assertEqual(samples, ['measurement_start', 'measurement_end', load.FINAL_CENSUS_PHASE])
         self.assertTrue(any(row.get('event') == 'complete' for row in events))
         self.assertEqual(events[-1]['event'], 'trial_result')
 

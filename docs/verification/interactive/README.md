@@ -4,7 +4,7 @@ Requirement: usable raw PTY client with literal argument forwarding, Unicode/ANS
 output, resize propagation, child status, emergency cancellation, bounded host I/O,
 restored host settings and reaped workload. Implementation: `examples/interactive.rs`
 and `examples/interactive_support/host.rs`; independent findings:
-`docs/reviews/interactive-correctness.md`.
+`docs/archive/reviews/interactive-correctness.md`.
 
 Source identity: `source.json` records the dirty working-tree HEAD, scoped SHA-256
 fingerprints and the Linux source archive fingerprint. It does not equate the

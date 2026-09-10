@@ -54,7 +54,7 @@ what it holds, so a blank wide page and an over-declared one are identical on
 the wire and no payload-derived bound is both tight and non-rejecting. The
 remaining control is to bound the resource. The value, its placement as a
 constant rather than a decoder option, and the refusal being `OutOfMemory` are
-judgements recorded in `docs/reviews/terminal-page-admission.md`.
+judgements recorded in `docs/archive/reviews/terminal-page-admission.md`.
 
 PAGE admission also bounds what a header can make a decoder allocate. The
 capacity ceiling is a fixed 64 MiB, the shape the Kitty graphics decoder uses
@@ -64,7 +64,7 @@ for by the record: every row costs `grid.row_header_len` bytes on the wire even
 when entirely default, so a count the payload cannot support is one no encoder
 produced. An earlier attempt bounded the running total by the scrollback budget
 instead and refused legitimate alternate screens; that is reverted and recorded
-in `docs/reviews/terminal-page-admission.md`.
+in `docs/archive/reviews/terminal-page-admission.md`.
 
 PAGE decoding also rejects a header whose advertised capacity needs more page
 memory than a native page can address. Page creation only asserts that the
@@ -116,13 +116,13 @@ current patched source as an earlier revision.
 This is a fixed patch for four roundtrip defects, one allocator capacity defect,
 two decoder admission defects, and one continuation-export defect, not an
 extensible patch mechanism. The source diagnoses and verification limits are recorded in
-`docs/reviews/terminal-resize-roundtrip.md` and
-`docs/reviews/terminal-row-wrap-roundtrip.md` and
-`docs/reviews/terminal-wide-cutoff.md` and
-`docs/reviews/terminal-viewport-pin.md` and
-`docs/reviews/terminal-page-capacity-admission.md` and
-`docs/reviews/terminal-continuation-c1-introducer.md` and
-`docs/reviews/terminal-page-admission.md`. The earlier cursor-only patch
+`docs/archive/reviews/terminal-resize-roundtrip.md` and
+`docs/archive/reviews/terminal-row-wrap-roundtrip.md` and
+`docs/archive/reviews/terminal-wide-cutoff.md` and
+`docs/archive/reviews/terminal-viewport-pin.md` and
+`docs/archive/reviews/terminal-page-capacity-admission.md` and
+`docs/archive/reviews/terminal-continuation-c1-introducer.md` and
+`docs/archive/reviews/terminal-page-admission.md`. The earlier cursor-only patch
 identity `0a945af64ff9636971fe89b88d1aca95eb5867ae4e61397b1e8b1e92f5e0c67b`
 and its gate/performance evidence are superseded for the combined source;
 its cursor regression evidence remains a valid pre/post record of that defect.

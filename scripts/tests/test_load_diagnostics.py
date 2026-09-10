@@ -81,7 +81,7 @@ class LoadDiagnostics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / 'fixture'
-            binary.write_text('#!' + sys.executable + '\nimport json\nfor phase in ["measurement_start", "measurement_end", "closed"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\n')
+            binary.write_text('#!' + sys.executable + '\nimport json\nfor phase in ["measurement_start", "measurement_end", ' + repr(load.FINAL_CENSUS_PHASE) + ']:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\n')
             binary.chmod(0o700)
             destination = root / 'result.jsonl'
             with patch.object(load.census, 'sample', side_effect=lambda owner, workloads, phase: dict(event='physical_resources', phase=phase, tree_processes=1, zombies=[])), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=None)))):
@@ -96,7 +96,7 @@ class LoadDiagnostics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / 'fixture'
-            binary.write_text('#!' + sys.executable + '\nimport json,sys\nfor phase in ["measurement_start", "measurement_end", "closed"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\nprint("final fixture stderr", file=sys.stderr, flush=True)\n')
+            binary.write_text('#!' + sys.executable + '\nimport json,sys\nfor phase in ["measurement_start", "measurement_end", ' + repr(load.FINAL_CENSUS_PHASE) + ']:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\nprint("final fixture stderr", file=sys.stderr, flush=True)\n')
             binary.chmod(0o700)
             destination = root / 'result.jsonl'
             children = []

@@ -1,0 +1,31 @@
+{
+  "base_revision": "46dbec64384e4519e751086ef47feb5bac11024d",
+  "execution": "not run; source authoring and rustfmt only; coordinator owns execution after the matrix or in a separate Linux diagnostic clone",
+  "frozen_candidate_6": "untouched",
+  "files": {
+    "crates/application/src/projection/tests/io_parking_faults.rs": {
+      "sha256": "ed6b5bda904faad26e230b2cdcf19efa8f8ad0eb5efe8e6a150ac4f32d68808e",
+      "nonblank_lines": 192
+    },
+    "crates/application/src/projection/tests/io_pressure.rs": {
+      "sha256": "f75329484869756833376d93b017e16c29409ca34032f3ae6178c52dcc905a30",
+      "nonblank_lines": 217
+    },
+    "crates/application/src/projection/tests/terminal.rs": {
+      "sha256": "39afa1777b8f4db5322c8f0e4138d6369020904a249ec1fb1a8564c5e0726ae0",
+      "nonblank_lines": 226
+    },
+    "crates/application/src/projection/tests/mod.rs": {
+      "sha256": "618d96b32a1116719cec321ef8edff611a6b35cfdab4e3dc224a2be81d8dc5cd",
+      "nonblank_lines": 19
+    },
+    "crates/application/src/projection/io.rs": {
+      "sha256": "eeb7106d8656466199a3e63269443cfdd2d1b42a45ba91c67c6f0b30b8a66823",
+      "nonblank_lines": 250
+    },
+    "crates/application/src/projection/budgets.rs": {
+      "sha256": "261782f9950f20a46fabf7c073156cf828cdb83ac98114cc44f6b78558cd3633",
+      "nonblank_lines": 161
+    }
+  }
+}

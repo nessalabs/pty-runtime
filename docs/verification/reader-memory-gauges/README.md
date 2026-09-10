@@ -2,7 +2,7 @@
 
 Adds optional current-reader count and actual Vec capacity gauges. Infrastructure owns scratch and releases it before its application measurement guard; cumulative-counter reset preserves current allocation measurements. Checkpoint JSON reports explicit null before diagnostics exist. The fixture also exposes the existing per-session staging-slot option without changing production defaults.
 
-Behavioral verification includes an observed pre-hook failure (expected two actual readers/12,284 scratch bytes, observed zero), then passing real-reader normal exit, retained handle, joined shutdown and caught callback-panic tests. Independent correctness re-executed both actual-reader tests and both guard tests. Independent DDD, organization and correctness reviews are linked in docs/reviews/reader-memory-gauges-*.md.
+Behavioral verification includes an observed pre-hook failure (expected two actual readers/12,284 scratch bytes, observed zero), then passing real-reader normal exit, retained handle, joined shutdown and caught callback-panic tests. Independent correctness re-executed both actual-reader tests and both guard tests. Independent DDD, organization and correctness reviews are linked in docs/archive/reviews/reader-memory-gauges-*.md.
 
 The recorded release build and scoped idle/projected-capacity smoke runs passed with matching, unchanged source inventories. Each smoke used four residents, and recorded four live readers with 16,384 bytes of actual scratch at ready/measurement checkpoints, then zero readers/scratch after shutdown. The baseline reports null. Smoke does not qualify full duration, 64-resident control memory, peak throughput, plateau or release latency.
 

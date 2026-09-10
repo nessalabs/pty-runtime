@@ -1,5 +1,5 @@
 //! Filesystem outcomes and calling-thread signal state of the owned materializer.
-use super::write;
+use super::{write, write_abort_after_open};
 use pty_runtime_domain::process::ProcessError;
 use std::{fs, mem::MaybeUninit, os::unix::fs::PermissionsExt, path::PathBuf};
 
@@ -104,4 +104,19 @@ fn materializer_existing_destination_preserves_bytes_and_mask() {
     assert_eq!(SignalMask::current(), before);
     assert!(matches!(result, Err(ProcessError::Io)));
     assert_eq!(fs::read(path).unwrap(), b"original");
+}
+
+#[test]
+fn materializer_aborted_open_unlinks_partial_file_and_preserves_mask() {
+    let directory = Directory::new();
+    let path = directory.0.join("image");
+    let _mask = SignalMask::install();
+    let before = SignalMask::current();
+    let result = write_abort_after_open(&path, b"partial");
+    assert_eq!(SignalMask::current(), before);
+    assert!(matches!(result, Err(ProcessError::Io)));
+    assert!(
+        !path.exists(),
+        "failed materialize must not leave a partial inode"
+    );
 }

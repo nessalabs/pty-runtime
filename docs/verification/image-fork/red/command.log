@@ -1,0 +1,19 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.04s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-c20ebf329985d666)
+
+running 1 test
+
+thread 'process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec' (332177) panicked at crates/infrastructure/src/process/../../tests/fixtures/process_image_fork.rs:161:5:
+constructed helper exec blocked by unrelated pre-exec child: kind=Some(ExecutableFileBusy) errno=Some(26)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec ... FAILED
+
+failures:
+
+failures:
+    process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p pty-runtime-infrastructure --lib`

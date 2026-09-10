@@ -42,9 +42,23 @@ struct BlockedFork {
     control: UnixStream,
     launch: Option<JoinHandle<io::Result<Child>>>,
 }
+fn set_cloexec(fd: libc::c_int) -> io::Result<()> {
+    // SAFETY: fd is a live socket from UnixStream::pair in this process.
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+    if flags < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if unsafe { libc::fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC) } < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
 impl BlockedFork {
     fn start() -> io::Result<Self> {
         let (control, child_control) = UnixStream::pair()?;
+        // Keep the parent end out of the unrelated spawn so peer close is hangup.
+        set_cloexec(control.as_raw_fd())?;
         control.set_read_timeout(Some(Duration::from_secs(5)))?;
         control.set_write_timeout(Some(Duration::from_secs(1)))?;
         let launch = thread::spawn(move || {
@@ -140,13 +154,18 @@ fn constructor_image_executes_while_unrelated_child_is_between_fork_and_exec() {
     let constructed = {
         let mut staging_observer = || {
             assert!(blocked.is_none(), "materialization hook must run once");
-            // This runs in the constructing parent while its real materializer is
-            // active. It never opens the image, writable or otherwise.
+            // Runs in the constructing parent after the materializer child has
+            // opened the image for write. Starts an unrelated fork/exec that must
+            // not inherit a parent write fd on that inode.
             blocked = Some(BlockedFork::start().expect("concurrent fork handshake"));
         };
-        HelperImage::materialize(None, Some(&mut staging_observer))
+        HelperImage::stage(None, Some(&mut staging_observer))
     };
     let mut blocked = blocked.expect("actual constructor handoff was observed");
+    // materialize/stage returns only after the writer child exits, so this exec
+    // proves the unrelated pre_exec child did not retain a write fd inherited
+    // from the constructing parent (ETXTBSY), not that a live writer still holds
+    // the inode.
     let during = constructed.as_ref().ok().map(execute_image);
     // Release and reap the unrelated process BEFORE inspecting/asserting any
     // constructor or execution result. A failing RED cannot strand the blocker.
@@ -155,7 +174,7 @@ fn constructor_image_executes_while_unrelated_child_is_between_fork_and_exec() {
     let image = constructed.expect("helper image construction");
     assert!(released.expect("blocker release/reap").success());
     assert_eq!(fs::read(image.path()).unwrap(), IMAGE);
-    let after = execute_image(&image).expect("same image executes after inherited writer releases");
+    let after = execute_image(&image).expect("same image still executes after blocker reaps");
     assert_eq!(after.code(), Some(125));
     let during = during.expect("constructor succeeded");
     assert!(

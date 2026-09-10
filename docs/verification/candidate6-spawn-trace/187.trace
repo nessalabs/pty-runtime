@@ -1,0 +1,55 @@
+320597 +++ exited with 0 +++
+320609 +++ killed by SIGKILL +++
+320606 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320609, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+320610 +++ exited with 0 +++
+320619 +++ exited with 0 +++
+320613 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320619, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+320620 +++ exited with 0 +++
+320617 +++ exited with 0 +++
+320615 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320617, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+320614 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320620, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+320613 +++ exited with 0 +++
+320621 +++ exited with 0 +++
+320611 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320613, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+320616 +++ exited with 0 +++
+320614 --- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=320612, si_uid=1000} ---
+320614 +++ killed by SIGTERM +++
+320612 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320614, si_uid=1000, si_status=SIGTERM, si_utime=0, si_stime=0} ---
+320618 +++ exited with 0 +++
+320622 +++ exited with 0 +++
+320612 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320622, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+320602 +++ exited with 0 +++
+320606 +++ killed by SIGKILL +++
+320604 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320606, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+320596 +++ exited with 0 +++
+320625 +++ exited with 3 +++
+320624 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=320625, si_uid=1000, si_status=3, si_utime=0, si_stime=0} ---
+320626 +++ exited with 0 +++
+320604 +++ killed by SIGKILL +++
+320591 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320604, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+320615 +++ killed by SIGKILL +++
+320607 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320615, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320600 +++ exited with 0 +++
+320592 +++ exited with 0 +++
+320611 +++ killed by SIGKILL +++
+320605 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320611, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+320598 +++ exited with 0 +++
+320612 +++ killed by SIGKILL +++
+320608 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320612, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+320607 +++ killed by SIGKILL +++
+320591 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320607, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320603 +++ exited with 0 +++
+320595 +++ exited with 0 +++
+320605 +++ killed by SIGKILL +++
+320591 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320605, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320608 +++ killed by SIGKILL +++
+320601 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320608, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320599 +++ exited with 0 +++
+320624 +++ killed by SIGKILL +++
+320623 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320624, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320593 +++ exited with 0 +++
+320623 +++ killed by SIGKILL +++
+320591 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=320623, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+320601 +++ exited with 0 +++
+320594 +++ exited with 0 +++
+320591 +++ exited with 0 +++

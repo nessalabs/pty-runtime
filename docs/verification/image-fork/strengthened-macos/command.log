@@ -1,0 +1,22 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.83s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-06c475aec9df509e)
+
+running 4 tests
+test process::image_materialize::tests::materializer_missing_parent_preserves_mask_and_returns_not_found ... ok
+test process::image_materialize::tests::materializer_preserves_bytes_permissions_and_caller_mask ... ok
+test process::image_materialize::tests::materializer_existing_destination_preserves_bytes_and_mask ... ok
+
+thread 'process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec' (18066007) panicked at crates/infrastructure/src/process/../../tests/fixtures/process_image_fork.rs:156:22:
+blocker release/reap: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec ... FAILED
+
+failures:
+
+failures:
+    process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `-p pty-runtime-infrastructure --lib`

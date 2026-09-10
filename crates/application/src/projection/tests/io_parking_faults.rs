@@ -106,22 +106,7 @@ fn retry_preserves_saved_bytes(h: &Harness) {
     h.close();
     assert_eq!(h.store.deletes.load(Ordering::Acquire), 1);
     assert!(h.store.entries.lock().unwrap().is_empty());
-    let usage = h.budgets.resources();
-    for item in [
-        usage.journal_bytes,
-        usage.journal_slots,
-        usage.transfer_observers,
-        usage.staging_bytes,
-        usage.staging_slots,
-        usage.native_reservations,
-        usage.checkpoint_buffers,
-        usage.stored_bytes,
-        usage.stored_slots,
-        usage.views,
-        usage.requests,
-    ] {
-        assert_eq!(item.used, 0);
-    }
+    assert_budgets_released(h);
 }
 
 #[test]

@@ -58,7 +58,8 @@ release performance/repetition/soak requirements. P1/P2 findings in the accepted
 scope block acceptance until independently re-reviewed as resolved.
 
 Record findings with file/line evidence and severity, changes made, and unresolved
-items under `docs/reviews`. Re-review fixes; never mark an issue resolved only
+items under `docs/archive/reviews` (or a fresh feature-scoped note linked from
+`docs/verification`). Re-review fixes; never mark an issue resolved only
 because the author says it is. No unresolved correctness/architecture blocker may
 be called a passed milestone. Run the gate again after review changes.
 

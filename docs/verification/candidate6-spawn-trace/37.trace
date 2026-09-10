@@ -1,0 +1,55 @@
+314148 +++ exited with 0 +++
+314165 +++ exited with 0 +++
+314160 +++ killed by SIGKILL +++
+314157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314160, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314161 +++ exited with 0 +++
+314159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314161, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+314164 +++ exited with 0 +++
+314170 +++ exited with 0 +++
+314166 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314170, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+314171 +++ exited with 0 +++
+314167 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314171, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+314166 --- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=314162, si_uid=1000} ---
+314166 +++ killed by SIGTERM +++
+314162 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314166, si_uid=1000, si_status=SIGTERM, si_utime=0, si_stime=0} ---
+314168 +++ exited with 0 +++
+314172 +++ exited with 0 +++
+314162 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314172, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+314167 +++ exited with 0 +++
+314163 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314167, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+314169 +++ exited with 0 +++
+314151 +++ exited with 0 +++
+314146 +++ exited with 0 +++
+314157 +++ killed by SIGKILL +++
+314154 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314157, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+314175 +++ exited with 3 +++
+314174 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=314175, si_uid=1000, si_status=3, si_utime=0, si_stime=0} ---
+314176 +++ exited with 0 +++
+314159 +++ killed by SIGKILL +++
+314155 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314159, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314163 +++ killed by SIGKILL +++
+314156 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314163, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314147 +++ exited with 0 +++
+314154 +++ killed by SIGKILL +++
+314150 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314154, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314162 +++ killed by SIGKILL +++
+314158 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314162, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+314152 +++ exited with 0 +++
+314142 +++ exited with 0 +++
+314155 +++ killed by SIGKILL +++
+314153 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314155, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314153 +++ exited with 0 +++
+314145 +++ exited with 0 +++
+314156 +++ killed by SIGKILL +++
+314149 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314156, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+314158 +++ killed by SIGKILL +++
+314150 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314158, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=1 /* 0.01 s */} ---
+314149 +++ exited with 0 +++
+314143 +++ exited with 0 +++
+314174 +++ killed by SIGKILL +++
+314173 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314174, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314173 +++ killed by SIGKILL +++
+314141 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_KILLED, si_pid=314173, si_uid=1000, si_status=SIGKILL, si_utime=0, si_stime=0} ---
+314150 +++ exited with 0 +++
+314144 +++ exited with 0 +++
+314141 +++ exited with 0 +++

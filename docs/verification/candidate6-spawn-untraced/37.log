@@ -1,0 +1,23 @@
+
+running 4 tests
+test detach_and_cancelled_observation_preserve_live_process_and_cursor ... FAILED
+test synthetic_input_is_not_echoed_or_exposed_in_debug ... ok
+test raw_suffix_gap_completion_and_completed_id_are_stable ... ok
+test admission_bounds_and_owner_drop_preserve_explicit_completion ... ok
+
+failures:
+
+---- detach_and_cancelled_observation_preserve_live_process_and_cursor stdout ----
+spawn_diagnostic stage=initial_guardian kind=ExecutableFileBusy errno=Some(26)
+spawn_diagnostic stage=io_conversion kind=ExecutableFileBusy errno=Some(26)
+
+thread 'detach_and_cancelled_observation_preserve_live_process_and_cursor' (325910) panicked at tests/raw_runtime.rs:58:10:
+called `Result::unwrap()` on an `Err` value: Process(Io)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    detach_and_cancelled_observation_preserve_live_process_and_cursor
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

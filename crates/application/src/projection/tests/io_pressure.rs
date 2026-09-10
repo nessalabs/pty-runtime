@@ -24,22 +24,7 @@ fn source_unchanged(h: &Harness, reference: CheckpointRef) {
     assert_eq!(h.budgets.unreclaimed_sources(), 0);
 }
 fn all_released(h: &Harness) {
-    let r = h.budgets.resources();
-    for usage in [
-        r.journal_bytes,
-        r.journal_slots,
-        r.transfer_observers,
-        r.staging_bytes,
-        r.staging_slots,
-        r.native_reservations,
-        r.checkpoint_buffers,
-        r.stored_bytes,
-        r.stored_slots,
-        r.views,
-        r.requests,
-    ] {
-        assert_eq!(usage.used, 0);
-    }
+    assert_budgets_released(h);
     assert!(h.store.entries.lock().unwrap().is_empty());
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
 }

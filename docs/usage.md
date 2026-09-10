@@ -42,7 +42,7 @@ restoring a native model. Restoration reports readiness separately from history
 completion and interleaves queued live work with bounded history steps. Native
 pages made inapplicable by live mutation are counted explicitly; a finished
 source with skipped pages is not complete history restoration. See the
-[release gap audit](verification/release-gap-audit.md) for qualification scope.
+[release gap audit](archive/milestones/release-gap-audit.md) for qualification scope.
 
 For raw sessions use `resize`; for projected sessions use `resize_projected` so
 OS size and model state are ordered and partial outcomes remain visible. A write

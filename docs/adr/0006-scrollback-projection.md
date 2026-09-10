@@ -1,8 +1,9 @@
 # ADR 0006: Scrollback projection
 
-Status: proposed. No implementation exists. This records the decision and its
-constraints before code, because the surface is public and the alternative
-considered here is the one that looks obvious and is wrong.
+Status: accepted for the read-only range-query surface. Domain history views and
+the demo client wheel path consume absolute window-relative rows; viewport
+scrolling remains rejected. Cold disk paging for history beyond the live byte
+budget is still future work (see [`../features/scrollback-history.md`](../features/scrollback-history.md)).
 
 Sources it amends: [ADR 0001](0001-pty-runtime.md) section 4 (Libghostty), and
 [ADR 0005](0005-domain-boundaries-and-adapters.md) terminal engine boundary.

@@ -37,8 +37,11 @@ pub(super) struct Shared {
 /// Dropping immediately requests cleanup, observes helper termination and joins workers.
 /// Construction also owns a short-lived child that stages the helper image, so
 /// caller forks never inherit its executable writer. It uses raw file operations
-/// with signals blocked; normal platform atfork handlers still apply. Filesystem
-/// I/O and waiting for this child have no fixed wall-clock bound.
+/// with signals blocked. Hard host precondition: call `new` only from a
+/// single-threaded window (before other threads exist, or with no concurrent
+/// locks). Platform atfork handlers can block indefinitely if another thread
+/// holds a lock across this fork. Filesystem I/O and waiting for this child have
+/// no fixed wall-clock bound.
 /// The host must neither reap managed children nor enable SIGCHLD auto-reaping for
 /// this backend's entire lifetime. Construction rejects SIG_IGN/SA_NOCLDWAIT.
 /// Cancellation uses verified member anchors for root/foreground groups; a live

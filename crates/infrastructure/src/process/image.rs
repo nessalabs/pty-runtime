@@ -7,6 +7,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[path = "image_materialize.rs"]
+mod materialize;
+
 const IMAGE: &[u8] = include_bytes!(env!("PTY_RUNTIME_GUARDIAN_IMAGE_PATH"));
 pub(super) struct HelperImage {
     directory: PathBuf,
@@ -14,13 +17,13 @@ pub(super) struct HelperImage {
 }
 impl HelperImage {
     pub fn new(bundled: Option<&Path>) -> Result<Self, ProcessError> {
-        Self::materialize(
+        Self::stage(
             bundled,
             #[cfg(test)]
             None,
         )
     }
-    fn materialize(
+    fn stage(
         bundled: Option<&Path>,
         #[cfg(test)] mut staging_observer: Option<&mut dyn FnMut()>,
     ) -> Result<Self, ProcessError> {
@@ -63,12 +66,12 @@ impl HelperImage {
             };
             #[cfg(test)]
             if let Some(observer) = staging_observer.as_mut() {
-                super::image_materialize::write_observed(&image.executable, IMAGE, observer)?;
+                materialize::write_observed(&image.executable, IMAGE, observer)?;
             } else {
-                super::image_materialize::write(&image.executable, IMAGE)?;
+                materialize::write(&image.executable, IMAGE)?;
             }
             #[cfg(not(test))]
-            super::image_materialize::write(&image.executable, IMAGE)?;
+            materialize::write(&image.executable, IMAGE)?;
             return Ok(image);
         }
         Err(ProcessError::Capacity)

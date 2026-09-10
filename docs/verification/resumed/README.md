@@ -36,10 +36,10 @@ coverage measurement or full release workload proof.
 
 Independent reviews:
 
-- [DDD](../../reviews/resumed-ddd.md)
-- [Design](../../reviews/resumed-design.md)
-- [Correctness](../../reviews/resumed-correctness.md)
-- [Protocol and Linux mutation evidence](../../reviews/resumed-protocol-eof-independent.md)
+- [DDD](../../archive/reviews/resumed-ddd.md)
+- [Design](../../archive/reviews/resumed-design.md)
+- [Correctness](../../archive/reviews/resumed-correctness.md)
+- [Protocol and Linux mutation evidence](../../archive/reviews/resumed-protocol-eof-independent.md)
 
 ## Execution records
 
@@ -55,7 +55,7 @@ stood at that point. It exits with SIGSEGV (-11), with unchanged source
 inventory; the allocator correction alone did not resolve the deferred native
 failure. That failure has since been diagnosed and corrected: PAGE decoding now
 rejects a header capacity a native page cannot address. See
-[the diagnosis](../../reviews/terminal-page-capacity-admission.md) and
+[the diagnosis](../../archive/reviews/terminal-page-capacity-admission.md) and
 `../page-capacity/` for the red/green native proof, the passing seed, the corpus
 range, and the gate. No completed native corpus beyond that recorded range or
 release acceptance follows from mechanical gates.
@@ -67,5 +67,5 @@ Linux soak and resource-stability assessment, physical stack/control-memory
 attribution, strict whole-inventory 100% coverage, native failure resolution and
 qualification, and reconciliation of all 67 ADR rows. The latest historical
 coverage is 92.86% Rust lines; helper/native/platform gaps remain explicit.
-[Memory review](../../reviews/resumed-memory-attribution.md) explains why existing
+[Memory review](../../archive/reviews/resumed-memory-attribution.md) explains why existing
 aggregate snapshots cannot prove the 4 KiB target or physical reader-stack cost.

@@ -40,7 +40,7 @@ Independent review found production-adaptation blockers despite the passing
 measured configuration: unmap performed inside assert is removed by NDEBUG,
 64 KiB OS pages exceed the fixed bitmap, the pinned ABI passes log2 alignment,
 and requested-byte limits alone cannot bound physical fragmentation. See
-`../../../reviews/packed-pages-prototype.md`. Current tests used assertions
+`../../../archive/reviews/packed-pages-prototype.md`. Current tests used assertions
 and 16 KiB macOS pages. No claim is made for the failing/unmeasured configurations.
 Production adaptation, bounded failure tests, per-owner measurements, Linux
 execution and integrated parking/resource qualification remain required.

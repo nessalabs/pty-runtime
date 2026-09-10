@@ -1,0 +1,5 @@
+   Compiling pty-runtime-domain v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/release-candidate-6/crates/domain)
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/release-candidate-6/crates/infrastructure)
+   Compiling pty-runtime-application v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/release-candidate-6/crates/application)
+   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/work/release-candidate-6)
+    Finished `release` profile [optimized] target(s) in 6.47s

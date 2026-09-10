@@ -37,7 +37,7 @@ bounded reproduction, not the required five full 60-second capacity repeats.
 
 The final macOS full gate is recorded separately under `macos-gate-reviewed/`.
 Independent DDD, strict organization and behavioral reviews remain under
-`docs/reviews`. The bundled-file FIFO fix and added domain/application contracts
+`docs/archive/reviews`. The bundled-file FIFO fix and added domain/application contracts
 have separate verification directories. No malformed native input was investigated.
 
 Five-repeat projected-capacity/dominant qualification, final-source Linux checks,

@@ -1,0 +1,66 @@
+test_closed_census_still_rejects_descendants_and_zombies (test_load_final_census.FinalCensus) ... test_closed_census_stops_periodic_sampling_before_normal_exit (test_load_final_census.FinalCensus) ... FAIL
+test_closed_still_requires_complete_and_successful_exit (test_load_final_census.FinalCensus) ... ok
+test_owner_disappearance_before_closed_remains_failure (test_load_final_census.FinalCensus) ... ok
+
+======================================================================
+ERROR: test_closed_census_still_rejects_descendants_and_zombies (test_load_final_census.FinalCensus) (tree_processes=2, zombies=())
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/release/load.py", line 97, in trial
+    assert snapshot['tree_processes'] == 1, snapshot
+AssertionError: {'event': 'physical_resources', 'phase': 'closed', 'tree_processes': 2, 'zombies': []}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 95, in test_closed_census_still_rejects_descendants_and_zombies
+    passed, _, events = self.run_fixture(tree_processes=tree_processes, zombies=zombies)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 64, in run_fixture
+    passed = load.trial(binary, dict(seconds=1, warmup=0, active=0, mode='resources'), destination, True, 1, {}, 5)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/release/load.py", line 141, in trial
+    previous_status = process.poll()
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 48, in poll
+    child.wait(timeout=3)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1189, in wait
+    return self._wait(timeout=timeout)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1909, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/tmp75pm2uq8/fixture', '--seconds', '1', '--warmup', '0', '--active', '0', '--mode', 'resources']' timed out after 3 seconds
+
+======================================================================
+ERROR: test_closed_census_still_rejects_descendants_and_zombies (test_load_final_census.FinalCensus) (tree_processes=1, zombies=(123,))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/release/load.py", line 98, in trial
+    assert not snapshot['zombies'], snapshot
+AssertionError: {'event': 'physical_resources', 'phase': 'closed', 'tree_processes': 1, 'zombies': [123]}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 95, in test_closed_census_still_rejects_descendants_and_zombies
+    passed, _, events = self.run_fixture(tree_processes=tree_processes, zombies=zombies)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 64, in run_fixture
+    passed = load.trial(binary, dict(seconds=1, warmup=0, active=0, mode='resources'), destination, True, 1, {}, 5)
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/release/load.py", line 141, in trial
+    previous_status = process.poll()
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 48, in poll
+    child.wait(timeout=3)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1189, in wait
+    return self._wait(timeout=timeout)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1909, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/tmpx_z95zbk/fixture', '--seconds', '1', '--warmup', '0', '--active', '0', '--mode', 'resources']' timed out after 3 seconds
+
+======================================================================
+FAIL: test_closed_census_stops_periodic_sampling_before_normal_exit (test_load_final_census.FinalCensus)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 72, in test_closed_census_stops_periodic_sampling_before_normal_exit
+    self.assertTrue(passed, events)
+AssertionError: False is not true : [{'command': ['/var/folders/1w/wp9n0wwd22qgrf0zkhb2fk6r0000gn/T/tmpxg_3bxre/fixture', '--seconds', '1', '--warmup', '0', '--active', '0', '--mode', 'resources'], 'configuration': {'seconds': 1, 'warmup': 0, 'active': 0, 'mode': 'resources'}, 'smoke': True, 'repeat': 1, 'owner_pid': 67812, 'sample_seconds': 5}, {'event': 'checkpoint', 'phase': 'measurement_start'}, {'event': 'physical_resources', 'phase': 'measurement_start', 'tree_processes': 1, 'zombies': []}, {'event': 'checkpoint', 'phase': 'measurement_end'}, {'event': 'physical_resources', 'phase': 'measurement_end', 'tree_processes': 1, 'zombies': []}, {'event': 'checkpoint', 'phase': 'closed'}, {'event': 'physical_resources', 'phase': 'closed', 'tree_processes': 1, 'zombies': []}, {'event': 'trial_failure', 'error': "ProcessLookupError('owner exited after poll')", 'traceback': 'Traceback (most recent call last):\n  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/release/load.py", line 102, in trial\n    record(census.sample(process.pid, workloads, \'periodic\'))\n  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1093, in __call__\n    return self._mock_call(*args, **kwargs)\n  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1097, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1158, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File "/Users/nessa/Documents/NessaLabs/pty-runtime/scripts/tests/test_load_final_census.py", line 57, in sample\n    raise ProcessLookupError(\'owner exited after poll\')\nProcessLookupError: owner exited after poll\n', 'last_event': 'checkpoint', 'last_checkpoint': 'closed'}, {'event': 'complete'}, {'event': 'trial_failure_process', 'exit_code': 0, 'exit_before_cleanup': 0, 'killed_by_driver': False, 'output_reader_finished': True}]
+
+----------------------------------------------------------------------
+Ran 4 tests in 7.581s
+
+FAILED (failures=1, errors=2)

@@ -1,0 +1,31 @@
+    Checking pty-runtime-domain v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/domain)
+   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/infrastructure)
+    Checking pty-runtime-application v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/application)
+error: can be more succinctly written as a byte str
+  --> crates/infrastructure/src/process/../../tests/fixtures/process_image_fork.rs:63:33
+   |
+63 |                     let ready = [b'R'];
+   |                                 ^^^^^^ help: try: `*b"R"`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#byte_char_slices
+   = note: `-D clippy::byte-char-slices` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::byte_char_slices)]`
+
+error: can be more succinctly written as a byte str
+  --> crates/infrastructure/src/process/../../tests/fixtures/process_image_fork.rs:77:39
+   |
+77 |                         || release != [b'G']
+   |                                       ^^^^^^ help: try: `*b"G"`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#byte_char_slices
+
+error: can be more succinctly written as a byte str
+  --> crates/infrastructure/src/process/../../tests/fixtures/process_image_fork.rs:94:21
+   |
+94 |         if ready != [b'R'] {
+   |                     ^^^^^^ help: try: `*b"R"`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#byte_char_slices
+
+error: could not compile `pty-runtime-infrastructure` (lib test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

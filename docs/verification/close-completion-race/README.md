@@ -8,7 +8,7 @@ These runs use a separate Linux diagnostic clone of71c1d6f plus the exact test a
 
 The failed candidate5 soak reported Projection(Worker) after turn576, just before a projected transient creation/cleanup operation. These deterministic tests prove a real close race discovered during that diagnosis, but the original log did not identify its failing stage, so that soak's root cause is not asserted as established. Error-only fixture diagnostics preserve original errors and identify phase/turn/public status for the next full run. The prior failed soak remains retained; no12-hour pass is claimed.
 
-Independent correctness, organization and DDD reviews are in docs/reviews/close-completion-race-*.md. The caller's durable storage failure and Capacity observation policy remain unchanged; only an obsolete wake failure after finished closure is suppressed.
+Independent correctness, organization and DDD reviews are in docs/archive/reviews/close-completion-race-*.md. The caller's durable storage failure and Capacity observation policy remain unchanged; only an obsolete wake failure after finished closure is suppressed.
 
 ## Combined checkpoint verification
 

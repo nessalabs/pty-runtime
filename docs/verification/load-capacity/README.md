@@ -23,5 +23,5 @@ predates the Python tri-state correction but uses the same final Rust producer;
 its own complete source identity is retained. It is not a full-repeat baseline.
 
 Independent capacity correctness, fixture organization, Python contracts and
-reporting re-review are recorded under `docs/reviews`. The scope excludes the
+reporting re-review are recorded under `docs/archive/reviews`. The scope excludes the
 retained candidate-2 dominant-load failure and other open release requirements.
