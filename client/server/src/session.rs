@@ -182,8 +182,16 @@ pub fn run(
                 // a refusal is reported and the terminal carries on.
                 match terminal.history(start, count.min(500)) {
                     Ok(history) => {
-                        let (rows, pending) =
+                        let (rows, pending, reset) =
                             wire::encode_history(&history, &mut styles, &palette);
+                        if reset {
+                            let _ = outbound.blocking_send(ServerMessage::Ready {
+                                v: VERSION,
+                                cols: size.cols(),
+                                rows: size.rows(),
+                                palette: wire::WirePalette::from(&palette),
+                            });
+                        }
                         if !pending.is_empty() {
                             let _ = outbound.blocking_send(ServerMessage::Styles {
                                 v: VERSION,

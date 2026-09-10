@@ -115,8 +115,12 @@ A cell is `[text, width, style]`:
 
 ### styles
 
-Sent immediately before the first `frame` that references a new style, so a
-client can keep one table for the life of the socket.
+Sent immediately before the first `frame` (or `history`) that references a new
+style. The server keeps a **finite** intern table (512 distinct non-default
+styles). When that budget is exhausted it resets the table, reuses ids from 1,
+and sends `ready` again so the client drops its map before the new `styles`
+message. A single screen that still invents more distinct colours than the
+budget maps the extras to the default style (id 0) rather than growing forever.
 
 ```json
 {"v": 1, "type": "styles", "styles": [{"id": 5, "fg": [255,0,0], "bold": true}]}
@@ -125,6 +129,9 @@ client can keep one table for the life of the socket.
 Absent fields take their default: `fg` and `bg` default to the palette
 default, and every boolean defaults to false. `underline` is one of `none`,
 `single`, `double`, `curly`, `dotted`, `dashed`.
+
+Every `ready` also clears the client's style map; the server retransmits any
+ids the next frame needs.
 
 ### modes
 

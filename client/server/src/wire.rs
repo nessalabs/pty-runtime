@@ -207,13 +207,33 @@ fn underline(value: Underline) -> &'static str {
 /// Interns styles so a frame carries small integers rather than repeating a
 /// full style on every cell. Terminals reuse a handful of styles across a whole
 /// screen, so this is most of the wire saving.
+///
+/// The table is finite: a truecolor animation that keeps inventing RGB pairs
+/// cannot grow it without bound. At capacity the table resets, identifiers
+/// restart at 1, and the next `ready` / `styles` exchange replaces the client's
+/// map before those ids are reused.
+const STYLE_CAP: usize = 512;
+
 #[derive(Default)]
 pub struct StyleTable {
     ids: HashMap<StyleKey, u32>,
     pending: Vec<WireStyle>,
+    /// Set when ids were discarded mid-encode; the caller must rebuild the frame.
+    restarted: bool,
+    /// After one reset in an encode pass, further new styles map to default (0).
+    capped: bool,
 }
 
 impl StyleTable {
+    pub fn begin_encode(&mut self) {
+        self.restarted = false;
+        self.capped = false;
+    }
+
+    pub fn take_restarted(&mut self) -> bool {
+        std::mem::take(&mut self.restarted)
+    }
+
     pub fn intern(&mut self, style: &TerminalStyle, palette: &TerminalPalette) -> u32 {
         let wire = WireStyle {
             id: 0,
@@ -234,6 +254,17 @@ impl StyleTable {
         let key = StyleKey::from(&wire);
         if let Some(id) = self.ids.get(&key) {
             return *id;
+        }
+        if self.ids.len() >= STYLE_CAP {
+            if self.capped {
+                // One screen can still invent more distinct colours than the
+                // budget; refuse further growth rather than looping resets.
+                return 0;
+            }
+            self.ids.clear();
+            self.pending.clear();
+            self.restarted = true;
+            self.capped = true;
         }
         // Zero is reserved for the default style, so identifiers start at one.
         let id = self.ids.len() as u32 + 1;
@@ -256,6 +287,8 @@ impl StyleTable {
     pub fn clear(&mut self) {
         self.ids.clear();
         self.pending.clear();
+        self.restarted = false;
+        self.capped = false;
     }
 }
 
@@ -276,23 +309,33 @@ fn encode_row(cells: &[TerminalCell], styles: &mut StyleTable, palette: &Termina
 }
 
 /// Encode retained rows for the wire, reusing the row encoding a frame uses.
+/// The bool is true when the shared style table had to reset; the caller must
+/// send `ready` before `styles` so the client drops stale identifiers.
 pub fn encode_history(
     history: &pty_runtime::terminal::TerminalHistory,
     styles: &mut StyleTable,
     palette: &TerminalPalette,
-) -> (Vec<Row>, Vec<WireStyle>) {
+) -> (Vec<Row>, Vec<WireStyle>, bool) {
     let cols = usize::from(history.cols);
-    let mut rows = Vec::new();
-    if cols > 0 {
-        for (index, chunk) in history.cells.chunks(cols).enumerate() {
-            let mut row = encode_row(chunk, styles, palette);
-            // Rows are numbered absolutely so a client can place them without
-            // tracking how many it has already received.
-            row.y = u16::try_from(history.start + index as u64).unwrap_or(u16::MAX);
-            rows.push(row);
+    let mut reset = false;
+    loop {
+        styles.begin_encode();
+        let mut rows = Vec::new();
+        if cols > 0 {
+            for (index, chunk) in history.cells.chunks(cols).enumerate() {
+                let mut row = encode_row(chunk, styles, palette);
+                // Rows are numbered absolutely so a client can place them without
+                // tracking how many it has already received.
+                row.y = u16::try_from(history.start + index as u64).unwrap_or(u16::MAX);
+                rows.push(row);
+            }
         }
+        if !styles.take_restarted() {
+            return (rows, styles.take_pending(), reset);
+        }
+        reset = true;
+        styles.clear();
     }
-    (rows, styles.take_pending())
 }
 
 /// What the client has already been shown, so only differences are sent.
@@ -338,13 +381,12 @@ impl Sent {
             });
             self.palette = Some(palette);
             self.size = Some(size);
-            // Geometry changes force a full frame rewrite. Palette changes also
-            // invalidate every previously resolved colour, so drop the table;
-            // size-only resizes keep ids so the client does not flash unstyled.
+            // Geometry or palette changes force a full frame rewrite. Drop the
+            // style table too: the client clears its map on every `ready`, so
+            // ids must be retransmitted (and a long session cannot keep an
+            // unbounded interned set across resizes either).
             self.rows.clear();
-            if palette_changed {
-                styles.clear();
-            }
+            styles.clear();
         }
 
         if self.modes != Some(view.modes) {
@@ -374,19 +416,48 @@ impl Sent {
             self.rows = vec![Vec::new(); rows];
         }
 
-        let mut changed = Vec::new();
-        for y in 0..rows {
-            let start = y * cols;
-            let Some(row) = view.cells.get(start..start + cols) else {
-                break;
-            };
-            if self.rows[y] == row {
-                continue;
+        let mut changed;
+        let mut style_reset = false;
+        loop {
+            styles.begin_encode();
+            changed = Vec::new();
+            for y in 0..rows {
+                let start = y * cols;
+                let Some(row) = view.cells.get(start..start + cols) else {
+                    break;
+                };
+                if self.rows[y] == row {
+                    continue;
+                }
+                let mut encoded = encode_row(row, styles, &view.palette);
+                encoded.y = y as u16;
+                changed.push(encoded);
+                self.rows[y] = row.to_vec();
             }
-            let mut encoded = encode_row(row, styles, &view.palette);
-            encoded.y = y as u16;
-            changed.push(encoded);
-            self.rows[y] = row.to_vec();
+            if !styles.take_restarted() {
+                break;
+            }
+            // Ids were recycled mid-frame; rebuild from a clean table so no
+            // cell keeps a pre-reset identifier.
+            style_reset = true;
+            styles.clear();
+            self.rows = vec![Vec::new(); rows];
+        }
+
+        if style_reset {
+            // Same geometry/palette, but the client must drop stale ids before
+            // the new `styles` message reuses them.
+            if !messages
+                .iter()
+                .any(|message| matches!(message, ServerMessage::Ready { .. }))
+            {
+                messages.push(ServerMessage::Ready {
+                    v: VERSION,
+                    cols: size.0,
+                    rows: size.1,
+                    palette: WirePalette::from(&view.palette),
+                });
+            }
         }
 
         let pending = styles.take_pending();

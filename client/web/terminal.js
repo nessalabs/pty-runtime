@@ -527,13 +527,11 @@ export function Terminal({
       }
       switch (message.type) {
         case "ready":
-          setPalette((previous) => {
-            // Size-only ready keeps style ids; a new palette must not.
-            if (!samePalette(previous, message.palette)) {
-              stylesRef.current = new Map();
-            }
-            return message.palette;
-          });
+          // Every ready replaces the style table. Ids may restart after a
+          // capacity reset or palette change; keeping the old map would paint
+          // the wrong colours.
+          stylesRef.current = new Map();
+          setPalette(message.palette);
           setScroll((previous) => ({ ...previous, screenRows: message.rows }));
           setGrid((previous) =>
             previous.cols === message.cols && previous.rows === message.rows
