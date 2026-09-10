@@ -48,6 +48,17 @@ struct PausedFeed {
     barrier: Arc<Barrier>,
 }
 impl ITerminal for PausedFeed {
+    fn history(&mut self, start: u64, _count: u16) -> Result<TerminalHistory, TerminalError> {
+        // These doubles model feed and control ordering, not retained rows.
+        Ok(TerminalHistory {
+            start,
+            cols: 0,
+            cells: Vec::new(),
+            total: 0,
+            scrollback: 0,
+        })
+    }
+
     fn feed(&mut self, bytes: &[u8]) -> Result<TerminalEffects, TerminalError> {
         self.barrier.wait();
         self.barrier.wait();

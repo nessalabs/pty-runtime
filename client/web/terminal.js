@@ -341,6 +341,13 @@ export function Terminal({
   const [cursor, setCursor] = useState({ col: 0, row: 0, visible: true });
   const [palette, setPalette] = useState(null);
   const [status, setStatus] = useState("connecting");
+  // Scrollback. `offset` is how many rows above the live screen the viewer is
+  // looking; zero means following live output. The rows themselves are held by
+  // absolute index so an eviction that shifts the window is visible rather
+  // than silently renumbering what is on screen.
+  const [scroll, setScroll] = useState({ offset: 0, rows: null, total: 0, scrollback: 0 });
+  const scrollRef = useRef(scroll);
+  scrollRef.current = scroll;
 
   // Measure one character so the grid can be sized to the container. Terminal
   // layout is entirely determined by the cell box, so this is the only
@@ -429,6 +436,18 @@ export function Terminal({
             });
           }
           break;
+        case "history": {
+          const rows = new Map();
+          for (const row of message.rows) rows.set(row.y, row.cells);
+          setScroll((previous) => ({
+            ...previous,
+            rows,
+            start: message.start,
+            total: message.total,
+            scrollback: message.scrollback,
+          }));
+          break;
+        }
         case "exit":
           setStatus(`exited (${message.status ?? "signal"})`);
           onExit?.(message.status);
@@ -576,15 +595,37 @@ export function Terminal({
       if (lines === 0) return;
       wheelRef.current -= lines * step;
 
-      const key = lines < 0 ? "A" : "B";
-      const prefix = modesRef.current.application_cursor ? "\x1bO" : "\x1b[";
-      const count = Math.min(Math.abs(lines), 10);
-      send({
-        type: "input",
-        data: toBase64(encoder.encode(`${prefix}${key}`.repeat(count))),
-      });
+      if (modesRef.current.alternate_screen) {
+        // A program owning the whole display has no scrollback to move
+        // through, so the wheel becomes cursor keys instead. That is what
+        // makes it scroll in vim and less.
+        event.preventDefault();
+        const key = lines < 0 ? "A" : "B";
+        const prefix = modesRef.current.application_cursor ? "\x1bO" : "\x1b[";
+        send({
+          type: "input",
+          data: toBase64(encoder.encode(`${prefix}${key}`.repeat(Math.min(Math.abs(lines), 10)))),
+        });
+        return;
+      }
+
+      // Otherwise move through retained history. The offset is clamped to what
+      // the engine still holds, which is also what stops a scroll from running
+      // off the top.
+      event.preventDefault();
+      const current = scrollRef.current;
+      const limit = Math.max(0, current.scrollback);
+      const offset = Math.max(0, Math.min(limit, current.offset - lines));
+      if (offset === current.offset) return;
+      setScroll((previous) => ({ ...previous, offset }));
+      if (offset > 0) {
+        // Rows are absolute, so ask for the window ending at the live screen
+        // minus the offset.
+        const start = Math.max(0, current.total - grid.rows - offset);
+        send({ type: "history", start, count: grid.rows });
+      }
     },
-    [send, sendMouse],
+    [grid.rows, send, sendMouse],
   );
   const onContextMenu = useCallback((event) => {
     // A program tracking the mouse wants button 2, not the browser's menu.
@@ -638,14 +679,41 @@ export function Terminal({
       },
       "data-status": status,
     },
-    grid.lines.map((cells, y) =>
+    // While scrolled back the history rows replace the live screen. The live
+    // grid is left untouched underneath, so releasing the scroll shows exactly
+    // what arrived meanwhile rather than a reconstruction.
+    (scroll.offset > 0 && scroll.rows
+      ? Array.from({ length: grid.rows }, (_, index) => {
+          const absolute = (scroll.start ?? 0) + index;
+          return scroll.rows.get(absolute) ?? [];
+        })
+      : grid.lines
+    ).map((cells, y) =>
       h(
         "div",
         { key: y, style: { height: `${cell.height}px` } },
         cells.length ? runs(cells, palette, stylesRef.current, cell.width) : " ",
       ),
     ),
-    cursor.visible &&
+    scroll.offset > 0 &&
+      h(
+        "div",
+        {
+          style: {
+            position: "absolute",
+            right: "8px",
+            top: "4px",
+            padding: "2px 8px",
+            borderRadius: "4px",
+            background: "rgba(0,0,0,0.6)",
+            color: "#cfcfd6",
+            fontSize: "11px",
+            pointerEvents: "none",
+          },
+        },
+        `${scroll.offset} rows back`,
+      ),
+    scroll.offset === 0 && cursor.visible &&
       h("div", {
         style: {
           position: "absolute",

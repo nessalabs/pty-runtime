@@ -88,8 +88,10 @@ unsafe extern "C" {
     ) -> i32;
     pub fn rt_resize(owner: *mut c_void, cols: u16, rows: u16) -> i32;
     pub fn rt_info(owner: *mut c_void, out: *mut Info) -> i32;
+    pub fn rt_rows(owner: *mut c_void, total: *mut usize, scrollback: *mut usize) -> i32;
     pub fn rt_cell(
         owner: *mut c_void,
+        history: i32,
         x: u16,
         y: u16,
         text: *mut u32,

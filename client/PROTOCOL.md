@@ -48,6 +48,18 @@ as `ESC [ A` are byte sequences rather than text.
 {"v": 1, "type": "resize", "cols": 120, "rows": 40}
 ```
 
+### history
+
+Ask for retained rows. `start` addresses the engine's current window, where
+index zero is the oldest row still held.
+
+```json
+{"v": 1, "type": "history", "start": 120, "count": 40}
+```
+
+The server clamps `start` into the window and `count` to a bounded maximum, so
+a request that has aged out returns what survives rather than failing.
+
 ## Server to client
 
 ### ready
@@ -142,6 +154,26 @@ scroll in vim and less, and it is what terminal emulators do for the same
 reason. Off the alternate screen a wheel does nothing, because there is no
 scrollback in this version to move through.
 
+### history
+
+The reply to a `history` request. Rows use the same encoding as a `frame`, so a
+client parses one shape for both, and `y` is the absolute row index rather than
+a screen position.
+
+```json
+{"v": 1, "type": "history", "start": 120, "rows": [{"y": 120, "cells": []}],
+ "total": 812, "scrollback": 788}
+```
+
+`start` is where the read actually began after clamping. `total` and
+`scrollback` describe the current window: indices are **window-relative and
+shift as old rows are discarded**, so a client holding a scroll position
+re-anchors from these rather than assuming its indices remain valid. ADR 0006
+records why the engine cannot offer a stable numbering.
+
+Reading history moves no viewport and has no effect a later read or checkpoint
+can observe, so several clients may read different ranges at once.
+
 ### exit
 
 ```json
@@ -160,12 +192,15 @@ Terminal to the socket: the server closes after sending it.
 
 ## What version 1 does not do
 
-Selection, scrollback and reconnect are not in this version. Scrollback and
-reconnect are the interesting ones, because the runtime already has both: the
-engine retains history, and the event stream carries replay cursors that
-survive a dropped connection. A version 2 would let a client ask for a row
-range rather than only the active screen, and resume from a cursor instead of
-starting a new session.
+Selection and reconnect are not in this version. Reconnect is the interesting
+one, because the runtime already has it: the event stream carries replay
+cursors that survive a dropped connection, so a version 2 could resume from a
+cursor instead of starting a new session.
+
+Scrollback is carried, but only as whole-window reads. A client that scrolls
+re-requests the rows it needs; there is no incremental update of a scrolled
+view, so a program writing while a viewer is scrolled back does not refresh
+what that viewer sees until the next request.
 
 Mouse input is carried, but as ordinary `input` bytes encoded by the client
 rather than as a message of its own. A version 2 that reported the individual

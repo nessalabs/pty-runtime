@@ -74,6 +74,17 @@ impl ITerminalFactory for Factory {
 }
 struct Terminal(Box<dyn ITerminal>, Arc<Gate>);
 impl ITerminal for Terminal {
+    fn history(&mut self, start: u64, _count: u16) -> Result<TerminalHistory, TerminalError> {
+        // This double drives restoration ordering, not retained rows.
+        Ok(TerminalHistory {
+            start,
+            cols: 0,
+            cells: Vec::new(),
+            total: 0,
+            scrollback: 0,
+        })
+    }
+
     fn feed(&mut self, b: &[u8]) -> Result<TerminalEffects, TerminalError> {
         self.0.feed(b)
     }

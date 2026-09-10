@@ -184,6 +184,9 @@ async fn serve(mut socket: WebSocket, state: AppState) {
                             ClientMessage::Resize { cols, rows, .. } => {
                                 session::Command::Resize { cols, rows }
                             }
+                            ClientMessage::History { start, count, .. } => {
+                                session::Command::History { start, count }
+                            }
                             ClientMessage::Hello { .. } => continue,
                         };
                         if command_tx.send(command).await.is_err() {

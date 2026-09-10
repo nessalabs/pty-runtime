@@ -4,6 +4,13 @@ static bool mode(RuntimeTerminal *o, GhosttyMode value) {
   GhosttyTerminalModeConfig m = {value, false};
   return !ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_MODE, &m) && m.value;
 }
+/* Total rows the engine holds and how many of those are scrollback. A caller
+ * needs both to place an absolute row index in the current window. */
+int rt_rows(RuntimeTerminal *o, size_t *total, size_t *scrollback) {
+  GET(GHOSTTY_TERMINAL_DATA_TOTAL_ROWS, total);
+  GET(GHOSTTY_TERMINAL_DATA_SCROLLBACK_ROWS, scrollback);
+  return 0;
+}
 int rt_info(RuntimeTerminal *o, RuntimeInfo *out) {
   bool visible, pending;
   GhosttyTerminalScreen screen;
@@ -53,10 +60,15 @@ static RuntimeColor color(GhosttyStyleColor c) {
     default: return (RuntimeColor){255,0,0,0};
   }
 }
-int rt_cell(RuntimeTerminal *o, uint16_t x, uint16_t y, uint32_t *text,
+/* Rows outside the active screen are read through the screen tag, which
+ * addresses retained history and the active area in one absolute space and
+ * moves nothing. Reading history must not disturb what anyone else sees. */
+int rt_cell(RuntimeTerminal *o, int history, uint16_t x, uint16_t y, uint32_t *text,
             size_t cap, size_t *len, RuntimeStyle *out) {
   GhosttyGridRef ref = {.size = sizeof(ref)};
-  GhosttyPoint point = {.tag = GHOSTTY_POINT_TAG_ACTIVE, .value.coordinate = {x,y}};
+  GhosttyPoint point = {
+    .tag = history ? GHOSTTY_POINT_TAG_SCREEN : GHOSTTY_POINT_TAG_ACTIVE,
+    .value.coordinate = {x,y}};
   GhosttyStyle s = {.size = sizeof(s)};
   GhosttyCell cell;
   GhosttyCellWide wide;

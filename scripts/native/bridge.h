@@ -31,6 +31,7 @@ typedef struct {
 } RuntimeStyle;
 int rt_configure(RuntimeTerminal *, size_t, size_t);
 int rt_info(RuntimeTerminal *, RuntimeInfo *);
+int rt_rows(RuntimeTerminal *, size_t *, size_t *);
 void rt_free(RuntimeTerminal *);
 RuntimeTerminal *rt_owner(size_t);
 #endif

@@ -115,6 +115,28 @@ pub enum MouseEncoding {
     Sgr,
 }
 
+/// A bounded read of retained rows, oldest first.
+///
+/// Row indices address the engine's current window: index zero is the oldest
+/// row still retained, not the oldest ever produced. Scrollback limits discard
+/// old rows, which shifts that window, so `total` and `scrollback` are
+/// reported with every read and a consumer holding a position re-anchors from
+/// them. See ADR 0006 for why the engine cannot offer a stable numbering.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminalHistory {
+    /// Index this read actually started at, which is clamped into the window
+    /// and so may be lower than the index requested.
+    pub start: u64,
+    /// Columns per row; every row holds exactly this many cells.
+    pub cols: u16,
+    /// Row-major cells, oldest row first.
+    pub cells: Vec<TerminalCell>,
+    /// Rows the engine currently holds, including the active screen.
+    pub total: u64,
+    /// How many of `total` are scrollback rather than active.
+    pub scrollback: u64,
+}
+
 /// Input-affecting modes used by runtime consumers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TerminalModes {

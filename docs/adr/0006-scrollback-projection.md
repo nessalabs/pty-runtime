@@ -43,14 +43,16 @@ active screen. It is rejected:
 Expose scrollback as a **read-only range query addressed by absolute row
 index**, leaving the viewport out of the domain entirely.
 
-- Rows are numbered from the oldest row the engine still holds. A query names a
+- Rows are numbered from the oldest row the engine still holds: index zero is
+  the oldest retained row, not the oldest row ever produced. A query names a
   start and a count and receives the rows that exist within it.
 - The query is a projection: it copies owned domain values and takes no
   reference to engine memory, exactly as `view` does.
 - It never moves the viewport, so it is safe with concurrent output, safe with
   several readers, and invisible to checkpointing.
-- Every response reports the total row count and the index of the first row
-  still retained, so a caller can position itself and detect eviction.
+- Every response reports the current total row count and how many of those are
+  scrollback, so a caller can position itself and notice when the window has
+  moved beneath it.
 
 Viewing position belongs to the consumer, not the runtime. A client that wants
 a scrolled view holds an index and asks for that range.
@@ -59,15 +61,26 @@ a scrolled view holds an index and asks for that range.
 
 - **Eviction is normal, not an error.** Scrollback limits discard the oldest
   rows while a reader is looking at them. A request for a range that has partly
-  or wholly aged out returns what still exists plus the new first-retained
-  index. It must not fail, and it must not silently return different rows than
-  those asked for.
+  or wholly aged out returns what still exists, together with the index it
+  actually started at and the current totals. It must not fail, and it must not
+  silently substitute different rows for the ones asked for.
 - **The range is bounded.** A query is admitted against the existing
   `view_bytes` budget in the same way `view` is; an unbounded request is
   refused rather than served.
-- **Row indices are monotonic and never reused.** Trimming raises the
-  first-retained index; it does not renumber surviving rows. A consumer holding
-  an index must be able to tell "scrolled away" from "moved".
+- **Indices are window-relative and do shift under eviction.** This is a
+  concession to what the engine can report, not a preference. Stable indices
+  would need a monotonic count of rows ever produced; the native API exposes
+  only the current total and scrollback size, and at the scrollback cap a row
+  arriving and a row being evicted are indistinguishable from those numbers.
+  Synthesising a base from them would be a guess presented as an index, which
+  is worse than not offering one.
+
+  Every response therefore carries the current total and scrollback row counts,
+  which is what a consumer needs to re-anchor. The visible cost is that a
+  consumer scrolled far back can have its position shift beneath it while old
+  rows are discarded. Restoring the stronger guarantee needs the engine to
+  report rows-ever-produced alongside its total; that is an upstream change,
+  recorded here so the concession is not mistaken for a design preference.
 - **Wrapped lines stay physical rows.** The projection reports what the grid
   holds, matching `view`. Reflowing into logical lines is a consumer concern
   and would make indices unstable.
@@ -93,8 +106,9 @@ To be added to the ledger as its own row rather than folded into G2-06:
 
 - A range spanning live output and history agrees with an uninterrupted
   reference for the same session.
-- Eviction under a configured scrollback limit reports a raised first-retained
-  index and returns the surviving rows, with no error and no renumbering.
+- Eviction under a configured scrollback limit returns the surviving rows with
+  no error, and reports totals that let a consumer detect that its position
+  moved.
 - Concurrent output during a query leaves the active screen, the cursor, and a
   subsequent checkpoint byte-identical to a run without the query, proving the
   read is genuinely free of side effects.

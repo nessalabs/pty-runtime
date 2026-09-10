@@ -4,7 +4,7 @@
 //! this runs on its own thread and talks to the socket over channels. That
 //! keeps every runtime type off the async executor and out of the WebSocket
 //! handler entirely.
-use crate::wire::{ServerMessage, Sent, StyleTable, VERSION};
+use crate::wire::{self, ServerMessage, Sent, StyleTable, VERSION};
 use pty_runtime::{
     AttachPosition, CommandSpec, EnvironmentPolicy, ExitStatus, OutputEvent, ReplayPage, Runtime,
     RuntimeOptions, SessionId, SessionOptions, TerminalSize,
@@ -29,6 +29,7 @@ const FRAME_INTERVAL: Duration = Duration::from_millis(16);
 pub enum Command {
     Input(Vec<u8>),
     Resize { cols: u16, rows: u16 },
+    History { start: u64, count: u16 },
 }
 
 fn poll<F: Future + Unpin>(future: &mut F) -> Option<F::Output> {
@@ -130,6 +131,14 @@ pub fn run(
 
     let mut sent = Sent::default();
     let mut styles = StyleTable::default();
+    // History rows resolve colours against the same palette as frames, so the
+    // client keeps one style table for both.
+    let mut palette = pty_runtime::terminal::TerminalPalette {
+        foreground: None,
+        background: None,
+        cursor: None,
+        indexed: [[0; 3]; 256],
+    };
     let mut pending_input: std::collections::VecDeque<u8> = std::collections::VecDeque::new();
     let mut writing = None;
     let mut resizing = None;
@@ -160,6 +169,37 @@ pub fn run(
                             fail(&outbound, format!("session resize failed: {error:?}"));
                             break;
                         }
+                    }
+                }
+            }
+            Ok(Command::History { start, count }) => {
+                // Reading history moves nothing and cannot fail the session:
+                // a refusal is reported and the terminal carries on.
+                match terminal.history(start, count.min(500)) {
+                    Ok(history) => {
+                        let (rows, pending) =
+                            wire::encode_history(&history, &mut styles, &palette);
+                        if !pending.is_empty() {
+                            let _ = outbound.blocking_send(ServerMessage::Styles {
+                                v: VERSION,
+                                styles: pending,
+                            });
+                        }
+                        if outbound
+                            .blocking_send(ServerMessage::History {
+                                v: VERSION,
+                                start: history.start,
+                                rows,
+                                total: history.total,
+                                scrollback: history.scrollback,
+                            })
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                    Err(error) => {
+                        fail(&outbound, format!("history unavailable: {error:?}"));
                     }
                 }
             }
@@ -235,6 +275,7 @@ pub fn run(
             match terminal.view() {
                 Ok(view) => {
                     dirty = false;
+                    palette = view.palette.clone();
                     for message in sent.diff(&view, &mut styles) {
                         if outbound.blocking_send(message).is_err() {
                             return;

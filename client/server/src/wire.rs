@@ -17,12 +17,17 @@ pub enum ClientMessage {
     Hello { v: u32, cols: u16, rows: u16 },
     Input { v: u32, data: String },
     Resize { v: u32, cols: u16, rows: u16 },
+    /// Ask for retained rows. `start` addresses the engine's current window.
+    History { v: u32, start: u64, count: u16 },
 }
 
 impl ClientMessage {
     pub fn version(&self) -> u32 {
         match self {
-            Self::Hello { v, .. } | Self::Input { v, .. } | Self::Resize { v, .. } => *v,
+            Self::Hello { v, .. }
+            | Self::Input { v, .. }
+            | Self::Resize { v, .. }
+            | Self::History { v, .. } => *v,
         }
     }
 }
@@ -99,6 +104,16 @@ pub enum ServerMessage {
         seq: u64,
         cursor: Cursor,
         rows: Vec<Row>,
+    },
+    History {
+        v: u32,
+        /// Where the read actually began after clamping into the window.
+        start: u64,
+        rows: Vec<Row>,
+        /// Rows the engine currently holds, and how many are scrollback. A
+        /// client re-anchors from these when eviction moves the window.
+        total: u64,
+        scrollback: u64,
     },
     Exit {
         v: u32,
@@ -212,6 +227,26 @@ fn encode_row(cells: &[TerminalCell], styles: &mut StyleTable, palette: &Termina
             })
             .collect(),
     }
+}
+
+/// Encode retained rows for the wire, reusing the row encoding a frame uses.
+pub fn encode_history(
+    history: &pty_runtime::terminal::TerminalHistory,
+    styles: &mut StyleTable,
+    palette: &TerminalPalette,
+) -> (Vec<Row>, Vec<WireStyle>) {
+    let cols = usize::from(history.cols);
+    let mut rows = Vec::new();
+    if cols > 0 {
+        for (index, chunk) in history.cells.chunks(cols).enumerate() {
+            let mut row = encode_row(chunk, styles, palette);
+            // Rows are numbered absolutely so a client can place them without
+            // tracking how many it has already received.
+            row.y = u16::try_from(history.start + index as u64).unwrap_or(u16::MAX);
+            rows.push(row);
+        }
+    }
+    (rows, styles.take_pending())
 }
 
 /// What the client has already been shown, so only differences are sent.
