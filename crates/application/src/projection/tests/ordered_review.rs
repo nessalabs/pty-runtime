@@ -150,14 +150,8 @@ fn parked_snapshot_io_does_not_delay_an_existing_observers_end() {
     let mut snapshot = h.owner.begin_transfer().unwrap();
     h.step();
     assert!(matches!(
-        h.owner
-            .workspace
-            .lock()
-            .unwrap()
-            .io
-            .as_ref()
-            .map(|io| &io.kind),
-        Some(crate::projection::state::BlockingJob::Transfer { .. })
+        h.owner.workspace.lock().unwrap().io.as_ref(),
+        Some(crate::projection::state::PendingIo::Transfer { .. })
     ));
     h.owner
         .notify_output_drained(pty_runtime_domain::process::DrainOutcome::Eof);

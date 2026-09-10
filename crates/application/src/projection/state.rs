@@ -114,36 +114,65 @@ pub(super) struct Resizing {
     pub _staging: StagingLease,
     pub operation: ProcessOperation<Result<(), pty_runtime_domain::process::ProcessError>>,
 }
-pub(super) enum BlockingJob {
+/// Where a blocking worker publishes the result of exactly one job.
+///
+/// `None` means still running. A panicking job publishes `Err(Worker)` rather
+/// than leaving the slot empty, so a crashed worker can never look like one that
+/// is merely slow.
+pub(super) type Mailbox<T> = Arc<Mutex<Option<Result<T, ProjectionError>>>>;
+
+/// The single blocking job in flight, together with the state its completion
+/// needs and the mailbox it will publish into.
+///
+/// The mailbox payload type is per-variant on purpose: a `Delete` cannot be
+/// handed a checkpoint, and a `Restore` cannot be handed a commit outcome, so
+/// the "wrong result kind" case that used to need a defensive arm in every
+/// completion branch is now unrepresentable.
+pub(super) enum PendingIo {
     Commit {
         attempt: ParkAttempt,
         disk: DiskLease,
         _memory: IoMemory,
+        mailbox: Mailbox<CommitOutcome>,
     },
     Restore {
         resident: Lease,
         memory: IoMemory,
+        mailbox: Mailbox<TerminalCheckpoint>,
     },
     Transfer {
         request: SnapshotRequest,
         memory: IoMemory,
         _staging: StagingLease,
+        mailbox: Mailbox<TerminalCheckpoint>,
     },
     Delete {
         source: CommittedSource,
         attempts: u32,
+        mailbox: Mailbox<()>,
     },
 }
-pub(super) enum IoResult {
-    Failure,
-    Commit(CommitOutcome),
-    Read(Result<TerminalCheckpoint, ProjectionError>),
-    Delete(Result<(), ProjectionError>),
+impl PendingIo {
+    /// Whether the blocking worker has published a result yet.
+    pub fn is_ready(&self) -> bool {
+        fn ready<T>(mailbox: &Mailbox<T>) -> bool {
+            mailbox.lock().unwrap_or_else(|e| e.into_inner()).is_some()
+        }
+        match self {
+            Self::Commit { mailbox, .. } => ready(mailbox),
+            Self::Restore { mailbox, .. } => ready(mailbox),
+            Self::Transfer { mailbox, .. } => ready(mailbox),
+            Self::Delete { mailbox, .. } => ready(mailbox),
+        }
+    }
 }
-pub(super) type IoMailbox = Arc<Mutex<Option<IoResult>>>;
-pub(super) struct PendingIo {
-    pub kind: BlockingJob,
-    pub mailbox: IoMailbox,
+/// Take a published result, treating an empty or poisoned slot as worker failure.
+pub(super) fn collect<T>(mailbox: &Mailbox<T>) -> Result<T, ProjectionError> {
+    mailbox
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take()
+        .unwrap_or(Err(ProjectionError::Worker))
 }
 /// Everything guarded by the *workspace* lock: exclusive ownership of the native
 /// terminal and of whatever operation is currently in flight against it.

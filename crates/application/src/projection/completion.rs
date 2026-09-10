@@ -1,23 +1,23 @@
 use super::{
     PinnedCheckpoint, ProjectionCoordinator, ProjectionError, Residency,
     state::{
-        BlockingJob, CommitOutcome, CommittedSource, IoResult, NativeWorkspace, UnreclaimedSource,
+        CommitOutcome, CommittedSource, NativeWorkspace, PendingIo, UnreclaimedSource, collect,
     },
 };
 use pty_runtime_domain::terminal::RestorationProgress;
 impl ProjectionCoordinator {
+    /// Apply the result of the one blocking job, if it has finished.
+    ///
+    /// Each arm reads its own typed mailbox, so a result can only ever be
+    /// interpreted as the kind of work that produced it. An empty or poisoned
+    /// mailbox is worker failure and nothing else.
     pub(super) fn finish_io(&self, workspace: &mut NativeWorkspace) {
         let Ok(services) = self.services() else {
             return;
         };
-        let result = workspace.io.as_ref().and_then(|pending| {
-            pending
-                .mailbox
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .take()
-        });
-        let Some(result) = result else { return };
+        if !workspace.io.as_ref().is_some_and(PendingIo::is_ready) {
+            return;
+        }
         let Some(pending) = workspace.io.take() else {
             return;
         };
@@ -25,16 +25,16 @@ impl ProjectionCoordinator {
             self.status().residency,
             Residency::Closing | Residency::Closed
         );
-        match pending.kind {
-            BlockingJob::Commit {
+        match pending {
+            PendingIo::Commit {
                 attempt,
                 disk,
                 _memory: _,
+                mailbox,
             } => {
-                let result = match result {
-                    IoResult::Commit(result) => result,
-                    _ => CommitOutcome::Uncertain(ProjectionError::Worker),
-                };
+                // A panicked commit worker may have stored ciphertext before it
+                // died, so it is Uncertain rather than Rejected.
+                let result = collect(&mailbox).unwrap_or_else(CommitOutcome::Uncertain);
                 match result {
                     CommitOutcome::Published(reference) => {
                         let source = CommittedSource {
@@ -97,11 +97,12 @@ impl ProjectionCoordinator {
                         .park_failed(error, services.clock.now()),
                 }
             }
-            BlockingJob::Restore { resident, memory } => {
-                let checkpoint = match result {
-                    IoResult::Read(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
+            PendingIo::Restore {
+                resident,
+                memory,
+                mailbox,
+            } => {
+                let checkpoint = collect(&mailbox);
                 if !closing {
                     match checkpoint.and_then(|checkpoint| {
                         self.native_call(|| services.terminal.restore(checkpoint, workspace.config))
@@ -122,15 +123,13 @@ impl ProjectionCoordinator {
                     }
                 }
             }
-            BlockingJob::Transfer {
+            PendingIo::Transfer {
                 request,
                 memory,
                 _staging: _,
+                mailbox,
             } => {
-                let result = match result {
-                    IoResult::Read(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
+                let result = collect(&mailbox);
                 request.complete(
                     if closing {
                         Err(ProjectionError::Closed)
@@ -143,12 +142,12 @@ impl ProjectionCoordinator {
                     &self.journal,
                 );
             }
-            BlockingJob::Delete { source, attempts } => {
-                let result = match result {
-                    IoResult::Delete(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
-                if let Err(error) = result {
+            PendingIo::Delete {
+                source,
+                attempts,
+                mailbox,
+            } => {
+                if let Err(error) = collect(&mailbox) {
                     workspace.pending_deletes.push_front((source, attempts + 1));
                     if attempts + 1 >= self.options.max_park_attempts {
                         let mut admission =

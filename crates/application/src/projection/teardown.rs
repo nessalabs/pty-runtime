@@ -1,6 +1,6 @@
 use super::{
     ProjectionCoordinator, ProjectionError, Residency,
-    state::{BlockingJob, NativeWorkspace, UnreclaimedSource},
+    state::{NativeWorkspace, PendingIo, UnreclaimedSource},
 };
 use pty_runtime_domain::{checkpoint::CheckpointKey, terminal::CheckpointDescriptor};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -34,8 +34,8 @@ impl ProjectionCoordinator {
         let mut workspace = self.workspace.lock().unwrap_or_else(|e| e.into_inner());
         self.finish_io(&mut workspace);
         if let Some(pending) = workspace.io.take() {
-            match pending.kind {
-                BlockingJob::Commit { attempt, disk, .. } => {
+            match pending {
+                PendingIo::Commit { attempt, disk, .. } => {
                     let compatibility = self
                         .services()
                         .map(|s| s.terminal.compatibility().to_owned())
@@ -59,16 +59,16 @@ impl ProjectionCoordinator {
                         .unwrap_or_else(|e| e.into_inner())
                         .push(source);
                 }
-                BlockingJob::Delete { source, .. } => self
+                PendingIo::Delete { source, .. } => self
                     .budgets
                     .unreclaimed
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .push(source.into()),
-                BlockingJob::Transfer { request, .. } => {
+                PendingIo::Transfer { request, .. } => {
                     self.contain_panic(|| request.fail(ProjectionError::Worker))
                 }
-                BlockingJob::Restore { .. } => (),
+                PendingIo::Restore { .. } => (),
             }
         }
         if let Some(source) = workspace.source.take() {
