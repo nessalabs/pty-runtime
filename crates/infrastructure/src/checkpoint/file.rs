@@ -139,7 +139,8 @@ impl FileCheckpointStore {
             return Err(CheckpointError::AlreadyExists);
         }
         let bytes = checkpoint.ciphertext().len();
-        if bytes == 0 || checkpoint.descriptor.compatibility.len() > 4096 {
+        // CompatibilityId already bounds the identity; only the payload needs a check.
+        if bytes == 0 {
             return Err(CheckpointError::InvalidConfiguration);
         }
         if bytes > self.limit.saturating_sub(state.committed + state.abandoned) {

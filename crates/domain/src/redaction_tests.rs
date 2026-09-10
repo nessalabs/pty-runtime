@@ -3,8 +3,8 @@ use crate::{
     ReplayCursor, ReplayPage, SessionLifetime,
     checkpoint::{CheckpointKey, ProtectedCheckpoint},
     terminal::{
-        CheckpointDescriptor, TerminalCell, TerminalCheckpoint, TerminalColor, TerminalStyle,
-        Underline,
+        CheckpointDescriptor, CompatibilityId, TerminalCell, TerminalCheckpoint, TerminalColor,
+        TerminalStyle, Underline,
     },
 };
 
@@ -21,7 +21,7 @@ fn does_not_disclose(value: &dyn std::fmt::Debug) {
 fn opaque_checkpoints_hide_payload_and_adapter_metadata_in_debug() {
     let lifetime = SessionLifetime::new(8, 3);
     let descriptor = CheckpointDescriptor {
-        compatibility: MARKER.into(),
+        compatibility: CompatibilityId::new(MARKER).unwrap(),
         processed: ReplayCursor {
             lifetime,
             offset: 42,

@@ -3,7 +3,7 @@ use pty_runtime_application::checkpoint::ICheckpointStore;
 use pty_runtime_domain::{
     ReplayCursor, SessionLifetime,
     checkpoint::{CheckpointKey, ProtectedCheckpoint},
-    terminal::CheckpointDescriptor,
+    terminal::{CheckpointDescriptor, CompatibilityId},
 };
 use pty_runtime_infrastructure::checkpoint::FileCheckpointStore;
 
@@ -23,7 +23,7 @@ fn storage_roundtrips_short_opaque_envelope_without_cipher_assumptions() {
             generation: 1,
         },
         CheckpointDescriptor {
-            compatibility: "independent-envelope-fixture".into(),
+            compatibility: CompatibilityId::new("independent-envelope-fixture").unwrap(),
             processed: ReplayCursor {
                 lifetime,
                 offset: 2,

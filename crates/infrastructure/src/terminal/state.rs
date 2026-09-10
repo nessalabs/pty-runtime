@@ -52,7 +52,7 @@ impl ITerminal for GhosttyTerminal {
         descriptor: CheckpointDescriptor,
     ) -> Result<TerminalCheckpoint, TerminalError> {
         self.healthy()?;
-        if descriptor.compatibility != COMPATIBILITY {
+        if descriptor.compatibility.as_str() != COMPATIBILITY {
             return Err(TerminalError::IncompatibleCheckpoint);
         }
         if descriptor.control_generation != self.generation {

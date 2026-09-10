@@ -130,3 +130,6 @@ impl std::fmt::Debug for TerminalEffects {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests;

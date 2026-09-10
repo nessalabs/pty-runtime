@@ -15,7 +15,7 @@ fn fixture() -> (TerminalConfig, TerminalCheckpoint) {
     terminal.feed(b"\x1b[3").unwrap();
     let checkpoint = terminal
         .checkpoint(CheckpointDescriptor {
-            compatibility: GhosttyTerminalFactory.compatibility().into(),
+            compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
             processed: ReplayCursor {
                 lifetime: SessionLifetime::new(8, 1),
                 offset: 8192,

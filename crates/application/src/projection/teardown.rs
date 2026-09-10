@@ -36,10 +36,6 @@ impl ProjectionCoordinator {
         if let Some(pending) = workspace.io.take() {
             match pending {
                 PendingIo::Commit { attempt, disk, .. } => {
-                    let compatibility = self
-                        .services()
-                        .map(|s| s.terminal.compatibility().to_owned())
-                        .unwrap_or_default();
                     let source = UnreclaimedSource {
                         _reference: None,
                         _key: CheckpointKey {
@@ -47,7 +43,7 @@ impl ProjectionCoordinator {
                             generation: attempt.generation,
                         },
                         _descriptor: CheckpointDescriptor {
-                            compatibility,
+                            compatibility: self.compatibility.clone(),
                             processed: attempt.processed,
                             control_generation: attempt.control_generation,
                         },

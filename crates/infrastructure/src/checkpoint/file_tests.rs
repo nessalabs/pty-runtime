@@ -1,5 +1,5 @@
 use super::*;
-use pty_runtime_domain::{ReplayCursor, SessionLifetime};
+use pty_runtime_domain::{ReplayCursor, SessionLifetime, terminal::CompatibilityId};
 use std::path::PathBuf;
 use std::sync::{Arc, Barrier};
 fn fixture(n: u64) -> ProtectedCheckpoint {
@@ -10,7 +10,7 @@ fn fixture(n: u64) -> ProtectedCheckpoint {
             generation: n,
         },
         CheckpointDescriptor {
-            compatibility: "fixture".into(),
+            compatibility: CompatibilityId::new("fixture").unwrap(),
             processed: ReplayCursor {
                 lifetime,
                 offset: 9,

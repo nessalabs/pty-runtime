@@ -40,7 +40,7 @@ impl ProjectionCoordinator {
                         let source = CommittedSource {
                             reference,
                             descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: services.terminal.compatibility().into(),
+                                compatibility: self.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },
@@ -73,7 +73,7 @@ impl ProjectionCoordinator {
                                 generation: attempt.generation,
                             },
                             _descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: services.terminal.compatibility().into(),
+                                compatibility: self.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },

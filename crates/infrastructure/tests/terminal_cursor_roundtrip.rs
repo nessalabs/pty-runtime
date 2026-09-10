@@ -18,7 +18,7 @@ fn config(cols: u16) -> TerminalConfig {
 }
 fn restore(t: &mut dyn ITerminal, c: TerminalConfig, generation: u64) -> Box<dyn ITerminal> {
     let descriptor = CheckpointDescriptor {
-        compatibility: GhosttyTerminalFactory.compatibility().into(),
+        compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset: 0,
@@ -141,7 +141,7 @@ unsafe extern "C" {
 fn full_state(t: &mut dyn ITerminal, generation: u64) -> Vec<u8> {
     let cp = t
         .checkpoint(CheckpointDescriptor {
-            compatibility: GhosttyTerminalFactory.compatibility().into(),
+            compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
             processed: ReplayCursor {
                 lifetime: SessionLifetime::new(1, 1),
                 offset: 0,

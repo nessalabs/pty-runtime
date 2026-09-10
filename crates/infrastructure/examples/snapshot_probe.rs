@@ -60,7 +60,8 @@ mod probe {
 
         let checkpoint = terminal
             .checkpoint(CheckpointDescriptor {
-                compatibility: GhosttyTerminalFactory.compatibility().into(),
+                compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility())
+                    .unwrap(),
                 processed: ReplayCursor {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,
@@ -82,7 +83,8 @@ mod probe {
     fn probe_quietly(bytes: Vec<u8>, size: TerminalSize) -> &'static str {
         let checkpoint = TerminalCheckpoint {
             descriptor: CheckpointDescriptor {
-                compatibility: GhosttyTerminalFactory.compatibility().into(),
+                compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility())
+                    .unwrap(),
                 processed: ReplayCursor {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,
@@ -232,7 +234,8 @@ mod probe {
         let size = TerminalSize::new(cols, rows).expect("terminal size");
         let checkpoint = TerminalCheckpoint {
             descriptor: CheckpointDescriptor {
-                compatibility: GhosttyTerminalFactory.compatibility().into(),
+                compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility())
+                    .unwrap(),
                 processed: ReplayCursor {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,

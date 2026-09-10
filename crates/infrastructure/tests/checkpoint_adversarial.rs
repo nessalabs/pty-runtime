@@ -13,7 +13,7 @@ fn fixture() -> (CheckpointKey, TerminalCheckpoint) {
         },
         TerminalCheckpoint {
             descriptor: CheckpointDescriptor {
-                compatibility: "adversarial-engine".into(),
+                compatibility: CompatibilityId::new("adversarial-engine").unwrap(),
                 processed: ReplayCursor {
                     lifetime,
                     offset: 99,

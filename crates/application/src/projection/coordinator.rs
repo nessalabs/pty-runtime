@@ -12,7 +12,9 @@ use crate::{
     },
     terminal::ITerminalFactory,
 };
-use pty_runtime_domain::{SessionLifetime, projection::ProjectionPolicy};
+use pty_runtime_domain::{
+    SessionLifetime, projection::ProjectionPolicy, terminal::CompatibilityId,
+};
 use std::{
     collections::VecDeque,
     sync::{
@@ -46,6 +48,9 @@ pub struct ProjectionServices {
 pub struct ProjectionCoordinator {
     pub(super) journal: Arc<super::journal::Journal>,
     pub(super) options: ProjectionOptions,
+    /// Validated once at creation and cloned into every descriptor, so no later
+    /// path has to re-check the identity or invent a fallback for it.
+    pub(super) compatibility: CompatibilityId,
     pub(super) protected_bytes: usize,
     pub(super) services: Mutex<Option<ProjectionServices>>,
     pub(super) budgets: Arc<ProjectionBudgets>,
@@ -103,11 +108,8 @@ impl ProjectionCoordinator {
             return Err(ProjectionError::InvalidConfiguration);
         }
         let resident = Lease::shared(budgets.resident.clone(), options.terminal.native_bytes)?;
-        if services.terminal.compatibility().is_empty()
-            || services.terminal.compatibility().len() > 4096
-        {
-            return Err(ProjectionError::InvalidConfiguration);
-        }
+        let compatibility = CompatibilityId::new(services.terminal.compatibility())
+            .map_err(|_| ProjectionError::InvalidConfiguration)?;
         let terminal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             services.terminal.create(options.terminal)
         }))
@@ -143,6 +145,7 @@ impl ProjectionCoordinator {
             local_slots: Arc::new(Quota::new(options.staging_slots)),
             local_requests: Arc::new(Quota::new(options.request_slots)),
             options,
+            compatibility,
             protected_bytes,
             services: Mutex::new(Some(services)),
             budgets,

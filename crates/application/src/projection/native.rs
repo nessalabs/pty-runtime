@@ -277,10 +277,7 @@ impl ProjectionCoordinator {
     pub(super) fn descriptor(&self) -> CheckpointDescriptor {
         let status = self.status();
         CheckpointDescriptor {
-            compatibility: self
-                .services()
-                .map(|services| services.terminal.compatibility().into())
-                .unwrap_or_default(),
+            compatibility: self.compatibility.clone(),
             processed: status.processed,
             control_generation: status.control_generation,
         }

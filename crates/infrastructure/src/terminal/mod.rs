@@ -53,7 +53,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
         config: TerminalConfig,
     ) -> Result<Box<dyn ITerminal>, TerminalError> {
         let config = config.validate()?;
-        if checkpoint.descriptor.compatibility != COMPATIBILITY {
+        if checkpoint.descriptor.compatibility.as_str() != COMPATIBILITY {
             return Err(TerminalError::IncompatibleCheckpoint);
         }
         if checkpoint.bytes.len() > config.checkpoint_bytes {
