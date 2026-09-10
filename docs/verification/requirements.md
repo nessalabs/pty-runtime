@@ -8,7 +8,8 @@ Updating this ledger requires recording the exact source revision and evidence;
 do not infer completion from neighboring rows. The runtime was not present at
 this audit's initial inspection; later implementation requires fresh review.
 
-Sources: [ADR 0001](../adr/0001-pty-runtime.md),
+Sources: [ADR 0006](../adr/0006-scrollback-projection.md) (proposed; no
+implementation, one pending row below), [ADR 0001](../adr/0001-pty-runtime.md),
 [ADR 0002](../adr/0002-performance-and-stability.md),
 [ADR 0003](../adr/0003-session-parking-and-state-transfer.md),
 [ADR 0004](../adr/0004-integration-and-release-qualification.md), and
@@ -84,6 +85,7 @@ All rows pending; native fixture-only evidence above does not discharge them.
 | G2-04 | Safe exclusive native ownership; synchronous bounded nonreentrant callbacks; no use-after-free during cancellation (0002 Scheduling, 0004 Parking) | Safety review for each unsafe/FFI block, callback userdata/allocator lifetime proof; injected cancellation while FFI active; available native memory/error instrumentation with limitations recorded |
 | G2-05 | Generated replies use same ordered writer as user input; bounded responses; clipboard/desktop/image features disabled initially (0001 Projection, 0003 Ordered output) | Real query child gets exactly one correct response with multiple observers; flood overload bounded; no callback write reentrancy; effect policy and image resource limits verified |
 | G2-06 | Views expose dimensions/cursor visibility/active screen/modes/text/styles and processed cursor (0001 Projection, 0005 Terminal) | Cursor/control-labelled snapshots agree with reference; finite request count/output bytes; cancelled extraction releases permit; formatted views never treated as restore payload; projected modes preserve distinctions a consumer acts on rather than summarizing them, including mouse tracking and encoding separately ([review](../reviews/terminal-mouse-modes.md)) |
+| G2-06b | Retained history projected as a bounded read-only range with stable absolute indices; no viewport mutation (0006 Decision) | Range spanning live output and history agrees with an uninterrupted reference; eviction raises the first-retained index without error or renumbering; a query leaves active screen, cursor and a later checkpoint byte-identical to a run without it; queries during restoration never contradict `restoration_progress`; budget refusal typed and allocation-free |
 | G2-07 | Binary checkpoints preserve partial continuation and exact engine identity; bounded tracking enabled before feed and after restore (0003 Native) | Split unfinished UTF-8/CSI/OSC/DCS round trips and repeat parks; continuation-limit exhaustion keeps resident state and retries valid boundary without loss |
 | G2-08 | Distinct usable-state/complete-history progress; limits and callbacks rebound before live feed (0003 Restore, 0005 Terminal) | READY then bounded history steps interleaved with live operations; inapplicable old pages recorded; no premature complete-history claim; replies and limits still enforced after restore |
 | G2-09 | Incremental resident compression serialized, optional capability explicit, bounded work outside hot I/O (0002 Parking, 0005 Terminal) | Reference equality before/after compression, unprofitable pages, scheduling latency; replacement engine unsupported capability typed; compression not required immediately before identical-size parking |
