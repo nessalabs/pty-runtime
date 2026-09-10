@@ -131,20 +131,14 @@ impl ProjectionCoordinator {
         let services = self.services()?;
         let (ticket, wait) = self.reserve_request_slot()?;
         let mut lease = self.reserve_staging(0)?;
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        self.ensure_accepting(&admission)?;
-        if admission.output_drain.is_some() {
-            return Err(ProjectionError::Closed);
-        }
-        admission.policy.record_activity(services.clock.now())?;
-        lease.timing = timing;
-        admission
-            .queue
-            .push_back(Command::Resize(size, ticket, lease));
-        drop(admission);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        self.admit(|admission| {
+            if admission.output_drain.is_some() {
+                return Err(ProjectionError::Closed);
+            }
+            admission.policy.record_activity(services.clock.now())?;
+            lease.timing = timing;
+            Ok(Command::Resize(size, ticket, lease))
+        })?;
         Ok(wait)
     }
     /// Queue a bounded copied observation. Restores a parked model; complete history
@@ -152,13 +146,7 @@ impl ProjectionCoordinator {
     pub fn view(&self) -> Result<ProjectionOperation<ProjectedView>, ProjectionError> {
         let (ticket, wait) = self.reserve_request_slot()?;
         let lease = self.reserve_staging(0)?;
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        self.ensure_accepting(&admission)?;
-        admission.queue.push_back(Command::View(ticket, lease));
-        drop(admission);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        self.admit(|_| Ok(Command::View(ticket, lease)))?;
         Ok(wait)
     }
     /// Queue an immutable binary transfer pin at an exact byte/control boundary.
@@ -166,16 +154,12 @@ impl ProjectionCoordinator {
     pub fn checkpoint(&self) -> Result<ProjectionOperation<PinnedCheckpoint>, ProjectionError> {
         let (ticket, wait) = self.reserve_request_slot()?;
         let lease = self.reserve_staging(0)?;
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        self.ensure_accepting(&admission)?;
-        admission.queue.push_back(Command::Checkpoint(
-            super::snapshot::SnapshotRequest::Checkpoint(ticket),
-            lease,
-        ));
-        drop(admission);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        self.admit(|_| {
+            Ok(Command::Checkpoint(
+                super::snapshot::SnapshotRequest::Checkpoint(ticket),
+                lease,
+            ))
+        })?;
         Ok(wait)
     }
     /// Invalidate pending publication and schedule source cleanup. The runtime retains
@@ -215,6 +199,34 @@ impl ProjectionCoordinator {
             }
         }
         pair.map(|(_, wait)| wait)
+    }
+    /// Admit one command into the ordered queue and wake the worker.
+    ///
+    /// `build` runs under the admission lock, so it can apply any additional
+    /// per-command checks and policy updates atomically with the push. Returning
+    /// an error from it leaves the queue untouched and releases the guard, which
+    /// drops whatever leases the caller had reserved.
+    ///
+    /// The guard is deliberately owned and dropped *here* rather than by the
+    /// caller: `fail` re-acquires the admission lock, so waking while still
+    /// holding it would deadlock. Keeping that ordering inside this one function
+    /// means no call site can get it wrong.
+    ///
+    /// Once the push succeeds the command owns its leases, so a scheduler
+    /// failure fails the projection instead of rolling the admission back.
+    pub(super) fn admit(
+        &self,
+        build: impl FnOnce(&mut super::state::Admission) -> Result<Command, ProjectionError>,
+    ) -> Result<(), ProjectionError> {
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        self.ensure_accepting(&admission)?;
+        let command = build(&mut admission)?;
+        admission.queue.push_back(command);
+        drop(admission);
+        if let Err(error) = self.wake() {
+            self.fail(error);
+        }
+        Ok(())
     }
     pub(super) fn ensure_accepting(
         &self,

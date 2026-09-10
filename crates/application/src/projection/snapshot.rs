@@ -95,16 +95,12 @@ impl ProjectionCoordinator {
         let permit = self.journal.reserve_observer()?;
         let (ticket, wait) = self.reserve_request_slot()?;
         let staging = self.reserve_staging(0)?;
-        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        self.ensure_accepting(&admission)?;
-        admission.queue.push_back(super::state::Command::Checkpoint(
-            SnapshotRequest::Transfer(ticket, permit),
-            staging,
-        ));
-        drop(admission);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        self.admit(|_| {
+            Ok(super::state::Command::Checkpoint(
+                SnapshotRequest::Transfer(ticket, permit),
+                staging,
+            ))
+        })?;
         Ok(wait)
     }
 }
