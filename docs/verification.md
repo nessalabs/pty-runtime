@@ -36,13 +36,21 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 - Mechanical gate and a large set of fixtures exist and are the usual proof of
   “this change still works.”
 
-## Readability pass (naming and diagrams)
+## Clean Code review pass (naming, diagrams, structure)
 
-A Clean Code review of the domain and application core produced a rename and
-documentation pass. **No behaviour changed**: the same 231 workspace tests pass
-before and after, with an identical test-name set, and the mechanical gate is
-green. Test files were touched for identifier renames only — no assertion,
-condition, or expected value was altered.
+A Clean Code review of the domain and application core, applied in verified
+steps. **No behaviour changed at any step**: every pre-existing test passes with
+no test removed, and the mechanical gate is green after each commit. Test files
+were touched for identifier and type changes only — no assertion, condition, or
+expected value was altered. Where an assertion had to change shape, the old and
+new forms were shown to compare the same value.
+
+One measurement caveat worth recording: the first steps were verified with
+`cargo test --workspace`, which does **not** build the `event-stream` targets.
+The gate always ran the full `--all-features` matrix and stayed green, and
+verification now uses `--all-features` too.
+
+### Naming and diagrams
 
 What changed:
 
@@ -63,7 +71,36 @@ What changed:
   truth table, and a worked `TransferOrder` cursor example.
 - The two-lock split is now documented on `Admission` / `NativeWorkspace`,
   including the actual lock order (**workspace → admission**, taken only by
-  `worker::run`, `worker::failed` and `teardown::finish_after_shutdown`).
+  `worker::run`, `worker::failed` and `teardown::finish_after_shutdown`). The
+  first draft of that comment stated the order backwards; it was checked against
+  the code before being committed.
+
+### Structure
+
+- `admit()` replaces the push-drop-wake sequence that was copied into five
+  admission paths. It owns the lock guard and drops it before waking, because
+  `fail()` re-acquires that same lock — a call site that woke while still
+  holding it would have deadlocked.
+- The blocking-I/O mailbox is typed per job kind. `BlockingJob` and `IoResult`
+  were parallel enums that had to agree by convention, and `finish_io` carried a
+  defensive "wrong result kind" arm in every branch. All four are gone, not
+  merely unreachable.
+- `worker::run` went from ~100 lines and twelve early returns to 31, with the
+  phases named (`read_back_source`, `restore_step`, `serve`). Its two `status()`
+  reads were kept: the second one exists to catch a failure that
+  `poll_inflight_operations` can introduce without returning a schedule.
+- `CompatibilityId` holds the "non-empty, at most 4096 bytes" rule that three
+  crates were re-deriving. This also removed a latent defect in teardown, which
+  used `unwrap_or_default()` and so recorded unreclaimed sources under an empty —
+  and therefore invalid — identity when services had already been released.
+- `SessionQuotas` / `InputQuotas` pair each runtime-wide quota with the
+  per-session quota it is always charged against, so the two can no longer be
+  mispaired at a call site.
+- `ControlGeneration` types the ordered resize counter, which was one of three
+  distinct counters spelled `generation`.
+- `terminal_contract.rs` was split into rendering evidence and
+  checkpoint/restore evidence, with shared fixtures, after it crossed the
+  350-line limit.
 
 ## What is still open
 
@@ -77,27 +114,18 @@ What changed:
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
   the ADRs — re-run the notice script when dependencies change.
-- Structural findings from the Clean Code review are **not** addressed yet. The
-  rename pass above made them easier to see, not smaller:
-  - `ProjectionCoordinator` is still one type with 13 fields, 5 locks and ~76
-    methods spread over nine `impl` blocks. The 350-line file rule was satisfied
-    by splitting files, not responsibilities; every one of those files can still
-    reach all 13 fields. Candidate collaborators: staging queue, native
-    workspace, blocking I/O, source reaper.
-  - `BlockingJob` and `IoResult` are parallel enums that must agree by
-    convention. `completion::finish_io` carries four defensive "wrong result
-    kind" arms that a typed per-job mailbox would delete outright.
-  - The enqueue sequence (push, drop lock, wake, fail-on-wake-error) is repeated
-    five times across `admission.rs` and `snapshot.rs`.
-  - `worker::run` is the real state machine but leaves it implicit: ~100 lines,
-    twelve early returns, and it re-reads `status()` three times, so it can
-    observe two different residencies within one run.
-  - `compatibility` is a bare string whose "non-empty, ≤ 4096 bytes" rule is
-    re-derived independently in `projection/coordinator.rs`,
-    `checkpoint/protector.rs` and `checkpoint/file.rs`. A domain newtype would
-    hold it in one place; today a custom terminal factory can bypass the check.
-  - Control generations, park-operation generations and transfer sequences are
-    all bare `u64`, and two of them are spelled `generation`.
+- Remaining structural findings from the Clean Code review:
+  - `ProjectionCoordinator` is still one type whose nine `impl` blocks can all
+    reach all of its fields. Grouping the quotas took it from 16 fields to 12,
+    but the deeper split into collaborators that own their own state (staging
+    queue, native workspace, blocking I/O, source reaper) has not been done.
+    That one changes locking, so it needs the full review loop rather than a
+    mechanical pass.
+  - The parking-operation counter (`CheckpointKey.generation`,
+    `ParkAttempt.generation`) is still a bare `u64`, as is the capacity-signal
+    generation in `ICapacitySignal`. `ControlGeneration` covers only the ordered
+    resize counter, which was the one that could be confused with a control
+    position.
 
 ## Where to look next
 
