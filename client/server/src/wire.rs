@@ -104,6 +104,10 @@ pub enum ServerMessage {
         seq: u64,
         cursor: Cursor,
         rows: Vec<Row>,
+        /// The current window, so a client knows how far back it can scroll
+        /// without having to ask first.
+        total: u64,
+        scrollback: u64,
     },
     History {
         v: u32,
@@ -263,7 +267,13 @@ pub struct Sent {
 impl Sent {
     /// Messages that bring the client up to date, in the order they must be
     /// sent: styles before the frame that uses them.
-    pub fn diff(&mut self, view: &TerminalView, styles: &mut StyleTable) -> Vec<ServerMessage> {
+    pub fn diff(
+        &mut self,
+        view: &TerminalView,
+        styles: &mut StyleTable,
+        total: u64,
+        scrollback: u64,
+    ) -> Vec<ServerMessage> {
         let mut messages = Vec::new();
         let cols = usize::from(view.size.cols());
         let rows = usize::from(view.size.rows());
@@ -356,6 +366,8 @@ impl Sent {
                     visible: view.cursor.visible,
                 },
                 rows: changed,
+                total,
+                scrollback,
             });
         }
 

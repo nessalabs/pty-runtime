@@ -276,7 +276,19 @@ pub fn run(
                 Ok(view) => {
                     dirty = false;
                     palette = view.palette.clone();
-                    for message in sent.diff(&view, &mut styles) {
+                    // Row counts ride along with every frame so a client never
+                    // has to request history just to learn the window size.
+                    let mut total = 0usize;
+                    let mut scrollback = 0usize;
+                    // SAFETY-equivalent: this is a read-only projection call.
+                    let counts = terminal.history(u64::MAX, 0);
+                    if let Ok(counts) = counts {
+                        total = counts.total as usize;
+                        scrollback = counts.scrollback as usize;
+                    }
+                    for message in
+                        sent.diff(&view, &mut styles, total as u64, scrollback as u64)
+                    {
                         if outbound.blocking_send(message).is_err() {
                             return;
                         }

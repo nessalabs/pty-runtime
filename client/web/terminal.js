@@ -345,9 +345,15 @@ export function Terminal({
   // looking; zero means following live output. The rows themselves are held by
   // absolute index so an eviction that shifts the window is visible rather
   // than silently renumbering what is on screen.
-  const [scroll, setScroll] = useState({ offset: 0, rows: null, total: 0, scrollback: 0 });
-  const scrollRef = useRef(scroll);
-  scrollRef.current = scroll;
+  const [scroll, setScroll] = useState({
+    offset: 0,
+    rows: null,
+    start: 0,
+    total: 0,
+    scrollback: 0,
+    screenRows: 0,
+  });
+
 
   // Measure one character so the grid can be sized to the container. Terminal
   // layout is entirely determined by the cell box, so this is the only
@@ -410,6 +416,7 @@ export function Terminal({
       switch (message.type) {
         case "ready":
           setPalette(message.palette);
+          setScroll((previous) => ({ ...previous, screenRows: message.rows }));
           setGrid((previous) =>
             previous.cols === message.cols && previous.rows === message.rows
               ? previous
@@ -428,6 +435,16 @@ export function Terminal({
           break;
         case "frame":
           setCursor(message.cursor);
+          setScroll((previous) =>
+            previous.total === message.total &&
+            previous.scrollback === message.scrollback
+              ? previous
+              : {
+                  ...previous,
+                  total: message.total,
+                  scrollback: message.scrollback,
+                },
+          );
           if (message.rows.length) {
             setGrid((previous) => {
               const lines = previous.lines.slice();
@@ -576,13 +593,6 @@ export function Terminal({
     (event) => {
       const up = event.deltaY < 0;
       if (sendMouse("wheel", event, up ? "up" : "down")) return;
-
-      // A program on the alternate screen owns the whole display and there is
-      // no scrollback to move through, so a wheel that it has not asked to
-      // receive is translated into cursor keys. That is what makes the wheel
-      // scroll in vim and less when they have not enabled mouse tracking, and
-      // it is what terminal emulators do for the same reason.
-      if (!modesRef.current.alternate_screen) return;
       event.preventDefault();
 
       // Accumulate pixels and emit one line per notch-third. A trackpad sends
@@ -599,33 +609,40 @@ export function Terminal({
         // A program owning the whole display has no scrollback to move
         // through, so the wheel becomes cursor keys instead. That is what
         // makes it scroll in vim and less.
-        event.preventDefault();
         const key = lines < 0 ? "A" : "B";
         const prefix = modesRef.current.application_cursor ? "\x1bO" : "\x1b[";
         send({
           type: "input",
-          data: toBase64(encoder.encode(`${prefix}${key}`.repeat(Math.min(Math.abs(lines), 10)))),
+          data: toBase64(
+            encoder.encode(`${prefix}${key}`.repeat(Math.min(Math.abs(lines), 10))),
+          ),
         });
         return;
       }
 
-      // Otherwise move through retained history. The offset is clamped to what
-      // the engine still holds, which is also what stops a scroll from running
-      // off the top.
-      event.preventDefault();
-      const current = scrollRef.current;
-      const limit = Math.max(0, current.scrollback);
-      const offset = Math.max(0, Math.min(limit, current.offset - lines));
-      if (offset === current.offset) return;
-      setScroll((previous) => ({ ...previous, offset }));
-      if (offset > 0) {
-        // Rows are absolute, so ask for the window ending at the live screen
-        // minus the offset.
-        const start = Math.max(0, current.total - grid.rows - offset);
-        send({ type: "history", start, count: grid.rows });
-      }
+      // Otherwise move through retained history. Both the new offset and the
+      // request are derived inside the updater from the state React actually
+      // holds: several wheel events can land before a render commits, and
+      // reading a mirrored ref would lose all but the first.
+      setScroll((previous) => {
+        const screen = previous.screenRows || 1;
+        // The furthest back worth going is the window minus one screen.
+        // Clamping against the scrollback figure from the last reply instead
+        // stalls the scroll at whatever that first reply happened to report.
+        const limit = Math.max(0, previous.total - screen);
+        const offset = Math.max(0, Math.min(limit, previous.offset - lines));
+        if (offset === previous.offset) return previous;
+        if (offset > 0) {
+          send({
+            type: "history",
+            start: Math.max(0, previous.total - screen - offset),
+            count: screen,
+          });
+        }
+        return { ...previous, offset };
+      });
     },
-    [grid.rows, send, sendMouse],
+    [send, sendMouse],
   );
   const onContextMenu = useCallback((event) => {
     // A program tracking the mouse wants button 2, not the browser's menu.
