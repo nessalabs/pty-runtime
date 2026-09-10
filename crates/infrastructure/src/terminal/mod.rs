@@ -41,7 +41,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
         Ok(Box::new(GhosttyTerminal {
             raw,
             config,
-            generation: 0,
+            generation: ControlGeneration::INITIAL,
             restoring: None,
             skipped_pages: 0,
             failed: false,
@@ -97,7 +97,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
 pub struct GhosttyTerminal {
     raw: NonNull<c_void>,
     config: TerminalConfig,
-    generation: u64,
+    generation: ControlGeneration,
     restoring: Option<TerminalCheckpoint>,
     skipped_pages: u64,
     failed: bool,

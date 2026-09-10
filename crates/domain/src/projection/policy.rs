@@ -11,7 +11,7 @@ pub struct ParkAttempt {
     /// Exact processed byte position.
     pub processed: ReplayCursor,
     /// Exact successful ordered-control position.
-    pub control_generation: u64,
+    pub control_generation: crate::terminal::ControlGeneration,
 }
 /// Pure state transitions. Application serializes access and owns external work.
 pub struct ProjectionPolicy {
@@ -39,7 +39,7 @@ impl ProjectionPolicy {
             status: ProjectionStatus {
                 published: cursor,
                 processed: cursor,
-                control_generation: 0,
+                control_generation: crate::terminal::ControlGeneration::INITIAL,
                 residency: Residency::Resident,
                 history: crate::terminal::RestorationProgress::Complete,
                 skipped_history_pages: 0,
@@ -108,8 +108,11 @@ impl ProjectionPolicy {
         Ok(())
     }
     /// Apply exactly the next control generation after both OS and model work succeed.
-    pub fn record_control_applied(&mut self, generation: u64) -> Result<(), ProjectionError> {
-        if self.status.control_generation.checked_add(1) != Some(generation) {
+    pub fn record_control_applied(
+        &mut self,
+        generation: crate::terminal::ControlGeneration,
+    ) -> Result<(), ProjectionError> {
+        if self.status.control_generation.next() != Some(generation) {
             return Err(ProjectionError::InvalidConfiguration);
         }
         self.status.control_generation = generation;

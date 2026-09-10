@@ -5,7 +5,7 @@ use super::{
 };
 use pty_runtime_domain::{
     projection::{TransferBoundary, TransferCursor, TransferEnd, TransferError},
-    terminal::TerminalSize,
+    terminal::{ControlGeneration, TerminalSize},
 };
 use std::{
     sync::Arc,
@@ -116,7 +116,7 @@ pub enum TransferEventKind<'a> {
         /// Applied dimensions.
         size: TerminalSize,
         /// Applied ordered control generation.
-        generation: u64,
+        generation: ControlGeneration,
     },
 }
 

@@ -7,7 +7,7 @@ use crate::{process::ProcessOperation, terminal::ITerminal};
 use pty_runtime_domain::{
     checkpoint::CheckpointRef,
     projection::{ParkAttempt, ProjectionError, ProjectionPolicy, ResizeOutcome},
-    terminal::{CheckpointDescriptor, TerminalCheckpoint, TerminalSize},
+    terminal::{CheckpointDescriptor, ControlGeneration, TerminalCheckpoint, TerminalSize},
 };
 use std::{
     collections::VecDeque,
@@ -109,7 +109,7 @@ impl Drop for Reply {
 }
 pub(super) struct Resizing {
     pub size: TerminalSize,
-    pub generation: u64,
+    pub generation: ControlGeneration,
     pub ticket: Arc<Ticket<ResizeOutcome>>,
     pub _staging: StagingLease,
     pub operation: ProcessOperation<Result<(), pty_runtime_domain::process::ProcessError>>,

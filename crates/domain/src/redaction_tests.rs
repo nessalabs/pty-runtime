@@ -3,8 +3,8 @@ use crate::{
     ReplayCursor, ReplayPage, SessionLifetime,
     checkpoint::{CheckpointKey, ProtectedCheckpoint},
     terminal::{
-        CheckpointDescriptor, CompatibilityId, TerminalCell, TerminalCheckpoint, TerminalColor,
-        TerminalStyle, Underline,
+        CheckpointDescriptor, CompatibilityId, ControlGeneration, TerminalCell, TerminalCheckpoint,
+        TerminalColor, TerminalStyle, Underline,
     },
 };
 
@@ -26,7 +26,7 @@ fn opaque_checkpoints_hide_payload_and_adapter_metadata_in_debug() {
             lifetime,
             offset: 42,
         },
-        control_generation: 7,
+        control_generation: ControlGeneration::from_raw(7),
     };
     let checkpoint = TerminalCheckpoint {
         descriptor: descriptor.clone(),

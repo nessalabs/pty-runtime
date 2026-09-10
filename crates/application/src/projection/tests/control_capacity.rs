@@ -1,6 +1,7 @@
 //! ADR 0002/0003: parser overload must not consume bounded resize admission.
 use super::{support::*, terminal::Trace};
 use crate::{process::OutputAcceptance, projection::*};
+use pty_runtime_domain::terminal::ControlGeneration;
 use pty_runtime_domain::terminal::TerminalSize;
 
 #[test]
@@ -57,7 +58,13 @@ fn exercise(shared: bool) {
     let second_result = result(&mut second).unwrap();
     assert!(first_result.os.is_ok() && first_result.model.is_ok());
     assert!(second_result.os.is_ok() && second_result.model.is_ok());
-    assert_eq!((first_result.generation, second_result.generation), (1, 2));
+    assert_eq!(
+        (first_result.generation, second_result.generation),
+        (
+            ControlGeneration::from_raw(1),
+            ControlGeneration::from_raw(2)
+        )
+    );
     assert_eq!(h.owner.status().published.offset, 16);
     assert_eq!(h.owner.status().processed.offset, 16);
     assert_eq!(h.owner.status().failure, None);
@@ -81,7 +88,7 @@ fn exercise(shared: bool) {
     let mut third = h.owner.resize(size).unwrap();
     h.pump();
     let outcome = result(&mut third).unwrap();
-    assert_eq!(outcome.generation, 3);
+    assert_eq!(outcome.generation, ControlGeneration::from_raw(3));
     assert!(outcome.os.is_ok() && outcome.model.is_ok());
     drop(third);
     let resources = h.budgets.resources();

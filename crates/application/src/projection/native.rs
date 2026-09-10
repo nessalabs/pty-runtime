@@ -178,7 +178,7 @@ impl ProjectionCoordinator {
                     self.requeue(Command::Resize(size, ticket, staging));
                     return WorkSchedule::Dormant;
                 };
-                let Some(generation) = self.status().control_generation.checked_add(1) else {
+                let Some(generation) = self.status().control_generation.next() else {
                     ticket.complete(Err(ProjectionError::Capacity));
                     self.fail(ProjectionError::Capacity);
                     return WorkSchedule::Dormant;

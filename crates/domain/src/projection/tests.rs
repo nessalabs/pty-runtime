@@ -1,4 +1,5 @@
 use super::*;
+use crate::terminal::ControlGeneration;
 use crate::{
     SessionLifetime,
     terminal::{TerminalConfig, TerminalSize},
@@ -22,14 +23,16 @@ fn mutation_invalidates_parking_without_advancing_unprocessed_position() {
         ProjectionPolicy::new(SessionLifetime::new(1, 1), options(), Duration::ZERO).unwrap();
     policy.admit_output(3, Duration::ZERO).unwrap();
     policy.record_processed(3).unwrap();
-    policy.record_control_applied(1).unwrap();
+    policy
+        .record_control_applied(ControlGeneration::from_raw(1))
+        .unwrap();
     let attempt = policy.begin_park(Duration::from_secs(60)).unwrap();
     policy.admit_output(2, Duration::from_secs(60)).unwrap();
     assert!(!policy.commit_park(attempt, true));
     assert_eq!(policy.status().residency, Residency::Resident);
     assert_eq!(policy.status().processed.offset, 3);
     assert_eq!(policy.status().published.offset, 5);
-    assert_eq!(attempt.control_generation, 1);
+    assert_eq!(attempt.control_generation, ControlGeneration::from_raw(1));
 }
 #[test]
 fn successful_parking_does_not_consume_failed_retry_budget() {
@@ -85,7 +88,11 @@ fn invalid_policy_and_out_of_order_processed_controls_are_rejected() {
     let mut policy =
         ProjectionPolicy::new(SessionLifetime::new(1, 1), options(), Duration::ZERO).unwrap();
     assert!(policy.record_processed(1).is_err());
-    assert!(policy.record_control_applied(2).is_err());
+    assert!(
+        policy
+            .record_control_applied(ControlGeneration::from_raw(2))
+            .is_err()
+    );
     assert_eq!(policy.status().processed.offset, 0);
 }
 

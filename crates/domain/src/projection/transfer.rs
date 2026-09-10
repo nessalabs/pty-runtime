@@ -17,7 +17,7 @@ pub struct TransferBoundary {
     /// Original PTY bytes successfully fed to the authoritative model.
     pub processed: ReplayCursor,
     /// Successful ordered OS/model resize generation.
-    pub control_generation: u64,
+    pub control_generation: crate::terminal::ControlGeneration,
 }
 /// Explicit continuation rejection; no gap is interpreted as an empty event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,7 +84,7 @@ impl TransferOrder {
                     lifetime,
                     offset: 0,
                 },
-                control_generation: 0,
+                control_generation: crate::terminal::ControlGeneration::INITIAL,
             },
             oldest: 0,
             end: None,
@@ -109,9 +109,12 @@ impl TransferOrder {
         Ok(self.boundary)
     }
     /// Advance exactly once after a successful ordered OS/model resize.
-    pub fn resized(&mut self, generation: u64) -> Result<TransferBoundary, TransferError> {
+    pub fn resized(
+        &mut self,
+        generation: crate::terminal::ControlGeneration,
+    ) -> Result<TransferBoundary, TransferError> {
         self.require_append()?;
-        if self.boundary.control_generation.checked_add(1) != Some(generation) {
+        if self.boundary.control_generation.next() != Some(generation) {
             return Err(TransferError::Unavailable);
         }
         self.advance()?;

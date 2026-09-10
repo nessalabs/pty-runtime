@@ -18,7 +18,7 @@ fn fixture() -> (CheckpointKey, TerminalCheckpoint) {
                     lifetime,
                     offset: 99,
                 },
-                control_generation: 4,
+                control_generation: ControlGeneration::from_raw(4),
             },
             bytes: b"synthetic-checkpoint-secret".to_vec(),
         },

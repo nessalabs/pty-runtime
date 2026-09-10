@@ -66,7 +66,7 @@ mod probe {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,
                 },
-                control_generation: 0,
+                control_generation: ControlGeneration::from_raw(0),
             })
             .expect("checkpoint");
 
@@ -89,7 +89,7 @@ mod probe {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,
                 },
-                control_generation: 0,
+                control_generation: ControlGeneration::from_raw(0),
             },
             bytes,
         };
@@ -240,7 +240,7 @@ mod probe {
                     lifetime: SessionLifetime::new(1, 1),
                     offset: 0,
                 },
-                control_generation: 0,
+                control_generation: ControlGeneration::from_raw(0),
             },
             bytes,
         };

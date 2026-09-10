@@ -1,3 +1,4 @@
+use super::ControlGeneration;
 use crate::identity::ReplayCursor;
 
 /// Engine-neutral restoration milestone; usable state is not complete history.
@@ -85,7 +86,7 @@ pub struct CheckpointDescriptor {
     /// Next output byte after all bytes already applied to the model.
     pub processed: ReplayCursor,
     /// Last successfully applied ordered control generation.
-    pub control_generation: u64,
+    pub control_generation: ControlGeneration,
 }
 
 /// Owned opaque terminal state, for encryption before any storage port receives it.

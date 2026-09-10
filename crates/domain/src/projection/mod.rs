@@ -94,7 +94,7 @@ pub struct ProjectionStatus {
     /// End of output successfully applied to the model.
     pub processed: ReplayCursor,
     /// Last model resize applied successfully.
-    pub control_generation: u64,
+    pub control_generation: crate::terminal::ControlGeneration,
     /// Independent terminal residency/history state.
     pub residency: Residency,
     /// Current or most recent restoration, including explicitly inapplicable history.
@@ -110,7 +110,7 @@ pub struct ProjectionStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResizeOutcome {
     /// Attempted next ordered control generation.
-    pub generation: u64,
+    pub generation: crate::terminal::ControlGeneration,
     /// Whether the OS accepted the requested PTY dimensions.
     pub os: Result<(), ProcessError>,
     /// Whether the authoritative terminal accepted the same dimensions.

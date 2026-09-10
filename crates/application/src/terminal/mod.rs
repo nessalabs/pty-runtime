@@ -1,7 +1,8 @@
 //! Replaceable terminal engine boundary. Implementations own native resources.
 use pty_runtime_domain::terminal::{
-    CheckpointDescriptor, RestorationProgress, TerminalCapabilities, TerminalCheckpoint,
-    TerminalConfig, TerminalEffects, TerminalError, TerminalHistory, TerminalSize, TerminalView,
+    CheckpointDescriptor, ControlGeneration, RestorationProgress, TerminalCapabilities,
+    TerminalCheckpoint, TerminalConfig, TerminalEffects, TerminalError, TerminalHistory,
+    TerminalSize, TerminalView,
 };
 
 /// Creates exclusive terminal owners; implementations reject unsupported contracts.
@@ -30,7 +31,11 @@ pub trait ITerminal: Send {
     fn feed(&mut self, bytes: &[u8]) -> Result<TerminalEffects, TerminalError>;
     /// Apply one ordered resize, requiring generation exactly one above the previous control.
     /// HistoryIncomplete leaves control unapplied; finish restoration before retrying.
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError>;
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError>;
     /// Copy active cells into domain values with no references to mutable engine memory.
     fn view(&mut self) -> Result<TerminalView, TerminalError>;
     /// Copy retained rows into domain values, oldest first, without moving any

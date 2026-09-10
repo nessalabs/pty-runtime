@@ -3,7 +3,7 @@ use pty_runtime_application::checkpoint::ICheckpointStore;
 use pty_runtime_domain::{
     ReplayCursor, SessionLifetime,
     checkpoint::*,
-    terminal::{CheckpointDescriptor, CompatibilityId},
+    terminal::{CheckpointDescriptor, CompatibilityId, ControlGeneration},
 };
 use pty_runtime_infrastructure::checkpoint::FileCheckpointStore;
 use std::{
@@ -27,7 +27,7 @@ pub fn protected(generation: u64) -> ProtectedCheckpoint {
                 lifetime,
                 offset: 60,
             },
-            control_generation: 0,
+            control_generation: ControlGeneration::from_raw(0),
         },
         vec![generation as u8; 60],
     )

@@ -64,7 +64,11 @@ impl ITerminal for PausedFeed {
         self.barrier.wait();
         self.inner.feed(bytes)
     }
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError> {
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError> {
         self.inner.resize(size, generation)
     }
     fn view(&mut self) -> Result<TerminalView, TerminalError> {

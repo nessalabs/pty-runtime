@@ -1,7 +1,7 @@
 use super::{ProjectionError, budgets::Lease};
 use pty_runtime_domain::{
     ReplayCursor,
-    terminal::{RestorationProgress, TerminalCheckpoint, TerminalView},
+    terminal::{ControlGeneration, RestorationProgress, TerminalCheckpoint, TerminalView},
 };
 use std::{
     future::Future,
@@ -20,7 +20,7 @@ pub type ProjectionOperation<T> =
 pub struct ProjectedView {
     pub(super) view: TerminalView,
     pub(super) processed: ReplayCursor,
-    pub(super) control_generation: u64,
+    pub(super) control_generation: ControlGeneration,
     pub(super) history: RestorationProgress,
     pub(super) _lease: Lease,
 }
@@ -30,7 +30,7 @@ impl ProjectedView {
         self.processed
     }
     /// Exact successful control generation copied with this native observation.
-    pub fn control_generation(&self) -> u64 {
+    pub fn control_generation(&self) -> ControlGeneration {
         self.control_generation
     }
     /// History completeness at extraction, independent from later restoration work.

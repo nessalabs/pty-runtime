@@ -9,7 +9,7 @@ use pty_runtime_domain::{
     projection::{
         ProjectionOptions, TransferBoundary, TransferCursor, TransferError, TransferOrder,
     },
-    terminal::TerminalSize,
+    terminal::{ControlGeneration, TerminalSize},
 };
 use std::{
     collections::BTreeMap,
@@ -19,7 +19,10 @@ use std::{
 
 pub(super) enum RecordKind {
     Output(Vec<u8>),
-    Resize { size: TerminalSize, generation: u64 },
+    Resize {
+        size: TerminalSize,
+        generation: ControlGeneration,
+    },
 }
 pub(super) struct Record {
     pub after: TransferBoundary,
@@ -158,7 +161,7 @@ impl Journal {
     pub fn output(&self, bytes: Vec<u8>, processed: ReplayCursor) {
         self.append(RecordKind::Output(bytes), Some(processed));
     }
-    pub fn resized(&self, size: TerminalSize, generation: u64) {
+    pub fn resized(&self, size: TerminalSize, generation: ControlGeneration) {
         self.append(RecordKind::Resize { size, generation }, None);
     }
     fn append(&self, kind: RecordKind, processed: Option<ReplayCursor>) {

@@ -17,7 +17,7 @@ fn config() -> TerminalConfig {
     }
 }
 
-fn descriptor(offset: u64, generation: u64) -> CheckpointDescriptor {
+fn descriptor(offset: u64, generation: ControlGeneration) -> CheckpointDescriptor {
     CheckpointDescriptor {
         compatibility: CompatibilityId::new(GhosttyTerminalFactory.compatibility()).unwrap(),
         processed: ReplayCursor {
@@ -69,12 +69,18 @@ fn history_reads_retained_rows_without_disturbing_the_terminal() {
     // cursor, and a later checkpoint must be indistinguishable from a run that
     // never asked for history at all.
     let before = t.view().unwrap();
-    let checkpoint_before = t.checkpoint(descriptor(0, 0)).unwrap().bytes.clone();
+    let checkpoint_before = t
+        .checkpoint(descriptor(0, ControlGeneration::from_raw(0)))
+        .unwrap()
+        .bytes
+        .clone();
     let _ = t.history(0, 50).unwrap();
     let _ = t.history(all.total.saturating_sub(2), 10).unwrap();
     assert_eq!(t.view().unwrap(), before);
     assert_eq!(
-        t.checkpoint(descriptor(0, 0)).unwrap().bytes,
+        t.checkpoint(descriptor(0, ControlGeneration::from_raw(0)))
+            .unwrap()
+            .bytes,
         checkpoint_before
     );
 

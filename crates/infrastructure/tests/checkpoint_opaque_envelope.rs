@@ -3,7 +3,7 @@ use pty_runtime_application::checkpoint::ICheckpointStore;
 use pty_runtime_domain::{
     ReplayCursor, SessionLifetime,
     checkpoint::{CheckpointKey, ProtectedCheckpoint},
-    terminal::{CheckpointDescriptor, CompatibilityId},
+    terminal::{CheckpointDescriptor, CompatibilityId, ControlGeneration},
 };
 use pty_runtime_infrastructure::checkpoint::FileCheckpointStore;
 
@@ -28,7 +28,7 @@ fn storage_roundtrips_short_opaque_envelope_without_cipher_assumptions() {
                 lifetime,
                 offset: 2,
             },
-            control_generation: 0,
+            control_generation: ControlGeneration::from_raw(0),
         },
         vec![0x17; 17],
     );

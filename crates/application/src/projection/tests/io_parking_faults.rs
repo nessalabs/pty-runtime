@@ -46,7 +46,12 @@ impl ICheckpointProtector for FaultProtector {
         let mut bytes = protected.ciphertext().to_vec();
         match fault {
             ProtectFault::Key => key.generation += 1,
-            ProtectFault::Descriptor => descriptor.control_generation += 1,
+            ProtectFault::Descriptor => {
+                descriptor.control_generation = descriptor
+                    .control_generation
+                    .next()
+                    .expect("synthetic descriptor generation cannot exhaust")
+            }
             ProtectFault::Empty => bytes.clear(),
             // The fixture plaintext limit is 1,024; this exceeds its promised bound.
             ProtectFault::Oversized => bytes.resize(self.protected_size_limit(1024)? + 1, 0),
@@ -101,7 +106,10 @@ fn retry_preserves_saved_bytes(h: &Harness) {
     let pin = result(&mut checkpoint).unwrap();
     assert_eq!(pin.checkpoint().bytes, b"before");
     assert_eq!(pin.checkpoint().descriptor.processed.offset, 6);
-    assert_eq!(pin.checkpoint().descriptor.control_generation, 0);
+    assert_eq!(
+        pin.checkpoint().descriptor.control_generation,
+        ControlGeneration::from_raw(0)
+    );
     drop((pin, checkpoint));
     h.close();
     assert_eq!(h.store.deletes.load(Ordering::Acquire), 1);

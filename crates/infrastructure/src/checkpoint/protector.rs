@@ -38,7 +38,7 @@ fn metadata(key: CheckpointKey, d: &CheckpointDescriptor) -> Result<Vec<u8>, Che
         key.lifetime.sequence(),
         key.generation,
         d.processed.offset,
-        d.control_generation,
+        d.control_generation.get(),
         compatibility.len() as u64,
     ] {
         bytes.extend_from_slice(&n.to_le_bytes());
