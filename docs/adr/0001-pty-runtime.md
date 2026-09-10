@@ -286,7 +286,9 @@ and bounded raw I/O, without silently replacing the terminal with an empty one.
 
 Expose dimensions, cursor position/visibility, active screen, useful mode flags,
 and formatted text/styled content. These values are a headless UI input, not a
-GUI renderer or a durable restore format. Use a caller-visible output cursor to
+GUI renderer or a durable restore format. Retained history is projected
+separately as a read-only range query rather than through a movable viewport;
+see [ADR 0006](0006-scrollback-projection.md). Use a caller-visible output cursor to
 identify which bytes a snapshot includes. Expose binary checkpoint operations
 separately, with native-build compatibility, bounded parser continuation,
 READY/history completion, and explicit storage policy. Published output and

@@ -1,8 +1,0 @@
-test_degraded_samples_remain_visible_in_interval (test_load_census.CpuScope) ... ok
-test_even_matching_snapshots_do_not_measure_between_sample_processes (test_load_census.CpuScope) ... ok
-test_transient_processes_are_explicitly_unmeasured (test_load_census.CpuScope) ... ok
-
-----------------------------------------------------------------------
-Ran 3 tests in 0.000s
-
-OK

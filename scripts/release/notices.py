@@ -50,7 +50,7 @@ def main():
             inventory.append(dict(package=label, path=name, sha256=hashlib.sha256(raw).hexdigest()))
             sections.append('\n### ' + name + '\n\n````text\n' + raw.decode('utf-8') + '\n````\n')
     (ROOT / 'THIRD_PARTY_NOTICES.md').write_text(''.join(sections))
-    (ROOT / 'docs/verification/third-party-notice-inventory.json').write_text(json.dumps(inventory, indent=2) + '\n')
+    (ROOT / 'docs/third-party-notice-inventory.json').write_text(json.dumps(inventory, indent=2) + '\n')
     print(f'Collected {len(inventory)} verbatim license/notice files from {len(sources)} source packages.')
 
 

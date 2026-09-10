@@ -1,7 +1,0 @@
-
-running 2 tests
-test long_grapheme_retries_copy_with_exact_codepoints_and_respects_view_budget ... ok
-test osc_palette_overrides_and_reset_preserve_optional_default_and_cursor_colors ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-

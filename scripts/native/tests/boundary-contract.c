@@ -36,23 +36,41 @@ static void observation_failures(void) {
   const int keys[] = {GHOSTTY_TERMINAL_DATA_COLS, GHOSTTY_TERMINAL_DATA_ROWS,
     GHOSTTY_TERMINAL_DATA_CURSOR_X, GHOSTTY_TERMINAL_DATA_CURSOR_Y,
     GHOSTTY_TERMINAL_DATA_CURSOR_VISIBLE, GHOSTTY_TERMINAL_DATA_CURSOR_PENDING_WRAP,
-    GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, GHOSTTY_TERMINAL_DATA_MOUSE_TRACKING,
+    GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN,
     GHOSTTY_TERMINAL_DATA_COLOR_FOREGROUND, GHOSTTY_TERMINAL_DATA_COLOR_BACKGROUND,
     GHOSTTY_TERMINAL_DATA_COLOR_PALETTE, GHOSTTY_TERMINAL_DATA_COLOR_CURSOR};
   for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
     inject("get", keys[i]); assert(rt_info(o, &info) == -1); assert(fault_hits == 1);
   }
+  /* Modes are queried one at a time: bracketed paste, cursor keys, and the
+   * five that describe mouse tracking and its encoding. A failed query is not
+   * fatal to observation, so every one reports its mode as unset. */
   inject("get", GHOSTTY_TERMINAL_DATA_MODE); assert(rt_info(o, &info) == 0);
-  assert(fault_hits == 2 && !info.paste && !info.application_cursor);
+  assert(fault_hits == 7 && !info.paste && !info.application_cursor);
+  assert(!info.mouse_x10 && !info.mouse_normal && !info.mouse_button);
+  assert(!info.mouse_any && !info.mouse_sgr);
   uint32_t text[8]; size_t len = 0; RuntimeStyle style;
-  inject(NULL, 0); assert(rt_cell(o, 20, 0, text, 8, &len, &style) == -1);
+  inject(NULL, 0); assert(rt_cell(o, 0, 20, 0, text, 8, &len, &style) == -1);
   const char *failures[] = {"style", "cell", "cell-get", "graphemes"};
   for (size_t i = 0; i < sizeof(failures) / sizeof(failures[0]); i++) {
-    inject(failures[i], 0); assert(rt_cell(o, 0, 0, text, 8, &len, &style) == -1);
+    inject(failures[i], 0); assert(rt_cell(o, 0, 0, 0, text, 8, &len, &style) == -1);
+    assert(fault_hits == 1);
+    /* The history path shares this body, so a fault must reach it too rather
+     * than being reported only for the active screen. */
+    inject(failures[i], 0); assert(rt_cell(o, 1, 0, 0, text, 8, &len, &style) == -1);
     assert(fault_hits == 1);
   }
-  inject("style-color", 0); assert(rt_cell(o, 0, 0, text, 8, &len, &style) == 0);
+  inject("style-color", 0); assert(rt_cell(o, 0, 0, 0, text, 8, &len, &style) == 0);
   assert(fault_hits == 1 && style.foreground.tag == 255);
+  /* Row totals are two queries and either failing must be reported, never
+   * silently reported as an empty history. */
+  size_t total = 12, scrollback = 12;
+  inject("get", GHOSTTY_TERMINAL_DATA_TOTAL_ROWS);
+  assert(rt_rows(o, &total, &scrollback) == -1 && fault_hits == 1);
+  inject("get", GHOSTTY_TERMINAL_DATA_SCROLLBACK_ROWS);
+  assert(rt_rows(o, &total, &scrollback) == -1 && fault_hits == 1);
+  inject(NULL, 0); assert(rt_rows(o, &total, &scrollback) == 0);
+  assert(total >= scrollback);
   checked_free(o);
 }
 static void mutation_failures(void) {

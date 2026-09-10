@@ -53,7 +53,12 @@ fn incremental_text_styles_modes_cursor_and_ordered_resize() {
     assert!(v.cells[0].style.bold && v.cells[0].style.italic);
     assert_eq!(v.cells[0].style.foreground, TerminalColor::Rgb(10, 20, 30));
     assert_eq!(v.cursor.col, 2);
-    assert!(v.modes.bracketed_paste && v.modes.application_cursor && v.modes.mouse_reporting);
+    assert!(v.modes.bracketed_paste && v.modes.application_cursor);
+    // Mode 1000 asks for presses and releases in the original encoding. Both
+    // halves are reported, not merely that something is on.
+    assert!(v.modes.mouse_reporting());
+    assert_eq!(v.modes.mouse, MouseTracking::PressRelease);
+    assert_eq!(v.modes.mouse_encoding, MouseEncoding::Legacy);
     assert_eq!(t.feed(b"\x1b[6n").unwrap().0, b"\x1b[1;3R");
     assert_eq!(
         t.resize(TerminalSize::new(40, 10).unwrap(), 2),
@@ -67,6 +72,31 @@ fn incremental_text_styles_modes_cursor_and_ordered_resize() {
     assert!(t.view().unwrap().modes.alternate_screen);
     t.feed(b"\x1b[?1049l").unwrap();
     assert!(!t.view().unwrap().modes.alternate_screen);
+}
+
+#[test]
+fn mouse_tracking_and_encoding_are_reported_separately() {
+    let mut t = GhosttyTerminalFactory.create(config()).unwrap();
+    assert_eq!(t.view().unwrap().modes.mouse, MouseTracking::None);
+
+    // Button-event tracking with the SGR encoding: the pair a modern program
+    // asks for, and the pair a consumer cannot infer from one another.
+    t.feed(b"\x1b[?1002h\x1b[?1006h").unwrap();
+    let v = t.view().unwrap();
+    assert_eq!(v.modes.mouse, MouseTracking::ButtonMotion);
+    assert_eq!(v.modes.mouse_encoding, MouseEncoding::Sgr);
+
+    // Any-event tracking supersedes it while the encoding is unaffected.
+    t.feed(b"\x1b[?1003h").unwrap();
+    let v = t.view().unwrap();
+    assert_eq!(v.modes.mouse, MouseTracking::AnyMotion);
+    assert_eq!(v.modes.mouse_encoding, MouseEncoding::Sgr);
+
+    // Turning tracking off leaves nothing to report, whatever the encoding.
+    t.feed(b"\x1b[?1003l\x1b[?1002l").unwrap();
+    let v = t.view().unwrap();
+    assert_eq!(v.modes.mouse, MouseTracking::None);
+    assert!(!v.modes.mouse_reporting());
 }
 
 #[test]

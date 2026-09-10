@@ -44,6 +44,9 @@ impl ITerminal for GhosttyTerminal {
     fn view(&mut self) -> Result<TerminalView, TerminalError> {
         self.project()
     }
+    fn history(&mut self, start: u64, count: u16) -> Result<TerminalHistory, TerminalError> {
+        self.history_rows(start, count)
+    }
     fn checkpoint(
         &mut self,
         descriptor: CheckpointDescriptor,

@@ -74,6 +74,14 @@ byte operation.
 `ITerminal` must not expose `GhosttyTerminal`, native cells, C pointers,
 Ghostty enums, allocator handles, or native error codes. The adapter converts
 cursor, screen, style, mode, and reply information into our terminal models.
+
+Converting is not summarizing. A projected mode must keep every distinction a
+consumer has to act on, because a consumer cannot recover one the adapter
+discarded and will guess instead. Mouse state is the worked example: which
+events a program requested and how it expects them encoded are independent
+questions, neither derivable from the other nor from a single flag, and a wrong
+guess sends a running program bytes it cannot parse. Summaries may be offered
+as derived accessors, never as the stored form.
 External callbacks produce bounded domain effects; the application serializes
 authoritative replies through the process port.
 

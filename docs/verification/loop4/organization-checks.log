@@ -1,9 +1,0 @@
-Independent gate.architecture(): PASS
-Changed implementation/build/test files fingerprinted: 166
-Delta digest: f15841691f7abf84530157a7b6ea682f5d96ec5c6829ddd60b7a2fced5667008
-test_oversized_native_rust_c_and_header_are_rejected (test_sizes.SizeGateTests) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.188s
-
-OK

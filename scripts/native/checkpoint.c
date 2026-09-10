@@ -22,12 +22,18 @@ RuntimeTerminal *rt_restore(const uint8_t *bytes, size_t len, size_t continuatio
   RuntimeTerminal *o = rt_owner(limit);
   if (!o) { *error = -2; return NULL; }
   bool retain = true;
+  int ready = GHOSTTY_SUCCESS;
   if (ghostty_snapshot_decoder_new_buf(&o->allocator, &o->decoder, bytes, len) ||
       ghostty_snapshot_decoder_set(o->decoder, GHOSTTY_SNAPSHOT_DECODER_OPT_MAX_CONTINUATION_BYTES, &continuation) ||
       ghostty_snapshot_decoder_set(o->decoder, GHOSTTY_SNAPSHOT_DECODER_OPT_RETAIN_CONTINUATION, &retain) ||
-      ghostty_snapshot_decoder_ready(o->decoder, &o->terminal) ||
+      (ready = ghostty_snapshot_decoder_ready(o->decoder, &o->terminal)) ||
       rt_configure(o, history, continuation)) {
-    if (o->denied) *error = -2;
+    /* A refused allocation is a budget outcome, not malformed data. The
+     * wrapper allocator reports its own denials; the decoder reports the
+     * page-decode budget, which its own allocator never sees. Both must
+     * reach the caller as a limit so a well-formed but oversized snapshot
+     * is not indistinguishable from corruption. */
+    if (o->denied || ready == GHOSTTY_OUT_OF_MEMORY) *error = -2;
     rt_free(o); return NULL;
   }
   o->source_len = len;

@@ -104,6 +104,24 @@ pub fn result<T>(operation: &mut ProjectionOperation<T>) -> Result<T, Projection
         Poll::Pending => panic!("operation unexpectedly pending"),
     }
 }
+pub fn assert_budgets_released(h: &Harness) {
+    let resources = h.budgets.resources();
+    for usage in [
+        resources.journal_bytes,
+        resources.journal_slots,
+        resources.transfer_observers,
+        resources.staging_bytes,
+        resources.staging_slots,
+        resources.native_reservations,
+        resources.checkpoint_buffers,
+        resources.stored_bytes,
+        resources.stored_slots,
+        resources.views,
+        resources.requests,
+    ] {
+        assert_eq!(usage.used, 0);
+    }
+}
 pub fn options() -> ProjectionOptions {
     ProjectionOptions::new(TerminalConfig {
         size: TerminalSize::new(2, 1).unwrap(),

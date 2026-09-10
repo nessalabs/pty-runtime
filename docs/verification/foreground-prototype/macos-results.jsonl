@@ -1,6 +1,0 @@
-{"case":0,"joined":1,"same_session":1,"foreground":1,"term_seen":1,"killed":0,"background_alive":1,"workload_pid":98603,"guardian_pid":98602,"workload_exit":42,"pass":true}
-{"case":1,"joined":1,"same_session":1,"foreground":1,"term_seen":1,"killed":1,"background_alive":1,"workload_pid":98608,"guardian_pid":98607,"workload_exit":42,"pass":true}
-{"case":2,"joined":1,"same_session":1,"foreground":1,"term_seen":1,"killed":1,"background_alive":1,"workload_pid":98613,"guardian_pid":98612,"workload_exit":42,"pass":true}
-{"case":3,"joined":0,"same_session":0,"foreground":0,"term_seen":0,"killed":0,"background_alive":1,"workload_pid":98619,"guardian_pid":98618,"workload_exit":42,"pass":true}
-{"case":4,"joined":0,"same_session":0,"foreground":0,"term_seen":0,"killed":0,"background_alive":1,"workload_pid":98624,"guardian_pid":98623,"workload_exit":42,"pass":true}
-{"case":5,"joined":1,"same_session":1,"foreground":0,"term_seen":0,"killed":0,"background_alive":1,"workload_pid":98629,"guardian_pid":98628,"workload_exit":42,"pass":true}

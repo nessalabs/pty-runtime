@@ -1,3 +1,0 @@
-LLVM (http://llvm.org/):
-  LLVM version 22.1.2-rust-1.95.0-stable
-  Optimized build.

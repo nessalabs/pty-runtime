@@ -81,10 +81,10 @@ class LoadDiagnostics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / 'fixture'
-            binary.write_text('#!' + sys.executable + '\nimport json\nfor phase in ["measurement_start", "measurement_end"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\n')
+            binary.write_text('#!' + sys.executable + '\nimport json\nfor phase in ["measurement_start", "measurement_end", ' + repr(load.FINAL_CENSUS_PHASE) + ']:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\n')
             binary.chmod(0o700)
             destination = root / 'result.jsonl'
-            with patch.object(load.census, 'sample', return_value=dict(event='physical_resources')), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=None)))):
+            with patch.object(load.census, 'sample', side_effect=lambda owner, workloads, phase: dict(event='physical_resources', phase=phase, tree_processes=1, zombies=[])), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=None)))):
                 self.assertTrue(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0, 'mode': 'idle'}, destination, True, 1, {}, 5))
             events = [json.loads(line) for line in destination.read_text().splitlines()]
             target = next(row for row in events if row.get('event') == 'idle_cpu_target')
@@ -96,7 +96,7 @@ class LoadDiagnostics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / 'fixture'
-            binary.write_text('#!' + sys.executable + '\nimport json,sys\nfor phase in ["measurement_start", "measurement_end"]:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\nprint("final fixture stderr", file=sys.stderr, flush=True)\n')
+            binary.write_text('#!' + sys.executable + '\nimport json,sys\nfor phase in ["measurement_start", "measurement_end", ' + repr(load.FINAL_CENSUS_PHASE) + ']:\n print(json.dumps(dict(event="checkpoint", phase=phase)), flush=True)\n input()\nprint(\'{"event":"complete"}\', flush=True)\nprint("final fixture stderr", file=sys.stderr, flush=True)\n')
             binary.chmod(0o700)
             destination = root / 'result.jsonl'
             children = []
@@ -105,7 +105,7 @@ class LoadDiagnostics(unittest.TestCase):
                 child = popen(*args, **kwargs)
                 children.append(child)
                 return child
-            with patch.object(load.subprocess, 'Popen', side_effect=capture), patch.object(load.census, 'sample', return_value=dict(event='physical_resources')), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=0.0)))):
+            with patch.object(load.subprocess, 'Popen', side_effect=capture), patch.object(load.census, 'sample', side_effect=lambda owner, workloads, phase: dict(event='physical_resources', phase=phase, tree_processes=1, zombies=[])), patch.object(load.census, 'cpu_delta', return_value=dict(event='cpu_interval', categories=dict(owner=dict(core_percent=0.0)))):
                 self.assertTrue(load.trial(binary, {'seconds': 1, 'warmup': 0, 'active': 0, 'mode': 'idle'}, destination, True, 1, {}, 5))
             child, = children
             self.assertEqual(child.returncode, 0)

@@ -11,7 +11,11 @@ pub(super) struct Info {
     pub alternate: u8,
     pub paste: u8,
     pub application_cursor: u8,
-    pub mouse: u8,
+    pub mouse_x10: u8,
+    pub mouse_normal: u8,
+    pub mouse_button: u8,
+    pub mouse_any: u8,
+    pub mouse_sgr: u8,
     pub foreground: [u8; 3],
     pub background: [u8; 3],
     pub cursor_color: [u8; 3],
@@ -32,7 +36,11 @@ impl Default for Info {
             alternate: 0,
             paste: 0,
             application_cursor: 0,
-            mouse: 0,
+            mouse_x10: 0,
+            mouse_normal: 0,
+            mouse_button: 0,
+            mouse_any: 0,
+            mouse_sgr: 0,
             foreground: [0; 3],
             background: [0; 3],
             cursor_color: [0; 3],
@@ -80,10 +88,16 @@ unsafe extern "C" {
     ) -> i32;
     pub fn rt_resize(owner: *mut c_void, cols: u16, rows: u16) -> i32;
     pub fn rt_info(owner: *mut c_void, out: *mut Info) -> i32;
+    pub fn rt_rows(owner: *mut c_void, total: *mut usize, scrollback: *mut usize) -> i32;
     pub fn rt_cell(
         owner: *mut c_void,
+        history: i32,
         x: u16,
-        y: u16,
+        // Ghostty's point coordinate is a u32 row and documents that it "may
+        // exceed page size for screen/history tags". Narrowing it here would
+        // put a 65,535-row ceiling on retained history that nothing else in
+        // the contract states.
+        y: u32,
         text: *mut u32,
         cap: usize,
         len: *mut usize,

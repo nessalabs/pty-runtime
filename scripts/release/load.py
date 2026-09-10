@@ -13,6 +13,11 @@ import time
 import traceback
 from load_support import census, identity, matrix, reporting
 
+# Acknowledged final process-tree census. Periodic sampling stops afterward so a
+# normal owner exit while draining completion output is not a lookup failure.
+# Anything forked after this phase and before exit is intentionally unsampled.
+FINAL_CENSUS_PHASE = 'closed'
+
 
 def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
     command = [str(binary)]
@@ -93,18 +98,21 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
                         snapshot = census.sample(process.pid, workloads, phase)
                         checkpoints[phase] = snapshot
                         record(snapshot)
-                        if phase == 'closed':
+                        if phase == FINAL_CENSUS_PHASE:
                             assert snapshot['tree_processes'] == 1, snapshot
                             assert not snapshot['zombies'], snapshot
                         process.stdin.write('continue\n')
                         process.stdin.flush()
-                if time.monotonic() >= next_sample and process.poll() is None:
+                # Final census is authoritative; the owner may exit while queued
+                # completion output is still being drained.
+                if FINAL_CENSUS_PHASE not in checkpoints and time.monotonic() >= next_sample and process.poll() is None:
                     record(census.sample(process.pid, workloads, 'periodic'))
                     next_sample = time.monotonic() + sample_seconds
             result = process.wait(timeout=10)
             reader.join(timeout=2)
             close_pipes()
             assert result == 0 and complete, ('trial failed', result, complete)
+            assert FINAL_CENSUS_PHASE in checkpoints, 'trial omitted final closed census'
             if starts:
                 record(dict(event='producer_start_skew', nanoseconds=max(starts)-min(starts), count=len(starts)))
             if config['active'] > 0:

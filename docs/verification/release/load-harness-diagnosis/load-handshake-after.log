@@ -1,9 +1,0 @@
-   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
-     Running unittests examples/release_load.rs (target/debug/examples/release_load-4e484c358400f135)
-
-running 1 test
-test release_load_support::population::tests::readiness_waits_for_delayed_frame_on_inherited_nonblocking_socket ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
-

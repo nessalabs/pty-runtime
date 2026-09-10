@@ -1,7 +1,0 @@
-Initial synthetic history fixture used 100 rows, which were included in READY.
-Observed assertion before correction:
-Assertion failed: (rt_history(o, &rows) == -1 && fault_hits == 1), function checkpoint_failures, file boundary-contract.c, line 115.
-The sanitizer process ended via assertion SIGABRT, not a sanitizer finding.
-Correction: use 5000 rows, matching the existing terminal_live_restore fixture.
-Then the progress getter injection fires exactly once and the contract passes.
-No production source changed as part of this correction.

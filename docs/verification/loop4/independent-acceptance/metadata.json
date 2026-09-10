@@ -1,7 +1,0 @@
-{
-  "captured_at": "2026-09-08T16:11:44.190936+00:00",
-  "base_head": "52ad04c3519616e6cedea9ac8707406970a40ed7",
-  "platform": "macOS-26.6-arm64-arm-64bit",
-  "manifest_sha256": "381021ba95e2e32bc23432856a2546e0e38521e79b65d96b981369b86878f14f",
-  "note": "Dirty concurrent loop4 worktree. Native cursor/codec patch is outside new-test scope; this manifest identifies files for bounded tests, not a repository-wide freeze."
-}

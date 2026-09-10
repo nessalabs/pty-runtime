@@ -23,6 +23,8 @@ pub struct Probe {
     pub live_restore: AtomicBool,
     pub skip_history: AtomicBool,
     pub fail_history: AtomicBool,
+    pub wrong_checkpoint_descriptor: AtomicBool,
+    pub checkpoint_capacity: AtomicUsize,
 }
 pub struct Factory(pub Arc<Probe>);
 impl ITerminalFactory for Factory {
@@ -85,6 +87,17 @@ impl Drop for Terminal {
     }
 }
 impl ITerminal for Terminal {
+    fn history(&mut self, start: u64, _count: u16) -> Result<TerminalHistory, TerminalError> {
+        // These doubles model feed and control ordering, not retained rows.
+        Ok(TerminalHistory {
+            start,
+            cols: 0,
+            cells: Vec::new(),
+            total: 0,
+            scrollback: 0,
+        })
+    }
+
     fn feed(&mut self, bytes: &[u8]) -> Result<TerminalEffects, TerminalError> {
         assert!(
             !self.probe.panic_feed.load(Ordering::Acquire),
@@ -154,7 +167,8 @@ impl ITerminal for Terminal {
                 alternate_screen: false,
                 bracketed_paste: false,
                 application_cursor: false,
-                mouse_reporting: false,
+                mouse: MouseTracking::None,
+                mouse_encoding: MouseEncoding::Legacy,
             },
             palette: TerminalPalette {
                 foreground: None,
@@ -178,10 +192,22 @@ impl ITerminal for Terminal {
             barrier.wait();
             barrier.wait();
         }
-        Ok(TerminalCheckpoint {
-            descriptor,
-            bytes: self.bytes.clone(),
-        })
+        let mut descriptor = descriptor;
+        if self
+            .probe
+            .wrong_checkpoint_descriptor
+            .load(Ordering::Acquire)
+        {
+            descriptor.control_generation += 1;
+        }
+        let mut bytes = Vec::with_capacity(
+            self.probe
+                .checkpoint_capacity
+                .load(Ordering::Acquire)
+                .max(self.bytes.len()),
+        );
+        bytes.extend_from_slice(&self.bytes);
+        Ok(TerminalCheckpoint { descriptor, bytes })
     }
     fn restoration_progress(&self) -> RestorationProgress {
         match (self.history, self.skipped) {

@@ -11,6 +11,139 @@ impl GhosttyTerminal {
         }
         Ok(info)
     }
+    /// Read retained rows without moving anything the engine or another
+    /// reader depends on.
+    pub(super) fn history_rows(
+        &mut self,
+        start: u64,
+        count: u16,
+    ) -> Result<TerminalHistory, TerminalError> {
+        self.healthy()?;
+        let info = self.info()?;
+        let size = TerminalSize::new(info.cols, info.rows)?;
+
+        let mut total = 0usize;
+        let mut scrollback = 0usize;
+        // SAFETY: Exclusive live native owner; both outputs are initialized
+        // scalars and the terminal is only read.
+        let result = unsafe { ffi::rt_rows(self.raw.as_ptr(), &mut total, &mut scrollback) };
+        if result != 0 {
+            return Err(TerminalError::EngineFailure);
+        }
+        let total = total as u64;
+
+        // A request past the window is not an error: it is what a reader that
+        // was scrolled back sees once old rows are discarded. Clamp and report
+        // where the read actually began.
+        let start = start.min(total);
+        let available = (total - start).min(u64::from(count));
+        let cols = usize::from(size.cols());
+        let cells_wanted = cols
+            .checked_mul(available as usize)
+            .ok_or(TerminalError::BudgetExceeded)?;
+
+        // ADR 0006 admits a range against `view_bytes` before serving it. The
+        // cell storage is the dominant cost and blank rows carry no grapheme
+        // text, so charging only for text would let an all-blank range reserve
+        // without limit; the reservation is therefore charged first and the
+        // remainder is what text may still draw down.
+        let cell_bytes = cells_wanted
+            .checked_mul(core::mem::size_of::<TerminalCell>())
+            .ok_or(TerminalError::BudgetExceeded)?;
+        let mut remaining = self
+            .config
+            .view_bytes
+            .checked_sub(cell_bytes)
+            .ok_or(TerminalError::BudgetExceeded)?;
+
+        let mut cells = Vec::new();
+        cells
+            .try_reserve_exact(cells_wanted)
+            .map_err(|_| TerminalError::BudgetExceeded)?;
+        for row in 0..available {
+            let y = u32::try_from(start + row).map_err(|_| TerminalError::BudgetExceeded)?;
+            for x in 0..size.cols() {
+                cells.push(self.read_cell(1, x, y, &mut remaining)?);
+            }
+        }
+
+        Ok(TerminalHistory {
+            start,
+            cols: size.cols(),
+            cells,
+            total,
+            scrollback: scrollback as u64,
+        })
+    }
+
+    /// Copy one cell into owned domain values.
+    ///
+    /// `history` selects absolute screen addressing, which covers retained
+    /// scrollback as well as the active area and moves nothing, rather than
+    /// the active-relative addressing a live view uses.
+    fn read_cell(
+        &mut self,
+        history: i32,
+        x: u16,
+        y: u32,
+        remaining: &mut usize,
+    ) -> Result<TerminalCell, TerminalError> {
+        let mut style = ffi::Style::default();
+        let mut small = [0u32; 32];
+        let mut len = 0;
+        // SAFETY: C reads an ephemeral grid reference and copies to bounded
+        // initialized buffers before returning. The terminal is not mutated.
+        let result = unsafe {
+            ffi::rt_cell(
+                self.raw.as_ptr(),
+                history,
+                x,
+                y,
+                small.as_mut_ptr(),
+                small.len(),
+                &mut len,
+                &mut style,
+            )
+        };
+        let text = if result == -2 {
+            if len > *remaining / 4 {
+                return Err(TerminalError::BudgetExceeded);
+            }
+            let mut larger = Vec::new();
+            larger
+                .try_reserve_exact(len)
+                .map_err(|_| TerminalError::BudgetExceeded)?;
+            larger.resize(len, 0);
+            // SAFETY: Same exclusive terminal has not changed; allocated capacity
+            // is the engine-reported codepoint count and C checks that bound again.
+            let retry = unsafe {
+                ffi::rt_cell(
+                    self.raw.as_ptr(),
+                    history,
+                    x,
+                    y,
+                    larger.as_mut_ptr(),
+                    larger.len(),
+                    &mut len,
+                    &mut style,
+                )
+            };
+            if retry != 0 {
+                return Err(TerminalError::EngineFailure);
+            }
+            decode(&larger[..len], remaining)?
+        } else if result == 0 {
+            decode(&small[..len], remaining)?
+        } else {
+            return Err(TerminalError::EngineFailure);
+        };
+        Ok(TerminalCell {
+            text,
+            width: style.width,
+            style: convert_style(style)?,
+        })
+    }
+
     pub(super) fn project(&mut self) -> Result<TerminalView, TerminalError> {
         let info = self.info()?;
         let size = TerminalSize::new(info.cols, info.rows)?;
@@ -22,58 +155,7 @@ impl GhosttyTerminal {
         let mut remaining = self.config.view_bytes;
         for y in 0..size.rows() {
             for x in 0..size.cols() {
-                let mut style = ffi::Style::default();
-                let mut small = [0u32; 32];
-                let mut len = 0;
-                // SAFETY: C reads an ephemeral grid reference and copies to bounded
-                // initialized buffers before returning. The terminal is not mutated.
-                let result = unsafe {
-                    ffi::rt_cell(
-                        self.raw.as_ptr(),
-                        x,
-                        y,
-                        small.as_mut_ptr(),
-                        small.len(),
-                        &mut len,
-                        &mut style,
-                    )
-                };
-                let text = if result == -2 {
-                    if len > remaining / 4 {
-                        return Err(TerminalError::BudgetExceeded);
-                    }
-                    let mut larger = Vec::new();
-                    larger
-                        .try_reserve_exact(len)
-                        .map_err(|_| TerminalError::BudgetExceeded)?;
-                    larger.resize(len, 0);
-                    // SAFETY: Same exclusive terminal has not changed; allocated capacity
-                    // is the engine-reported codepoint count and C checks that bound again.
-                    let retry = unsafe {
-                        ffi::rt_cell(
-                            self.raw.as_ptr(),
-                            x,
-                            y,
-                            larger.as_mut_ptr(),
-                            larger.len(),
-                            &mut len,
-                            &mut style,
-                        )
-                    };
-                    if retry != 0 {
-                        return Err(TerminalError::EngineFailure);
-                    }
-                    decode(&larger[..len], &mut remaining)?
-                } else if result == 0 {
-                    decode(&small[..len], &mut remaining)?
-                } else {
-                    return Err(TerminalError::EngineFailure);
-                };
-                cells.push(TerminalCell {
-                    text,
-                    width: style.width,
-                    style: convert_style(style)?,
-                });
+                cells.push(self.read_cell(0, x, u32::from(y), &mut remaining)?);
             }
         }
         Ok(TerminalView {
@@ -88,7 +170,24 @@ impl GhosttyTerminal {
                 alternate_screen: info.alternate != 0,
                 bracketed_paste: info.paste != 0,
                 application_cursor: info.application_cursor != 0,
-                mouse_reporting: info.mouse != 0,
+                // Later modes win: a program that enables any-event
+                // tracking over button tracking wants the wider set.
+                mouse: if info.mouse_any != 0 {
+                    MouseTracking::AnyMotion
+                } else if info.mouse_button != 0 {
+                    MouseTracking::ButtonMotion
+                } else if info.mouse_normal != 0 {
+                    MouseTracking::PressRelease
+                } else if info.mouse_x10 != 0 {
+                    MouseTracking::Press
+                } else {
+                    MouseTracking::None
+                },
+                mouse_encoding: if info.mouse_sgr != 0 {
+                    MouseEncoding::Sgr
+                } else {
+                    MouseEncoding::Legacy
+                },
             },
             palette: TerminalPalette {
                 foreground: (info.has_foreground != 0).then_some(info.foreground),

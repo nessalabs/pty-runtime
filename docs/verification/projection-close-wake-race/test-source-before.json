@@ -1,8 +1,0 @@
-{
-  "execution": "not run by test author; coordinator will run RED in separate Linux diagnostic clone",
-  "files": {
-    "crates/application/src/projection/tests/close_race.rs": "882028d05d3d036fac46ea05bb22b3e3205a300e8419a60f6c0b5dd96cc023ad",
-    "crates/application/src/projection/tests/mod.rs": "c2db84eb26a22bfb77b47878d9a8138bd9c95bb7b663e6121fe49c35d8d7d9a5",
-    "crates/application/src/projection/admission.rs": "84bac8f4c482ddb8e398d8d30765ca60a01b0792e52a630e4a59d8c86208e9b5"
-  }
-}

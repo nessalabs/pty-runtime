@@ -48,10 +48,12 @@
              .expected_pending_wrap = false,
          },
      };
-@@ -2214,6 +2226,28 @@
+@@ -2212,6 +2224,28 @@
+     try std.testing.expectEqual(@as(u16, 1), saved.x);
+     try std.testing.expectEqual(@as(u16, 1), saved.y);
      try std.testing.expect(saved.pending_wrap);
- }
- 
++}
++
 +test "saved cursor preserves valid pending wrap and normalizes clipping" {
 +    const Case = struct { x: u16, y: u16, expected: bool };
 +    const cases = [_]Case{
@@ -72,11 +74,9 @@
 +        try std.testing.expectEqual(@min(case.x, 1), restored.x);
 +        try std.testing.expectEqual(@min(case.y, 1), restored.y);
 +    }
-+}
-+
+ }
+ 
  test "SCREEN restoration rejects invalid and incomplete sequences" {
-     var screen = try TerminalScreen.init(
-         std.testing.io,
 --- a/src/terminal/PageList.zig
 +++ b/src/terminal/PageList.zig
 @@ -2785,7 +2785,14 @@
@@ -127,7 +127,82 @@
      var trimmed: size.CellCountInt = 0;
      var invalidated_node: ?*List.Node = null;
      const bl_pin = self.getBottomRight(.screen).?;
-@@ -15259,6 +15284,35 @@
+@@ -7459,6 +7484,24 @@
+ /// This was specifically built to help facilitate snapshot decoding
+ /// which transfers pages directly, but could be generally useful
+ /// for other purposes as well.
++/// Total page bytes one decode may allocate.
++///
++/// A capacity is the page's allocated size, not its content, so the wire
++/// deliberately cannot distinguish a blank wide page from an over-declared
++/// one: no payload-derived bound is both tight and non-rejecting. The
++/// remaining honest control is to bound the resource rather than predict
++/// intent, which is what the kitty graphics decoder does with a fixed
++/// ceiling and what this format already does for continuations with a
++/// caller-supplied `max_continuation_bytes`.
++///
++/// This is a running total across the whole decode, so it bounds a single
++/// oversized page and a long run of ordinary ones with one rule. It is far
++/// above any restore this runtime produces, whose page bytes are bounded by
++/// the configured scrollback, and far below what a hostile header asks for.
++/// A caller needing more cannot currently raise it; making it an option
++/// belongs upstream alongside `max_continuation_bytes`.
++pub const max_decode_bytes = 512 * 1024 * 1024;
++
+ pub const Builder = struct {
+     pool: MemoryPool,
+     pages: List = .{},
+@@ -7511,6 +7554,14 @@
+         self: *Builder,
+         capacity: Capacity,
+     ) Allocator.Error!*Page {
++        // Page memory comes from the OS page allocator rather than the
++        // caller's, so nothing downstream observes this allocation. Hold the
++        // running total here, before the pages exist, rather than in `finish`
++        // where the memory has already been taken.
++        if (Page.layout(capacity).total_size > max_decode_bytes -| self.page_size) {
++            return error.OutOfMemory;
++        }
++
+         const node = try createPageExt(
+             &self.pool,
+             .{ .cap = capacity },
+@@ -7602,7 +7653,34 @@
+         return result;
+     }
+ };
++
++test "PageList Builder bounds total decoded page bytes" {
++    const testing = std.testing;
++
++    // The budget is a running total, so a decode is refused by an accumulation
++    // of ordinary pages just as it is by one oversized page. Both are shapes a
++    // hostile header can ask for and neither is observable downstream.
++    var builder = try Builder.init(testing.allocator, .{
++        .cols = 4,
++        .rows = 3,
++        .max_size = null,
++    });
++    defer builder.deinit();
+ 
++    // Addressable, so representability does not refuse it, but far past the
++    // budget a decode may spend.
++    var huge = std_capacity;
++    huge.string_bytes = 1024 * 1024 * 1024;
++    try testing.expect(huge.representable());
++    try testing.expect(Page.layout(huge).total_size > max_decode_bytes);
++    try testing.expectError(error.OutOfMemory, builder.allocatePage(huge));
++
++    // An ordinary page is unaffected, and the total advances by its layout.
++    const cap = try std_capacity.adjust(.{ .cols = 4 });
++    _ = try builder.allocatePage(cap);
++    try testing.expectEqual(Page.layout(cap).total_size, builder.page_size);
++}
++
+ test "PageList Builder transfers mixed-width pages" {
+     const testing = std.testing;
+ 
+@@ -15259,6 +15337,35 @@
      }
  }
  
@@ -163,13 +238,10 @@
  test "PageList resize (no reflow) less cols pin in trimmed cols" {
      const testing = std.testing;
      const alloc = testing.allocator;
-@@ -15407,6 +15461,28 @@
-             try testing.expectEqual(@as(u21, 0), rac.cell.content.codepoint.data);
-             try testing.expectEqual(pagepkg.Cell.Wide.narrow, rac.cell.wide);
-         }
-+    }
-+}
-+
+@@ -15410,6 +15517,28 @@
+     }
+ }
+ 
 +test "PageList resize (no reflow) grow cols wrap flags ignore spare capacity" {
 +    for ([_]size.CellCountInt{ 10, 5 }) |initial_cols| {
 +        var s = try init(std.testing.allocator, .{
@@ -189,13 +261,19 @@
 +        const grown = s.pages.first.?.page();
 +        try std.testing.expect(!grown.getRowAndCell(4, 0).row.wrap);
 +        try std.testing.expect(!grown.getRowAndCell(0, 1).row.wrap_continuation);
-     }
- }
- 
-@@ -20337,6 +20413,38 @@
-     }
- }
- 
++    }
++}
++
+ // Regression test for fuzz crash. When we shrink cols and then
+ // grow back, the page retains capacity from the original size so the grow
+ // takes the fast path (just bumps page.size.cols). If any row has a
+@@ -20334,9 +20463,41 @@
+         try testing.expectEqual(.none, row.semantic_prompt);
+         const cells = row.cells.ptr(page.memory.ptr)[0..page.size.cols];
+         for (cells) |cell| try testing.expect(cell.isZero());
++    }
++}
++
 +test "PageList resize (no reflow) inactive viewport does not retain blank rows" {
 +    for ([_]Viewport{ .active, .top }) |viewport| {
 +        for ([_]bool{ false, true }) |retain_row| {
@@ -213,9 +291,9 @@
 +            try std.testing.expectEqual(@as(size.CellCountInt, 0), s.viewport_pin.y);
 +            if (retained) |retained_pin| try std.testing.expectEqual(@as(size.CellCountInt, 3), retained_pin.y);
 +        }
-+    }
-+}
-+
+     }
+ }
+ 
 +test "PageList resize (no reflow) preserves a pinned history viewport" {
 +    var s = try init(std.testing.allocator, .{ .cols = 5, .rows = 3 });
 +    defer s.deinit();
@@ -233,17 +311,17 @@
      const alloc = testing.allocator;
 --- a/src/terminal/bitmap_allocator.zig
 +++ b/src/terminal/bitmap_allocator.zig
-@@ -317,6 +317,10 @@
+@@ -316,6 +316,10 @@
+                 // our remaining number.
                  rem -= 64;
              }
- 
++
 +            // The final partial word may be beyond the available bitmaps even
 +            // when the full-word loop above had no iterations left to check.
 +            if (i >= bitmaps.len) return null;
-+
+ 
              // If the number of available chunks at the start of this bitmap
              // is less than the remaining required, we have to try again.
-             if (@ctz(bitmaps[i]) < rem) continue;
 @@ -1219,3 +1223,50 @@
          try testing.expectEqual(64, Alloc.bytesRequired(u8, 33));
      }
@@ -295,3 +373,494 @@
 +    allocator.free(buf, full);
 +    try testing.expectEqual(@as(usize, 0), allocator.usedBytes(buf));
 +}
+--- a/src/terminal/page.zig
++++ b/src/terminal/page.zig
+@@ -1938,6 +1938,16 @@
+     pub const Adjustment = struct {
+         cols: ?size.CellCountInt = null,
+     };
++
++    /// Whether a page with this capacity can be addressed at all.
++    ///
++    /// Page members are reached through `size.OffsetInt`, so a layout past
++    /// `size.max_page_size` cannot be represented. Page creation only asserts
++    /// this, which release builds drop, so anything admitting an untrusted
++    /// capacity must ask here first. Evaluating the layout allocates nothing.
++    pub fn representable(self: Capacity) bool {
++        return Page.layout(self).total_size <= size.max_page_size;
++    }
+ 
+     /// Returns the maximum number of columns that can be used with this
+     /// capacity while still fitting at least one row. Returns null if even
+--- a/src/terminal/snapshot/page.zig
++++ b/src/terminal/snapshot/page.zig
+@@ -103,6 +103,7 @@
+ const style = @import("style.zig");
+ const terminal_hyperlink = @import("../hyperlink.zig");
+ const terminal_page = @import("../page.zig");
++const terminal_size = @import("../size.zig");
+ const terminal_style = @import("../style.zig");
+ 
+ // Frequent constants we use
+@@ -186,6 +187,11 @@
+     record_reader: record.Reader,
+     header: Header,
+ 
++    /// The capacity `init` accepted. Held rather than re-derived so that
++    /// `capacity` cannot depend on repeating a validation that has already
++    /// run, which release builds would not catch.
++    accepted_capacity: TerminalPageCapacity,
++
+     /// Begin decoding one PAGE record and expose its required capacity.
+     /// After this, call `capacity` to get the capacity to allocate
+     /// the page properly, then `decode` into it.
+@@ -196,12 +202,21 @@
+         }
+ 
+         self.header = try Header.decode(self.record_reader.payloadReader());
+-        _ = try self.header.pageCapacity();
++        self.accepted_capacity = try self.header.pageCapacity();
++
++        // A capacity is a preallocation hint, but the grid it describes still
++        // has to arrive: every row costs `grid.row_header_len` bytes on the
++        // wire even when it is entirely default. A row count this record
++        // cannot pay for was produced by no encoder, and the only thing it
++        // buys is an allocation the input never justifies.
++        const remaining = self.record_reader.header.payload_len -| Header.len;
++        const rows_cost = @as(usize, self.header.rows) * grid.row_header_len;
++        if (rows_cost > remaining) return error.CapacityUnjustified;
+     }
+ 
+     /// Return the exact native capacity advertised by the PAGE header.
+     pub fn capacity(self: *const Decoder) TerminalPageCapacity {
+-        return self.header.pageCapacity() catch unreachable;
++        return self.accepted_capacity;
+     }
+ 
+     /// Largest remaining PAGE payload staged into one contiguous buffer.
+@@ -556,9 +571,27 @@
+             .string_capacity_bytes = page.capacity.string_bytes,
+         };
+     }
++
++    /// The largest page this decoder will allocate for an untrusted header.
++    ///
++    /// Capacity hints are attacker-chosen and page memory comes from the OS
++    /// page allocator rather than any tracked allocator, so an addressable
++    /// capacity still admits a multi-gigabyte allocation that no other limit
++    /// refuses. This is the fixed ceiling the Kitty graphics decoder applies
++    /// to declared image sizes: far above any page a terminal produces, far
++    /// below what a hostile header asks for.
++    const max_page_bytes = 64 * 1024 * 1024;
+ 
+     pub const CapacityError = error{
+         InvalidDimensions,
++
++        /// The advertised row count costs more wire bytes than the record
++        /// carries, so no encoder could have produced it.
++        CapacityUnjustified,
++
++        /// The advertised capacity needs more page memory than a native
++        /// page can address.
++        CapacityTooLarge,
+     };
+ 
+     /// Validate native allocation requirements and produce the page capacity.
+@@ -567,7 +600,7 @@
+             return error.InvalidDimensions;
+         }
+ 
+-        return .{
++        const capacity: TerminalPageCapacity = .{
+             .cols = self.columns,
+             .rows = self.rows,
+             .styles = self.style_capacity,
+@@ -575,6 +608,22 @@
+             .grapheme_bytes = self.grapheme_capacity_bytes,
+             .string_bytes = self.string_capacity_bytes,
+         };
++
++        // An untrusted capacity above the addressable limit would truncate
++        // the page layout arithmetic in release builds: the page is
++        // allocated for the truncated size while its allocators still hand
++        // out the advertised capacity, past the end of the backing memory.
++        // The page owns that predicate; ask it before anything is allocated.
++        if (!capacity.representable()) return error.CapacityTooLarge;
++
++        // Representability keeps the page addressable; this keeps it
++        // affordable. The two answer different questions, so both are asked
++        // even though the ceiling is the stricter of the pair today.
++        if (terminal_page.Page.layout(capacity).total_size > max_page_bytes) {
++            return error.CapacityTooLarge;
++        }
++
++        return capacity;
+     }
+ 
+     fn computeLen() usize {
+@@ -1333,11 +1382,148 @@
+         var reader: std.Io.Reader = .fixed(writer.buffered());
+         try std.testing.expectError(
+             error.InvalidDimensions,
++            decodePayload(&reader, std.testing.allocator),
++        );
++    }
++}
++
++test "decode validates that the capacity fits a native page" {
++    // Each capacity field can independently demand more page memory than
++    // native page offsets can address. The first case is the string
++    // capacity observed from a corrupted snapshot.
++    const cases = [_]Header{
++        .{
++            .columns = 82,
++            .rows = 83,
++            .style_count = 0,
++            .hyperlink_count = 1,
++            .style_capacity = 128,
++            .hyperlink_capacity_bytes = 192,
++            .grapheme_capacity_bytes = 8192,
++            .string_capacity_bytes = 0xffff0800,
++        },
++        .{
++            .columns = 80,
++            .rows = 24,
++            .style_count = 0,
++            .hyperlink_count = 0,
++            .style_capacity = 0,
++            .hyperlink_capacity_bytes = 0,
++            .grapheme_capacity_bytes = std.math.maxInt(u32),
++            .string_capacity_bytes = 0,
++        },
++        .{
++            .columns = std.math.maxInt(u16),
++            .rows = std.math.maxInt(u16),
++            .style_count = 0,
++            .hyperlink_count = 0,
++            .style_capacity = 0,
++            .hyperlink_capacity_bytes = 0,
++            .grapheme_capacity_bytes = 0,
++            .string_capacity_bytes = 0,
++        },
++        // Addressable, but far past what any real page allocates.
++        .{
++            .columns = 80,
++            .rows = 24,
++            .style_count = 0,
++            .hyperlink_count = 0,
++            .style_capacity = 0,
++            .hyperlink_capacity_bytes = 0,
++            .grapheme_capacity_bytes = 0,
++            .string_capacity_bytes = 128 * 1024 * 1024,
++        },
++    };
++
++    for (cases) |header| {
++        var encoded: [Header.len]u8 = undefined;
++        var writer: std.Io.Writer = .fixed(&encoded);
++        try header.encode(&writer);
++
++        var reader: std.Io.Reader = .fixed(writer.buffered());
++        try std.testing.expectError(
++            error.CapacityTooLarge,
+             decodePayload(&reader, std.testing.allocator),
+         );
+     }
++
++    // An ordinary capacity is admitted unchanged, and raising one field past
++    // the addressable limit is what flips the decision.
++    var boundary: Header = .{
++        .columns = 82,
++        .rows = 83,
++        .style_count = 0,
++        .hyperlink_count = 0,
++        .style_capacity = 128,
++        .hyperlink_capacity_bytes = 192,
++        .grapheme_capacity_bytes = 8192,
++        .string_capacity_bytes = 2048,
++    };
++    const admitted = try boundary.pageCapacity();
++    try std.testing.expectEqual(
++        @as(terminal_size.StringBytesInt, 2048),
++        admitted.string_bytes,
++    );
++    try std.testing.expectEqual(@as(u16, 82), admitted.cols);
++    try std.testing.expect(admitted.representable());
++
++    boundary.string_capacity_bytes = 0xffff0800;
++    try std.testing.expectError(
++        error.CapacityTooLarge,
++        boundary.pageCapacity(),
++    );
+ }
+ 
++test "decode rejects a row count the payload cannot pay for" {
++    const testing = std.testing;
++
++    // A PAGE record carrying nothing but its header still declares a full
++    // grid. Every row costs `grid.row_header_len` bytes on the wire, so the
++    // declared count is one no encoder could have produced.
++    const header: Header = .{
++        .columns = 80,
++        .rows = 4096,
++        .style_count = 0,
++        .hyperlink_count = 0,
++        .style_capacity = 0,
++        .hyperlink_capacity_bytes = 0,
++        .grapheme_capacity_bytes = 0,
++        .string_capacity_bytes = 0,
++    };
++
++    var destination: std.Io.Writer.Allocating = .init(testing.allocator);
++    defer destination.deinit();
++    var stream: record.Writer = .init(testing.allocator, &destination.writer);
++    defer stream.deinit();
++    try header.encode(stream.begin(.page));
++    try stream.finish();
++
++    var reader: std.Io.Reader = .fixed(destination.written());
++    var decoder: Decoder = undefined;
++    try testing.expectError(
++        error.CapacityUnjustified,
++        decoder.init(&reader),
++    );
++
++    // The same row count is accepted once the record actually carries the
++    // rows, so the bound refuses only what the payload cannot support.
++    var page = try TerminalPage.init(try header.pageCapacity());
++    defer page.deinit();
++    page.size.rows = header.rows;
++    page.size.cols = header.columns;
++
++    var full: std.Io.Writer.Allocating = .init(testing.allocator);
++    defer full.deinit();
++    var full_stream: record.Writer = .init(testing.allocator, &full.writer);
++    defer full_stream.deinit();
++    try encode(&page, &full_stream);
++
++    var full_reader: std.Io.Reader = .fixed(full.written());
++    var full_decoder: Decoder = undefined;
++    try full_decoder.init(&full_reader);
++    try testing.expectEqual(header.rows, full_decoder.capacity().rows);
++}
++
+ test "decode propagates a style table read failure" {
+     const FailOnceReader = struct {
+         source: std.Io.Reader,
+--- a/src/terminal/snapshot/grid.zig
++++ b/src/terminal/snapshot/grid.zig
+@@ -839,6 +839,11 @@
+ /// their neutral variants, invalid Unicode becomes U+FFFD, invalid optional
+ /// data is ignored, and malformed wide-cell relationships become narrow
+ /// cells. The encoded cell count is the only structural field.
++/// Bytes every row occupies on the wire regardless of its contents: the
++/// flag byte plus the encoded cell count. A fully default row still costs
++/// this, so it is the floor a declared row count has to pay for.
++pub const row_header_len = 3;
++
+ pub fn decode(
+     page: *TerminalPage,
+     reader: *std.Io.Reader,
+@@ -849,10 +854,10 @@
+         // Read the row header and cell count.
+         const row_header: Row, const count: u16 = header: {
+             // The staged payload path has every header buffered.
+-            var row_header_bytes: [3]u8 = undefined;
+-            if (reader.bufferedLen() >= 3) {
+-                row_header_bytes = reader.buffered()[0..3].*;
+-                reader.toss(3);
++            var row_header_bytes: [row_header_len]u8 = undefined;
++            if (reader.bufferedLen() >= row_header_len) {
++                row_header_bytes = reader.buffered()[0..row_header_len].*;
++                reader.toss(row_header_len);
+             } else {
+                 try reader.readSliceAll(&row_header_bytes);
+             }
+--- a/src/terminal/stream_continuation.zig
++++ b/src/terminal/stream_continuation.zig
+@@ -186,17 +186,99 @@
+         self.bytes.appendSlice(self.alloc, fragment) catch self.markBroken();
+     }
+ 
+-    /// Write the replay-safe continuation suffix to `writer`. The retained
+-    /// bytes already begin at the replay start; this omits only bytes that
+-    /// would repeat committed terminal effects without contributing to the
+-    /// unfinished parser state (e.g. a BEL inside an unfinished CSI). The
+-    /// tracker must not be broken.
++    /// Where replay of the still-unfinished sequence must begin.
++    const ReplayStart = struct {
++        /// Index of the introducing byte within the retained bytes.
++        index: usize = 0,
++
++        /// Set when that byte is a C1 introducer, which only introduces
++        /// mid-stream. Replay starts from ground, so the exported suffix
++        /// spells it as `ESC` plus this byte minus 0x40 instead.
++        c1: ?u8 = null,
++    };
++
++    /// Locate the sequence the VT parser is still building.
++    ///
++    /// The retained bytes begin at the replay start recorded on the feed
++    /// path, which only recognizes ESC. A C1 introducer also abandons the
++    /// current sequence and begins a new one, so the retained bytes can
++    /// still open with an earlier sequence that has since completed. Ending
++    /// a sequence is committed work that replay must not repeat and that
++    /// `write` cannot omit, because it changes a parser state tag. Trimming
++    /// to the final introducer removes it.
++    ///
++    /// Retained bytes that already replay nothing committed keep their
++    /// recorded start, so an abandoned but inert prefix stays byte-identical
++    /// across export and re-export.
++    fn replayStart(self: *const Tracker) ReplayStart {
++        var scanner: BoundaryScanner = .init();
++        var found: ?ReplayStart = null;
++        var committed = false;
++        for (self.bytes.items, 0..) |c, i| {
++            const before = scanner.parser.state;
++            if (scanner.next(c) == .committed) committed = true;
++
++            // ESC introduces from every state, including ground.
++            if (c == 0x1b) {
++                found = .{ .index = i };
++                continue;
++            }
++
++            // A C1 introducer only introduces where it is not payload: the
++            // ground state decodes high bytes as UTF-8 and the DCS and OSC
++            // string states keep them. Both leave the state tag alone or
++            // move it somewhere other than the introduced state.
++            const entry = c1Introducer(c) orelse continue;
++            if (before != scanner.parser.state and
++                entry == scanner.parser.state)
++            {
++                found = .{ .index = i, .c1 = c };
++            }
++        }
++
++        // Only a sequence the VT parser is still building can be trimmed.
++        // A grounded scan ends inside a UTF-8 codepoint, whose retained
++        // bytes are already minimal.
++        if (!committed or scanner.parser.state == .ground) return .{};
++        return found orelse .{};
++    }
++
++    /// The state a C1 introducer enters, or null for every other byte.
++    fn c1Introducer(c: u8) ?Parser.State {
++        return switch (c) {
++            0x90 => .dcs_entry,
++            0x9b => .csi_entry,
++            0x9d => .osc_string,
++            0x98, 0x9e, 0x9f => .sos_pm_apc_string,
++            else => null,
++        };
++    }
++
++    /// Write the replay-safe continuation suffix to `writer`.
++    ///
++    /// This trims the retained bytes to the sequence still unfinished at the
++    /// end, spelling a C1 introducer as its `ESC` equivalent so replay from
++    /// ground reproduces the same state. It also omits bytes that would
++    /// repeat committed terminal effects without contributing to that state
++    /// (e.g. a BEL inside an unfinished CSI). The tracker must not be broken.
+     pub fn write(
+         self: *const Tracker,
+         writer: *std.Io.Writer,
+     ) std.Io.Writer.Error!void {
++        const start = self.replayStart();
+         var scanner: BoundaryScanner = .init();
+-        for (self.bytes.items) |c| {
++        var index = start.index;
++        if (start.c1) |c| {
++            // The 7-bit spelling replaces the introducer itself. Feeding it
++            // to the scanner keeps the remaining classification exact.
++            const final = c - 0x40;
++            _ = scanner.next(0x1b);
++            _ = scanner.next(final);
++            try writer.writeByte(0x1b);
++            try writer.writeByte(final);
++            index += 1;
++        }
++        for (self.bytes.items[index..]) |c| {
+             if (scanner.next(c) == .omittable) continue;
+             try writer.writeByte(c);
+         }
+--- a/src/terminal/stream.zig
++++ b/src/terminal/stream.zig
+@@ -4947,6 +4947,77 @@
+     }
+ }
+ 
++test "stream: continuation trims a completed sequence before a C1 introducer" {
++    // An unfinished APC string is the one committed-exit state that keeps
++    // the "anywhere" C1 transitions, so a C1 introducer there both ends it
++    // and opens a new sequence. Replay must open the new sequence only, and
++    // from ground that needs the introducer's seven-bit spelling.
++    const Case = struct {
++        input: []const u8,
++        expected: []const u8,
++    };
++    const cases = [_]Case{
++        .{ .input = "\x1b_apc\x90qdata", .expected = "\x1bPqdata" },
++        .{ .input = "\x1b_apc\x9b12;", .expected = "\x1b[12;" },
++        .{ .input = "\x1b_apc\x9d2;title", .expected = "\x1b]2;title" },
++        // The same trimming applies when ESC opened the abandoned string.
++        .{ .input = "\x1b_apc\x1b_next", .expected = "\x1b_next" },
++    };
++
++    const S = Stream(ContinuationTestHandler);
++    for (cases) |case| {
++        var stream = S.init(.{
++            .allocator = testing.allocator,
++            .handler = .{},
++            .continuation_max_bytes = 1024,
++        });
++        defer stream.deinit();
++        stream.nextSlice(case.input);
++
++        var buf: [1024]u8 = undefined;
++        var writer: std.Io.Writer = .fixed(&buf);
++        try stream.writeContinuation(&writer);
++        try testing.expectEqualStrings(case.expected, writer.buffered());
++
++        // The exported suffix is a valid continuation and re-exports itself.
++        try continuationpkg.validate(writer.buffered());
++
++        var restored = S.init(.{
++            .allocator = testing.allocator,
++            .handler = .{},
++            .continuation_max_bytes = 1024,
++        });
++        defer restored.deinit();
++        restored.nextSlice(writer.buffered());
++        var again: [1024]u8 = undefined;
++        var again_writer: std.Io.Writer = .fixed(&again);
++        try restored.writeContinuation(&again_writer);
++        try testing.expectEqualStrings(
++            case.expected,
++            again_writer.buffered(),
++        );
++    }
++}
++
++test "stream: continuation keeps an inert abandoned prefix" {
++    // Leaving an unfinished CSI commits nothing, so those retained bytes
++    // already replay safely and keep their recorded replay start.
++    const S = Stream(ContinuationTestHandler);
++    var stream = S.init(.{
++        .allocator = testing.allocator,
++        .handler = .{},
++        .continuation_max_bytes = 1024,
++    });
++    defer stream.deinit();
++    stream.nextSlice("text\x1b[12\x9d2;title");
++
++    var buf: [1024]u8 = undefined;
++    var writer: std.Io.Writer = .fixed(&buf);
++    try stream.writeContinuation(&writer);
++    try testing.expectEqualStrings("\x1b[12\x9d2;title", writer.buffered());
++    try continuationpkg.validate(writer.buffered());
++}
++
+ test "stream: continuation reconstructs every unfinished VT state" {
+     const Case = struct {
+         input: []const u8,

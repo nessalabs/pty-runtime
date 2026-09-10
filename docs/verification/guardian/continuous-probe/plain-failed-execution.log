@@ -1,4 +1,0 @@
-['cc', '-c', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/plain/filename.c', '-o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/plain/filename.o']
-['rustc', '--edition=2024', '-C', 'instrument-coverage', '-C', 'link-arg=/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/plain/filename.o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/probe.rs', '-o', '/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/plain/probe']
-['/Users/nessa/Documents/NessaLabs/pty-runtime/work/helper-coverage-probe/plain/probe']
-LLVM Profile Error: Counters section not page-aligned (start = 0x100c24310, pagesz = 16384).

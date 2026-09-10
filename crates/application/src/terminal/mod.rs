@@ -1,7 +1,7 @@
 //! Replaceable terminal engine boundary. Implementations own native resources.
 use pty_runtime_domain::terminal::{
     CheckpointDescriptor, RestorationProgress, TerminalCapabilities, TerminalCheckpoint,
-    TerminalConfig, TerminalEffects, TerminalError, TerminalSize, TerminalView,
+    TerminalConfig, TerminalEffects, TerminalError, TerminalHistory, TerminalSize, TerminalView,
 };
 
 /// Creates exclusive terminal owners; implementations reject unsupported contracts.
@@ -33,6 +33,14 @@ pub trait ITerminal: Send {
     fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError>;
     /// Copy active cells into domain values with no references to mutable engine memory.
     fn view(&mut self) -> Result<TerminalView, TerminalError>;
+    /// Copy retained rows into domain values, oldest first, without moving any
+    /// viewport or otherwise disturbing what other readers observe.
+    ///
+    /// `start` addresses the engine's current window and is clamped into it;
+    /// a range that has aged out returns the rows that survive rather than an
+    /// error. `count` is admitted against the same projection budget as
+    /// `view`. See ADR 0006.
+    fn history(&mut self, start: u64, count: u16) -> Result<TerminalHistory, TerminalError>;
     /// Encode complete state under its byte cap; descriptor control must match the model.
     /// Application provides processed position at the same serialized boundary as feed.
     fn checkpoint(
