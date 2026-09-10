@@ -106,6 +106,10 @@ impl ProjectionCoordinator {
         queue
             .try_reserve_exact(queue_slots)
             .map_err(|_| ProjectionError::Capacity)?;
+        let reaper = super::reaper::SourceReaper::new(
+            options.max_park_attempts,
+            budgets.limits.stored_slots,
+        )?;
         let quotas = SessionQuotas::new(budgets, &options);
         let owner = Arc::new(Self {
             journal: super::journal::Journal::new(lifetime, options, &quotas.shared),
@@ -126,7 +130,7 @@ impl ProjectionCoordinator {
                 io: None,
                 reply: None,
                 resize: None,
-                reaper: super::reaper::SourceReaper::new(options.max_park_attempts),
+                reaper,
                 config: options.terminal,
                 history_step_owed: false,
             }),

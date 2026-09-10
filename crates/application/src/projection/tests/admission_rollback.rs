@@ -240,3 +240,68 @@ fn rejected_projection_admission_settles_published_waiter_and_releases_identity_
     );
     runtime.shutdown();
 }
+
+/// A factory whose compatibility identity violates the domain's bound.
+///
+/// After the identity rule was consolidated into `CompatibilityId`, the check in
+/// `ProjectionCoordinator::create` became the only production guard against an
+/// embedder-supplied factory: the two defence-in-depth copies inside the
+/// protector and the checkpoint store were deleted as duplication.
+struct BadIdentityFactory(&'static str);
+impl ITerminalFactory for BadIdentityFactory {
+    fn capabilities(&self) -> TerminalCapabilities {
+        TerminalCapabilities {
+            checkpoints: true,
+            incremental_restore: false,
+            mutation_during_restore: false,
+            history_compression: false,
+        }
+    }
+    fn compatibility(&self) -> &'static str {
+        self.0
+    }
+    fn create(&self, _: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
+        panic!("admission must be refused before any native state is created")
+    }
+    fn restore(
+        &self,
+        _: TerminalCheckpoint,
+        _: TerminalConfig,
+    ) -> Result<Box<dyn ITerminal>, TerminalError> {
+        unreachable!()
+    }
+}
+
+#[test]
+fn factory_identity_outside_the_domain_bound_is_refused_before_native_creation() {
+    const OVERSIZED: &str = match std::str::from_utf8(&[b'x'; 4097]) {
+        Ok(value) => value,
+        Err(_) => unreachable!(),
+    };
+    for identity in ["", OVERSIZED] {
+        let services = ProjectionServices {
+            terminal: Arc::new(BadIdentityFactory(identity)),
+            clock: Arc::new(Clock::default()),
+            scheduler: Arc::new(Scheduler),
+            blocking: Arc::new(Jobs::default()),
+            capacity: Arc::new(Signal::default()),
+            store: Arc::new(Store::default()),
+            protector: Arc::new(Protector::default()),
+        };
+        let budgets = crate::projection::ProjectionBudgets::new(Default::default()).unwrap();
+        let outcome = crate::projection::ProjectionCoordinator::create(
+            SessionLifetime::new(11, 1),
+            options(),
+            services,
+            budgets,
+            Arc::new(crate::runtime::quota::Quota::new(128)),
+            Arc::new(crate::runtime::quota::Quota::new(8)),
+        );
+        // create() panics in the factory if it ever reaches native creation, so
+        // reaching this assertion also proves the identity is checked first.
+        assert!(matches!(
+            outcome.err(),
+            Some(ProjectionError::InvalidConfiguration)
+        ));
+    }
+}

@@ -17,11 +17,20 @@ use std::collections::VecDeque;
 
 /// One source checked out for a deletion attempt.
 ///
-/// The reaper hands ownership out and cannot see what happens next, so every
-/// checkout must come back through exactly one of [`SourceReaper::give_up_or_retry`]
-/// (the attempt failed) or [`SourceReaper::return_unsubmitted`] (the attempt was
-/// never made). Dropping one silently would leak both the ciphertext and the
-/// disk reservation charged against it.
+/// A checkout has four possible dispositions, and only two of them come back
+/// through this type:
+///
+/// ```text
+///   submission rejected  -> return_unsubmitted   (same attempt count, re-queued)
+///   delete failed        -> give_up_or_retry     (count incremented, re-queued)
+///   delete succeeded     -> dropped here         (releases the DiskLease)
+///   shutdown mid-flight  -> surrendered to the unreclaimed ledger
+/// ```
+///
+/// Dropping is therefore legitimate — it *is* the success path — which is why
+/// this is a plain value and not an RAII guard: a guard could not tell a
+/// successful delete from a mistaken drop. The cost is that the two re-queueing
+/// paths are a convention rather than an invariant the compiler holds.
 pub(super) struct DeleteAttempt {
     pub source: CommittedSource,
     pub attempts: u32,
@@ -34,14 +43,26 @@ pub(super) struct SourceReaper {
 }
 
 impl SourceReaper {
-    pub fn new(max_attempts: u32) -> Self {
-        Self {
-            queue: VecDeque::new(),
+    /// Reserve the queue up front against the same finite population that bounds
+    /// how many sources can exist: every `CommittedSource` holds a `DiskLease`
+    /// charging one `stored_slots`, so the queue can never exceed that limit.
+    /// Reserving here means `retire` cannot abort the process on an allocation
+    /// failure at the moment a source needs to be reclaimed.
+    pub fn new(max_attempts: u32, stored_slots: usize) -> Result<Self, ProjectionError> {
+        let mut queue = VecDeque::new();
+        queue
+            .try_reserve_exact(stored_slots)
+            .map_err(|_| ProjectionError::Capacity)?;
+        Ok(Self {
+            queue,
             max_attempts,
-        }
+        })
     }
 
     /// Queue a superseded source for deletion, starting its attempt count fresh.
+    ///
+    /// Infallible: the capacity reserved in [`Self::new`] covers every source
+    /// that can hold a storage slot at once.
     pub fn retire(&mut self, source: CommittedSource) {
         self.queue.push_back(DeleteAttempt {
             source,

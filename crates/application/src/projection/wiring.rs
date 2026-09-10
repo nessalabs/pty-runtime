@@ -5,10 +5,11 @@
 //! collaborator that is released during cleanup (the service bundle, the
 //! scheduler registration, the bound process).
 //!
-//! Keeping them together means the state under the two ownership mutexes does
-//! not also carry the wiring needed to act on it: a function given
-//! `&mut NativeWorkspace` can drive the engine but cannot, for instance, reach
-//! past it to wake the scheduler.
+//! Grouping them keeps the slots private, so nothing outside this file can
+//! swap a collaborator or observe a released one. It does NOT constrain the
+//! coordinator's own methods: they take `&self`, so every one of them still has
+//! `self.wiring` in scope. Narrowing that requires moving methods off the
+//! coordinator, not fields into a struct.
 use super::{ProjectionError, ProjectionOptions, ProjectionServices};
 use crate::{process::IProcessSession, scheduling::IWorkHandle};
 use pty_runtime_domain::terminal::CompatibilityId;
@@ -118,37 +119,13 @@ impl Wiring {
     }
 }
 
-/// Seams used only by this crate's tests.
+/// Failure-injection seams used only by this crate's tests.
 ///
-/// Cleanup evidence and failure injection: production code neither inspects a
-/// released slot nor swaps a collaborator after construction, so none of this
-/// is compiled into the library.
+/// Production code never replaces a collaborator after construction. Cleanup
+/// evidence needs no seam: `services()` reports `Closed` and `handle()` /
+/// `process()` report `None` once released.
 #[cfg(test)]
 impl Wiring {
-    /// Whether cleanup has released the service bundle.
-    pub fn services_released(&self) -> bool {
-        self.services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .is_none()
-    }
-
-    /// Whether cleanup has released the scheduler registration.
-    pub fn handle_released(&self) -> bool {
-        self.handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .is_none()
-    }
-
-    /// Whether cleanup has released the bound process.
-    pub fn process_released(&self) -> bool {
-        self.process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .is_none()
-    }
-
     /// Swap an injected collaborator mid-life to exercise a provider fault.
     pub fn inject_services(&self, change: impl FnOnce(&mut ProjectionServices)) {
         if let Some(services) = self

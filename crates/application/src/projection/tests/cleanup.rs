@@ -36,7 +36,7 @@ fn close_during_pending_commit_deletes_late_result_and_releases_services() {
     result(&mut closed).unwrap();
     assert_eq!(h.owner.status().residency, Residency::Closed);
     assert!(h.store.entries.lock().unwrap().is_empty());
-    assert!(h.owner.wiring.services_released());
+    assert!(h.owner.wiring.services().is_err());
     assert_eq!(h.owner.stage_output(b"late"), OutputAcceptance::Closed);
 }
 #[test]
@@ -71,7 +71,7 @@ fn permanent_delete_failure_closes_truthfully_and_stays_charged_in_bounded_ledge
     assert_eq!(h.budgets.unreclaimed_sources(), 1);
     assert_eq!(h.budgets.unreclaimed_reserved_bytes(), 1064);
     assert_eq!(h.store.deletes.load(Ordering::Acquire), 3);
-    assert!(h.owner.wiring.services_released());
+    assert!(h.owner.wiring.services().is_err());
     assert!(!h.budgets.stored_slots.acquire(1));
 }
 #[test]
@@ -122,8 +122,8 @@ fn authentication_failure_retains_only_source_and_close_releases_pool_handles() 
     ));
     assert_eq!(h.store.entries.lock().unwrap().len(), 1);
     h.close();
-    assert!(h.owner.wiring.handle_released());
-    assert!(h.owner.wiring.services_released());
+    assert!(h.owner.wiring.handle().is_none());
+    assert!(h.owner.wiring.services().is_err());
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn uncertain_commits_stay_charged_and_report_failure_on_every_close() {
         assert!(result(&mut h.owner.close().unwrap()).is_err());
         assert_eq!(h.store.deletes.load(Ordering::Acquire), 0);
         assert_eq!(h.store.entries.lock().unwrap().len(), 1);
-        assert!(h.owner.wiring.services_released());
+        assert!(h.owner.wiring.services().is_err());
     }
 }
 
@@ -161,9 +161,9 @@ fn scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services()
     assert_eq!(h.owner.status().residency, Residency::Closed);
     assert_eq!(h.budgets.unreclaimed_sources(), 1);
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
-    assert!(h.owner.wiring.services_released());
-    assert!(h.owner.wiring.handle_released());
-    assert!(h.owner.wiring.process_released());
+    assert!(h.owner.wiring.services().is_err());
+    assert!(h.owner.wiring.handle().is_none());
+    assert!(h.owner.wiring.process().is_none());
     h.owner.finish_after_shutdown();
     assert_eq!(h.budgets.unreclaimed_sources(), 1);
 }

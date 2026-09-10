@@ -37,7 +37,7 @@ fn finish_between_publication_and_wake(h: &Harness) {
             owner.run();
             jobs.run_one();
             if owner.status().residency == Residency::Closed {
-                assert!(owner.wiring.handle_released());
+                assert!(owner.wiring.handle().is_none());
                 return;
             }
         }
@@ -65,8 +65,8 @@ fn released(h: &Harness, stored: usize) {
     assert_eq!(r.stored_slots.used, stored);
     assert_eq!(r.stored_bytes.used, stored * 1064);
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
-    assert!(h.owner.wiring.services_released());
-    assert!(h.owner.wiring.handle_released());
+    assert!(h.owner.wiring.services().is_err());
+    assert!(h.owner.wiring.handle().is_none());
 }
 
 #[test]

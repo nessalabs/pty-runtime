@@ -38,6 +38,15 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 
 ## Clean Code review pass (naming, diagrams, structure)
 
+**Review status: incomplete.** `AGENTS.md` requires three independent specialist
+reviews per loop. Two ran to completion — DDD/dependency-direction and Clean
+Code/SOLID — and their findings are reflected below and in "What is still open".
+**The third, adversarial behavioural correctness, did not run: it terminated on
+an API spend limit.** Nothing in this pass has had an independent concurrency,
+resource-bound, cleanup or failure-injection review. The mechanical gate is
+green and the suite is stable over five consecutive full runs, but neither is a
+substitute, and this loop must not be called passed until that review is done.
+
 A Clean Code review of the domain and application core, applied in verified
 steps. **No behaviour changed at any step**: every pre-existing test passes with
 no test removed, and the mechanical gate is green after each commit. Test files
@@ -60,8 +69,9 @@ What changed:
   now `close()` / `mark_closed()`.
 - The projection internals were renamed for what they are: `Core` → `Admission`,
   `Engine` → `NativeWorkspace`, `Event` → `Command` (requests going in, as
-  opposed to the `TransferEvent` facts coming out), `IoKind` → `BlockingJob`,
-  `Stored` → `CommittedSource`, `garbage` → `pending_deletes`.
+  opposed to the `TransferEvent` facts coming out), `IoKind` → `PendingIo`,
+  `Stored` → `CommittedSource`. The old `garbage` field became `pending_deletes`
+  and then moved into `SourceReaper` entirely.
 - Coordinator methods that did work behind noun-shaped names were renamed:
   `staging` → `reserve_staging`, `ticket` → `reserve_request_slot`,
   `native_event` → `apply_command`, `pending_native` →
@@ -81,10 +91,11 @@ What changed:
   admission paths. It owns the lock guard and drops it before waking, because
   `fail()` re-acquires that same lock — a call site that woke while still
   holding it would have deadlocked.
-- The blocking-I/O mailbox is typed per job kind. `BlockingJob` and `IoResult`
-  were parallel enums that had to agree by convention, and `finish_io` carried a
-  defensive "wrong result kind" arm in every branch. All four are gone, not
-  merely unreachable.
+- The blocking-I/O mailbox is typed per job kind. The job descriptor and the
+  result were parallel enums that had to agree by convention, and `finish_io`
+  carried a defensive "wrong result kind" arm in every branch. They are now one
+  `PendingIo` carrying a `Mailbox<T>` per variant, and all four arms are gone —
+  not merely unreachable.
 - `worker::run` went from ~100 lines and twelve early returns to 31, with the
   phases named (`read_back_source`, `restore_step`, `serve`). Its two `status()`
   reads were kept: the second one exists to catch a failure that
@@ -114,18 +125,43 @@ What changed:
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
   the ADRs — re-run the notice script when dependencies change.
-- Remaining structural findings from the Clean Code review:
-  - `ProjectionCoordinator` is still one type whose nine `impl` blocks can all
-    reach all of its fields. Grouping the quotas took it from 16 fields to 12,
-    but the deeper split into collaborators that own their own state (staging
-    queue, native workspace, blocking I/O, source reaper) has not been done.
-    That one changes locking, so it needs the full review loop rather than a
-    mechanical pass.
-  - The parking-operation counter (`CheckpointKey.generation`,
-    `ParkAttempt.generation`) is still a bare `u64`, as is the capacity-signal
-    generation in `ICapacitySignal`. `ControlGeneration` covers only the ordered
-    resize counter, which was the one that could be confused with a control
-    position.
+- **The `ProjectionCoordinator` god object is NOT resolved.** A later pass
+  extracted `SourceReaper` and `Wiring`, taking the type from 16 fields to 7.
+  An independent review measured what actually changed and the answer is: not
+  enough. Field count fell because three data clumps were boxed; **the method
+  count went up** (45 → 50 across the nine files holding its `impl` blocks), no
+  responsibility left the type, and all nine files still reach every field. The
+  commit message for that change ("Two concerns … now own their own state")
+  overstated it, and this record previously repeated the overstatement.
+
+  What would actually meet the claim is moving *methods*, not fields: an
+  `AdmissionQueue` owning the queue mutex and its quotas, a `BlockingIo` owning
+  the in-flight job and the executor, an `impl` on `NativeWorkspace` for engine
+  driving, and a teardown owner. `SourceReaper` is the model — it is the one
+  piece of this work that genuinely took a responsibility away. That remaining
+  split changes locking and needs its own review loop.
+- `ITerminalFactory::compatibility` still returns `&'static str`, so the
+  application converts it to `CompatibilityId` rather than the adapter doing so
+  at its own boundary. Two independent reviews flagged this as the wrong side of
+  the port; `ITerminal::resize` was widened to `ControlGeneration` in the same
+  work, so the two newtypes are treated inconsistently.
+- `max_park_attempts` is a domain budget documented for parking retries, but it
+  is also used as the checkpoint-deletion retry bound. Tuning one silently
+  retunes the other, and the domain models only one of them.
+- `stage_output_observed` still reimplements the enqueue sequence inline instead
+  of using `admit()`, and holds the admission lock across staging reservation
+  and the payload copy.
+- Building an `UnreclaimedSource` from a park attempt is duplicated verbatim in
+  two files, and the unreclaimed ledger is a bare `Mutex<Vec<_>>` with no owner.
+- `ControlGeneration::from_raw` is public with no production caller; every use is
+  a test. Its Rustdoc justifies it by a deserialization contract that does not
+  exist.
+- The lock-order note added to `Admission` documents two mutexes, but six are
+  reachable from a coordinator. The three inside `Wiring` are leaf locks today —
+  load-bearing and undocumented.
+- Files under `client/` are outside `scripts/gate.py`'s size inventory, so
+  `client/server/src/wire.rs` (467 nonblank) and `session.rs` (355) exceed the
+  350-line rule without the gate noticing.
 
 ## Where to look next
 
