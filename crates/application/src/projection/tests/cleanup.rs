@@ -31,7 +31,7 @@ fn close_during_pending_commit_deletes_late_result_and_releases_services() {
     h.step();
     assert!(poll(&mut closed).is_pending());
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
-    h.jobs.one();
+    h.jobs.run_one();
     h.pump();
     result(&mut closed).unwrap();
     assert_eq!(h.owner.status().residency, Residency::Closed);
@@ -155,7 +155,7 @@ fn scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services()
     h.step();
     let mut closed = h.owner.close().unwrap();
     // Simulate joining accepted blocking work after the scheduler has stopped.
-    assert!(h.jobs.one());
+    assert!(h.jobs.run_one());
     h.owner.finish_after_shutdown();
     assert_eq!(result(&mut closed), Err(ProjectionError::Worker));
     assert_eq!(h.owner.status().residency, Residency::Closed);

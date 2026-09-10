@@ -48,6 +48,22 @@ pub struct TransferEnd {
     pub projection_failure: Option<ProjectionError>,
 }
 /// Pure ordering/retention policy; application owns payloads and quota leases.
+///
+/// `sequence` counts successful model mutations, not bytes. A resize advances it
+/// without moving `processed`, which is what lets one cursor address both kinds
+/// of continuation event:
+///
+/// ```text
+///   start                    seq 0   processed 0    ctrl 0
+///   output(processed = 10)   seq 1   processed 10   ctrl 0
+///   resized(generation = 1)  seq 2   processed 10   ctrl 1   ← seq moves, bytes do not
+///   output(processed = 15)   seq 3   processed 15   ctrl 1
+///   seal(drain = Eof)        end = TransferEnd { boundary: seq 3, .. }
+/// ```
+///
+/// A cursor is only readable while it sits in `oldest ..= boundary.cursor`.
+/// Eviction (`discard_before`) raises `oldest`, so an observer that falls behind
+/// gets `ResyncRequired { oldest }` rather than a silently shortened stream.
 pub struct TransferOrder {
     boundary: TransferBoundary,
     oldest: u64,

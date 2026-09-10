@@ -21,8 +21,8 @@ fn mutation_invalidates_parking_without_advancing_unprocessed_position() {
     let mut policy =
         ProjectionPolicy::new(SessionLifetime::new(1, 1), options(), Duration::ZERO).unwrap();
     policy.admit_output(3, Duration::ZERO).unwrap();
-    policy.processed(3).unwrap();
-    policy.controlled(1).unwrap();
+    policy.record_processed(3).unwrap();
+    policy.record_control_applied(1).unwrap();
     let attempt = policy.begin_park(Duration::from_secs(60)).unwrap();
     policy.admit_output(2, Duration::from_secs(60)).unwrap();
     assert!(!policy.commit_park(attempt, true));
@@ -51,7 +51,7 @@ fn failed_retries_are_bounded_until_real_mutation() {
         policy.park_failed(ProjectionError::Capacity, Duration::from_secs(seconds));
     }
     assert_eq!(policy.park_delay(Duration::from_secs(100)), None);
-    policy.activity(Duration::from_secs(100)).unwrap();
+    policy.record_activity(Duration::from_secs(100)).unwrap();
     assert_eq!(
         policy.park_delay(Duration::from_secs(100)),
         Some(Duration::from_secs(60))
@@ -69,7 +69,7 @@ fn close_rejects_late_commit_and_usable_completion_cannot_revive() {
         Err(ProjectionError::Closed)
     );
     assert_eq!(policy.status().residency, Residency::Closing);
-    policy.closed();
+    policy.mark_closed();
     let _ = policy.restoration_progress(crate::terminal::RestorationProgress::Complete);
     assert_eq!(policy.status().residency, Residency::Closed);
     assert_eq!(
@@ -84,8 +84,8 @@ fn invalid_policy_and_out_of_order_processed_controls_are_rejected() {
     assert!(ProjectionPolicy::new(SessionLifetime::new(1, 1), invalid, Duration::ZERO).is_err());
     let mut policy =
         ProjectionPolicy::new(SessionLifetime::new(1, 1), options(), Duration::ZERO).unwrap();
-    assert!(policy.processed(1).is_err());
-    assert!(policy.controlled(2).is_err());
+    assert!(policy.record_processed(1).is_err());
+    assert!(policy.record_control_applied(2).is_err());
     assert_eq!(policy.status().processed.offset, 0);
 }
 

@@ -14,7 +14,7 @@ pub struct ProjectionBudgets {
     pub(super) checkpoints: Arc<Quota>,
     pub(super) stored: Arc<Quota>,
     pub(super) stored_slots: Arc<Quota>,
-    pub(super) unreclaimed: Mutex<Vec<super::state::Unreclaimed>>,
+    pub(super) unreclaimed: Mutex<Vec<super::state::UnreclaimedSource>>,
     pub(super) views: Arc<Quota>,
     pub(super) requests: Arc<Quota>,
 }
@@ -88,8 +88,8 @@ impl IoMemory {
         plain: usize,
         protected: usize,
     ) -> Result<Self, ProjectionError> {
-        let plain = Lease::one(budgets.checkpoints.clone(), plain)?;
-        let protected = Lease::one(budgets.checkpoints.clone(), protected)?;
+        let plain = Lease::shared(budgets.checkpoints.clone(), plain)?;
+        let protected = Lease::shared(budgets.checkpoints.clone(), protected)?;
         Ok(Self {
             plain,
             _protected: protected,
@@ -102,8 +102,8 @@ pub(super) struct DiskLease {
 }
 impl DiskLease {
     pub fn acquire(budgets: &ProjectionBudgets, bytes: usize) -> Result<Self, ProjectionError> {
-        let slots = Lease::one(budgets.stored_slots.clone(), 1)?;
-        let bytes = Lease::one(budgets.stored.clone(), bytes)?;
+        let slots = Lease::shared(budgets.stored_slots.clone(), 1)?;
+        let bytes = Lease::shared(budgets.stored.clone(), bytes)?;
         Ok(Self {
             bytes,
             _slots: slots,
@@ -117,7 +117,7 @@ pub(super) struct Lease {
     count: usize,
 }
 impl Lease {
-    pub fn one(first: Arc<Quota>, count: usize) -> Result<Self, ProjectionError> {
+    pub fn shared(first: Arc<Quota>, count: usize) -> Result<Self, ProjectionError> {
         if !first.acquire(count) {
             return Err(ProjectionError::Capacity);
         }
@@ -127,12 +127,12 @@ impl Lease {
             count,
         })
     }
-    pub fn pair(
+    pub fn shared_and_local(
         first: Arc<Quota>,
         second: Arc<Quota>,
         count: usize,
     ) -> Result<Self, ProjectionError> {
-        let mut lease = Self::one(first, count)?;
+        let mut lease = Self::shared(first, count)?;
         if !second.acquire(count) {
             return Err(ProjectionError::Capacity);
         }

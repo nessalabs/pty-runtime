@@ -10,6 +10,45 @@ pub use policy::{ParkAttempt, ProjectionPolicy};
 pub use transfer::{TransferBoundary, TransferCursor, TransferEnd, TransferError, TransferOrder};
 
 /// Terminal ownership state, independent from process exit and output drain.
+///
+/// Every transition below is a method on [`ProjectionPolicy`]. The application
+/// serializes those calls and owns the external work each one authorizes.
+///
+/// ```text
+///              ┌──────────── new() ────────────┐
+///              ▼                               │
+///        ┌───────────┐  begin_park   ┌─────────┴─┐
+///        │ Resident  │──────────────▶│  Parking  │
+///        │           │◀──────────────│           │
+///        └───────────┘  park_failed  └─────┬─────┘
+///              ▲        commit_park(✗)     │ commit_park(✓)
+///              │                           ▼
+///              │                     ┌───────────┐  live model released;
+///              │                     │  Parked   │  the committed source is
+///              │                     └─────┬─────┘  now authoritative
+///              │                           │ begin_restore
+///              │                           ▼
+///              │  progress.is_finished()  ┌───────────┐
+///              ├──────────────────────────│ Restoring │
+///              │                          └─────┬─────┘
+///              │                                │ restoration_progress (partial)
+///              │  progress.is_finished()  ┌─────▼─────┐  active screens visible,
+///              └──────────────────────────│  Usable   │  history still incomplete
+///                                         └───────────┘
+///
+///   any state ── fail() ──▶ Failed ──┐
+///   any state ─────────── close() ───┴──▶ Closing ── mark_closed() ──▶ Closed
+/// ```
+///
+/// `Failed` is terminal apart from `close()`, and `begin_restore` refuses to
+/// leave it. `close()` and `fail()` are both no-ops once `Closing`/`Closed` is
+/// reached, so a late worker cannot revive a projection. `cleanup_failed` and
+/// `maintenance_failed` record a failure *without* moving residency, which is
+/// why a `Closed` projection can still carry one.
+///
+/// Output admission is deliberately not on this chart: `admit_output` rejects
+/// only `Closing`/`Closed`, so bytes keep being staged while projection is
+/// `Failed` and the raw replay stream stays independent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Residency {
     /// A live model is available; history applicability is reported separately.

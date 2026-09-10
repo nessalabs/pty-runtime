@@ -1,7 +1,7 @@
 use super::{
     ProjectedView, ProjectionCoordinator, ProjectionError, Residency, ResizeOutcome,
     budgets::Lease,
-    state::{Engine, Event, Reply, Resizing},
+    state::{Command, NativeWorkspace, Reply, Resizing},
 };
 use crate::{runtime::quota::InputLease, scheduling::WorkSchedule};
 use pty_runtime_domain::{process::ProcessError, terminal::CheckpointDescriptor};
@@ -18,7 +18,10 @@ impl Wake for WorkWake {
     }
 }
 impl ProjectionCoordinator {
-    pub(super) fn pending_native(&self, engine: &mut Engine) -> Option<WorkSchedule> {
+    pub(super) fn poll_inflight_operations(
+        &self,
+        workspace: &mut NativeWorkspace,
+    ) -> Option<WorkSchedule> {
         let handle = self
             .handle
             .lock()
@@ -26,7 +29,7 @@ impl ProjectionCoordinator {
             .clone()?;
         let waker = Waker::from(Arc::new(WorkWake(handle)));
         let mut context = Context::from_waker(&waker);
-        if let Some(reply) = &mut engine.reply {
+        if let Some(reply) = &mut workspace.reply {
             if reply.operation.is_none() {
                 let process = self
                     .process
@@ -51,7 +54,7 @@ impl ProjectionCoordinator {
                     }
                     Err(error) => {
                         self.fail(error.into());
-                        engine.reply = None;
+                        workspace.reply = None;
                         return Some(WorkSchedule::Dormant);
                     }
                 }
@@ -65,18 +68,18 @@ impl ProjectionCoordinator {
                                 outcome.error.unwrap_or(ProcessError::Io),
                             ));
                         }
-                        engine.reply = None;
+                        workspace.reply = None;
                     }
                 }
             }
         }
-        if let Some(resize) = &mut engine.resize {
+        if let Some(resize) = &mut workspace.resize {
             match resize.operation.as_mut().poll(&mut context) {
                 Poll::Pending => return Some(WorkSchedule::Dormant),
                 Poll::Ready(os) => {
                     let model = match os {
                         Err(error) => Err(ProjectionError::Process(error)),
-                        Ok(()) => match &mut engine.terminal {
+                        Ok(()) => match &mut workspace.terminal {
                             Some(terminal) => {
                                 self.native_call(|| terminal.resize(resize.size, resize.generation))
                             }
@@ -84,10 +87,11 @@ impl ProjectionCoordinator {
                         },
                     };
                     if model.is_ok() {
-                        engine.config.size = resize.size;
-                        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                        let controlled = core.policy.controlled(resize.generation);
-                        drop(core);
+                        workspace.config.size = resize.size;
+                        let mut admission =
+                            self.admission.lock().unwrap_or_else(|e| e.into_inner());
+                        let controlled = admission.policy.record_control_applied(resize.generation);
+                        drop(admission);
                         if let Err(error) = controlled {
                             self.fail(error);
                         } else {
@@ -103,39 +107,43 @@ impl ProjectionCoordinator {
                         os,
                         model,
                     }));
-                    engine.resize = None;
+                    workspace.resize = None;
                 }
             }
         }
         None
     }
-    pub(super) fn native_event(&self, engine: &mut Engine, event: Event) -> WorkSchedule {
+    pub(super) fn apply_command(
+        &self,
+        workspace: &mut NativeWorkspace,
+        event: Command,
+    ) -> WorkSchedule {
         match event {
-            Event::Output(bytes, mut staging) => {
-                let memory = match Lease::one(self.budgets.views.clone(), engine.config.reply_bytes)
-                {
-                    Ok(memory) => memory,
-                    Err(_) => {
-                        self.requeue(Event::Output(bytes, staging));
-                        return WorkSchedule::After(Duration::from_millis(5));
-                    }
-                };
-                let result = match &mut engine.terminal {
+            Command::Output(bytes, mut staging) => {
+                let memory =
+                    match Lease::shared(self.budgets.views.clone(), workspace.config.reply_bytes) {
+                        Ok(memory) => memory,
+                        Err(_) => {
+                            self.requeue(Command::Output(bytes, staging));
+                            return WorkSchedule::After(Duration::from_millis(5));
+                        }
+                    };
+                let result = match &mut workspace.terminal {
                     Some(terminal) => self.native_call(|| terminal.feed(&bytes)),
                     None => Err(ProjectionError::Closed),
                 };
                 match result {
                     Ok(mut effects) => {
-                        if effects.0.len() > engine.config.reply_bytes {
+                        if effects.0.len() > workspace.config.reply_bytes {
                             effects.0.fill(0);
                             self.fail(ProjectionError::Capacity);
                         } else {
                             let processed = self
-                                .core
+                                .admission
                                 .lock()
                                 .unwrap_or_else(|e| e.into_inner())
                                 .policy
-                                .processed(bytes.len());
+                                .record_processed(bytes.len());
                             if let Err(error) = processed {
                                 self.fail(error);
                             } else {
@@ -145,7 +153,7 @@ impl ProjectionCoordinator {
                                 }
                             }
                             if !effects.0.is_empty() {
-                                engine.reply = Some(Reply {
+                                workspace.reply = Some(Reply {
                                     bytes: effects.0,
                                     _memory: memory,
                                     operation: None,
@@ -156,20 +164,20 @@ impl ProjectionCoordinator {
                     Err(error) => {
                         // A native error can occur after mutation. Retain the affected
                         // original bytes and fail projection; never feed them again.
-                        self.requeue(Event::Output(bytes, staging));
+                        self.requeue(Command::Output(bytes, staging));
                         self.fail(error);
                         return WorkSchedule::Dormant;
                     }
                 }
             }
-            Event::Resize(size, ticket, mut staging) => {
+            Command::Resize(size, ticket, mut staging) => {
                 let process = self
                     .process
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .clone();
                 let Some(process) = process else {
-                    self.requeue(Event::Resize(size, ticket, staging));
+                    self.requeue(Command::Resize(size, ticket, staging));
                     return WorkSchedule::Dormant;
                 };
                 let Some(generation) = self.status().control_generation.checked_add(1) else {
@@ -179,7 +187,7 @@ impl ProjectionCoordinator {
                 };
                 match process.resize_timed(size, staging.timing.take()) {
                     Ok(operation) => {
-                        engine.resize = Some(Resizing {
+                        workspace.resize = Some(Resizing {
                             size,
                             generation,
                             ticket,
@@ -194,16 +202,16 @@ impl ProjectionCoordinator {
                     })),
                 }
             }
-            Event::View(ticket, _staging) => {
+            Command::View(ticket, _staging) => {
                 if !ticket.cancelled() {
                     let mut options = self.options;
-                    options.terminal = engine.config;
+                    options.terminal = workspace.config;
                     let result = options
                         .view_reservation()
-                        .and_then(|count| Lease::one(self.budgets.views.clone(), count))
+                        .and_then(|count| Lease::shared(self.budgets.views.clone(), count))
                         .and_then(|lease| {
                             let terminal =
-                                engine.terminal.as_mut().ok_or(ProjectionError::Closed)?;
+                                workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
                             let view = self.native_call(|| terminal.view())?;
                             let history =
                                 self.native_call(|| Ok(terminal.restoration_progress()))?;
@@ -228,7 +236,7 @@ impl ProjectionCoordinator {
                     );
                 }
             }
-            Event::Checkpoint(request, _) => self.snapshot(engine, request),
+            Command::Checkpoint(request, _) => self.snapshot(workspace, request),
         }
         WorkSchedule::After(Duration::ZERO)
     }
@@ -244,8 +252,8 @@ impl ProjectionCoordinator {
             }
         }
     }
-    pub(super) fn closing_resize(&self, engine: &mut Engine) -> Option<WorkSchedule> {
-        let resize = engine.resize.as_mut()?;
+    pub(super) fn closing_resize(&self, workspace: &mut NativeWorkspace) -> Option<WorkSchedule> {
+        let resize = workspace.resize.as_mut()?;
         let handle = self
             .handle
             .lock()
@@ -261,7 +269,7 @@ impl ProjectionCoordinator {
                     os,
                     model: Err(ProjectionError::Closed),
                 }));
-                engine.resize = None;
+                workspace.resize = None;
                 None
             }
         }
@@ -277,16 +285,16 @@ impl ProjectionCoordinator {
             control_generation: status.control_generation,
         }
     }
-    pub(super) fn requeue(&self, event: Event) {
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
+    pub(super) fn requeue(&self, event: Command) {
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
         if matches!(
-            core.policy.status().residency,
+            admission.policy.status().residency,
             Residency::Closing | Residency::Closed
         ) {
-            drop(core);
+            drop(admission);
             event.fail(ProjectionError::Closed);
         } else {
-            core.queue.push_front(event);
+            admission.queue.push_front(event);
         }
     }
 }

@@ -158,7 +158,7 @@ impl SessionContext {
             page => Ok(Some(OutputEvent::Replay(page))),
         }
     }
-    pub(crate) fn record(&self, change: impl FnOnce(&mut State)) {
+    pub(crate) fn update_and_notify(&self, change: impl FnOnce(&mut State)) {
         let wakers = if let Ok(mut state) = self.state.lock() {
             change(&mut state);
             if state.metric_active && state.status.completion().is_some() {
@@ -214,8 +214,8 @@ impl Drop for SessionContext {
     }
 }
 
-pub(crate) struct Events(pub std::sync::Weak<SessionContext>);
-impl IProcessEvents for Events {
+pub(crate) struct SessionEventSink(pub std::sync::Weak<SessionContext>);
+impl IProcessEvents for SessionEventSink {
     fn diagnostics(&self) -> Option<Arc<crate::diagnostics::RuntimeDiagnostics>> {
         self.0
             .upgrade()
@@ -312,7 +312,7 @@ impl IProcessEvents for Events {
     }
     fn exited(&self, status: ExitStatus) {
         if let Some(context) = self.0.upgrade() {
-            context.record(|state| {
+            context.update_and_notify(|state| {
                 if state.status.record_exit(status).is_err() {
                     state.status.record_failure(ProcessError::Internal);
                 }
@@ -321,7 +321,7 @@ impl IProcessEvents for Events {
     }
     fn drained(&self, outcome: DrainOutcome) {
         if let Some(context) = self.0.upgrade() {
-            context.record(|state| {
+            context.update_and_notify(|state| {
                 if state.status.record_drain(outcome).is_err() {
                     state.status.record_failure(ProcessError::Internal);
                 }
@@ -338,7 +338,7 @@ impl IProcessEvents for Events {
             if let Some(diagnostics) = &context.diagnostics {
                 diagnostics.count(crate::diagnostics::CounterKind::FailedOperations, 1);
             }
-            context.record(|state| {
+            context.update_and_notify(|state| {
                 state.status.record_failure(error);
             });
         }

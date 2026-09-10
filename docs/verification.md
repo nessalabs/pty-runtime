@@ -36,6 +36,35 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 - Mechanical gate and a large set of fixtures exist and are the usual proof of
   “this change still works.”
 
+## Readability pass (naming and diagrams)
+
+A Clean Code review of the domain and application core produced a rename and
+documentation pass. **No behaviour changed**: the same 231 workspace tests pass
+before and after, with an identical test-name set, and the mechanical gate is
+green. Test files were touched for identifier renames only — no assertion,
+condition, or expected value was altered.
+
+What changed:
+
+- Domain policy mutators now say that they mutate: `record_activity`,
+  `record_processed`, `record_control_applied`, `mark_closed`. The old
+  `close()` / `closed()` pair (two different transitions, one letter apart) is
+  now `close()` / `mark_closed()`.
+- The projection internals were renamed for what they are: `Core` → `Admission`,
+  `Engine` → `NativeWorkspace`, `Event` → `Command` (requests going in, as
+  opposed to the `TransferEvent` facts coming out), `IoKind` → `BlockingJob`,
+  `Stored` → `CommittedSource`, `garbage` → `pending_deletes`.
+- Coordinator methods that did work behind noun-shaped names were renamed:
+  `staging` → `reserve_staging`, `ticket` → `reserve_request_slot`,
+  `native_event` → `apply_command`, `pending_native` →
+  `poll_inflight_operations`, `finish_stream` → `seal_journal_if_drained`.
+- Three ASCII diagrams were added where the rules were previously spread across
+  many methods: the `Residency` state chart, the `SessionStatus::completion`
+  truth table, and a worked `TransferOrder` cursor example.
+- The two-lock split is now documented on `Admission` / `NativeWorkspace`,
+  including the actual lock order (**workspace → admission**, taken only by
+  `worker::run`, `worker::failed` and `teardown::finish_after_shutdown`).
+
 ## What is still open
 
 - Full release load goals (large session counts, strict latency budgets, long
@@ -48,6 +77,27 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
   the ADRs — re-run the notice script when dependencies change.
+- Structural findings from the Clean Code review are **not** addressed yet. The
+  rename pass above made them easier to see, not smaller:
+  - `ProjectionCoordinator` is still one type with 13 fields, 5 locks and ~76
+    methods spread over nine `impl` blocks. The 350-line file rule was satisfied
+    by splitting files, not responsibilities; every one of those files can still
+    reach all 13 fields. Candidate collaborators: staging queue, native
+    workspace, blocking I/O, source reaper.
+  - `BlockingJob` and `IoResult` are parallel enums that must agree by
+    convention. `completion::finish_io` carries four defensive "wrong result
+    kind" arms that a typed per-job mailbox would delete outright.
+  - The enqueue sequence (push, drop lock, wake, fail-on-wake-error) is repeated
+    five times across `admission.rs` and `snapshot.rs`.
+  - `worker::run` is the real state machine but leaves it implicit: ~100 lines,
+    twelve early returns, and it re-reads `status()` three times, so it can
+    observe two different residencies within one run.
+  - `compatibility` is a bare string whose "non-empty, ≤ 4096 bytes" rule is
+    re-derived independently in `projection/coordinator.rs`,
+    `checkpoint/protector.rs` and `checkpoint/file.rs`. A domain newtype would
+    hold it in one place; today a custom terminal factory can bypass the check.
+  - Control generations, park-operation generations and transfer sequences are
+    all bare `u64`, and two of them are spelled `generation`.
 
 ## Where to look next
 

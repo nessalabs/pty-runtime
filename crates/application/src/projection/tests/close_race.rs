@@ -35,7 +35,7 @@ fn finish_between_publication_and_wake(h: &Harness) {
         assert_eq!(owner.status().residency, Residency::Closing);
         for _ in 0..32 {
             owner.run();
-            jobs.one();
+            jobs.run_one();
             if owner.status().residency == Residency::Closed {
                 assert!(owner.handle.lock().unwrap().is_none());
                 return;

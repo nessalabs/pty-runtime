@@ -3,19 +3,19 @@ use super::{
     Residency, ResizeOutcome,
     budgets::{Lease, StagingLease},
     observation::Ticket,
-    state::Event,
+    state::Command,
 };
 use crate::process::OutputAcceptance;
 use pty_runtime_domain::terminal::TerminalSize;
 use std::sync::{Arc, atomic::Ordering};
 impl ProjectionCoordinator {
-    pub(super) fn staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
+    pub(super) fn reserve_staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
         // Zero-payload controls already hold a bounded request ticket. Output
         // must not consume their admission; both remain in the same FIFO queue.
         let slots = if bytes == 0 {
             None
         } else {
-            Some(Lease::pair(
+            Some(Lease::shared_and_local(
                 self.budgets.staging_slots.clone(),
                 self.local_slots.clone(),
                 1,
@@ -24,7 +24,7 @@ impl ProjectionCoordinator {
         let bytes = if bytes == 0 {
             None
         } else {
-            Some(Lease::pair(
+            Some(Lease::shared_and_local(
                 self.budgets.staging_bytes.clone(),
                 self.local_bytes.clone(),
                 bytes,
@@ -37,10 +37,10 @@ impl ProjectionCoordinator {
             signal: self.services()?.capacity,
         })
     }
-    pub(super) fn ticket<T: Send + 'static>(
+    pub(super) fn reserve_request_slot<T: Send + 'static>(
         &self,
     ) -> Result<(Arc<Ticket<T>>, ProjectionOperation<T>), ProjectionError> {
-        let lease = Lease::pair(
+        let lease = Lease::shared_and_local(
             self.budgets.requests.clone(),
             self.local_requests.clone(),
             1,
@@ -67,14 +67,14 @@ impl ProjectionCoordinator {
         };
         let generation = services.capacity.generation();
         self.stall_generation.store(generation, Ordering::Release);
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
         if matches!(
-            core.policy.status().residency,
+            admission.policy.status().residency,
             Residency::Closing | Residency::Closed
         ) {
             return OutputAcceptance::Closed;
         }
-        if core.output_drain.is_some() {
+        if admission.output_drain.is_some() {
             return OutputAcceptance::Closed;
         }
         if bytes.is_empty() {
@@ -83,7 +83,7 @@ impl ProjectionCoordinator {
         if bytes.len() > self.options.terminal.feed_bytes {
             return OutputAcceptance::Backpressure;
         }
-        let Ok(mut lease) = self.staging(bytes.len()) else {
+        let Ok(mut lease) = self.reserve_staging(bytes.len()) else {
             return OutputAcceptance::Backpressure;
         };
         let mut owned = Vec::new();
@@ -91,7 +91,7 @@ impl ProjectionCoordinator {
             return OutputAcceptance::Backpressure;
         }
         owned.extend_from_slice(bytes);
-        if core
+        if admission
             .policy
             .admit_output(bytes.len(), services.clock.now())
             .is_err()
@@ -105,8 +105,8 @@ impl ProjectionCoordinator {
                 started,
             )
         });
-        core.queue.push_back(Event::Output(owned, lease));
-        drop(core);
+        admission.queue.push_back(Command::Output(owned, lease));
+        drop(admission);
         // Accepted staging is never rolled back after ownership transfer, even if
         // scheduler failure is reported. Failure preserves bytes for diagnostics.
         if self.wake().is_err() {
@@ -129,17 +129,19 @@ impl ProjectionCoordinator {
         timing: Option<crate::diagnostics::Timing>,
     ) -> Result<ProjectionOperation<ResizeOutcome>, ProjectionError> {
         let services = self.services()?;
-        let (ticket, wait) = self.ticket()?;
-        let mut lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        if core.output_drain.is_some() {
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let mut lease = self.reserve_staging(0)?;
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        self.ensure_accepting(&admission)?;
+        if admission.output_drain.is_some() {
             return Err(ProjectionError::Closed);
         }
-        core.policy.activity(services.clock.now())?;
+        admission.policy.record_activity(services.clock.now())?;
         lease.timing = timing;
-        core.queue.push_back(Event::Resize(size, ticket, lease));
-        drop(core);
+        admission
+            .queue
+            .push_back(Command::Resize(size, ticket, lease));
+        drop(admission);
         if let Err(error) = self.wake() {
             self.fail(error);
         }
@@ -148,12 +150,12 @@ impl ProjectionCoordinator {
     /// Queue a bounded copied observation. Restores a parked model; complete history
     /// remains an explicit residency fact rather than being inferred from visible cells.
     pub fn view(&self) -> Result<ProjectionOperation<ProjectedView>, ProjectionError> {
-        let (ticket, wait) = self.ticket()?;
-        let lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        core.queue.push_back(Event::View(ticket, lease));
-        drop(core);
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let lease = self.reserve_staging(0)?;
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        self.ensure_accepting(&admission)?;
+        admission.queue.push_back(Command::View(ticket, lease));
+        drop(admission);
         if let Err(error) = self.wake() {
             self.fail(error);
         }
@@ -162,15 +164,15 @@ impl ProjectionCoordinator {
     /// Queue an immutable binary transfer pin at an exact byte/control boundary.
     /// A parked model supplies its saved source without restoring a native owner.
     pub fn checkpoint(&self) -> Result<ProjectionOperation<PinnedCheckpoint>, ProjectionError> {
-        let (ticket, wait) = self.ticket()?;
-        let lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        core.queue.push_back(Event::Checkpoint(
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let lease = self.reserve_staging(0)?;
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        self.ensure_accepting(&admission)?;
+        admission.queue.push_back(Command::Checkpoint(
             super::snapshot::SnapshotRequest::Checkpoint(ticket),
             lease,
         ));
-        drop(core);
+        drop(admission);
         if let Err(error) = self.wake() {
             self.fail(error);
         }
@@ -180,23 +182,23 @@ impl ProjectionCoordinator {
     /// this coordinator until the returned wait resolves. If wait admission is full,
     /// closure is still requested and the caller receives Capacity; inspect status.
     pub fn close(&self) -> Result<ProjectionOperation<()>, ProjectionError> {
-        let pair = self.ticket();
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        if core.policy.status().residency == Residency::Closed {
-            let outcome = core.cleanup_failure.map_or(Ok(()), Err);
-            drop(core);
+        let pair = self.reserve_request_slot();
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        if admission.policy.status().residency == Residency::Closed {
+            let outcome = admission.cleanup_failure.map_or(Ok(()), Err);
+            drop(admission);
             if let Ok((ticket, _)) = &pair {
                 ticket.complete(outcome);
             }
         } else {
-            core.policy.close();
-            core.cleanup_failure = None;
-            core.retry_cleanup = true;
+            admission.policy.close();
+            admission.cleanup_failure = None;
+            admission.retry_cleanup = true;
             if let Ok((ticket, _)) = &pair {
-                core.close_waiters.push(ticket.clone());
+                admission.close_waiters.push(ticket.clone());
             }
-            let rejected = std::mem::take(&mut core.queue);
-            drop(core);
+            let rejected = std::mem::take(&mut admission.queue);
+            drop(admission);
             self.journal.close();
             for event in rejected {
                 event.fail(ProjectionError::Closed);
@@ -214,8 +216,11 @@ impl ProjectionCoordinator {
         }
         pair.map(|(_, wait)| wait)
     }
-    pub(super) fn accepting(&self, core: &super::state::Core) -> Result<(), ProjectionError> {
-        let status = core.policy.status();
+    pub(super) fn ensure_accepting(
+        &self,
+        admission: &super::state::Admission,
+    ) -> Result<(), ProjectionError> {
+        let status = admission.policy.status();
         if matches!(status.residency, Residency::Closing | Residency::Closed) {
             return Err(ProjectionError::Closed);
         }

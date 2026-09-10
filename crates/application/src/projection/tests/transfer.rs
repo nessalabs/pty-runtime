@@ -195,7 +195,7 @@ fn parked_transfer_precedes_staged_mutation_and_rejected_io_releases_observer_pe
     h.step();
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
     h.owner.stage_output(b"after");
-    h.jobs.one();
+    h.jobs.run_one();
     h.pump();
     let (pin, observer) = result(&mut accepted).unwrap().into_parts();
     assert_eq!(pin.checkpoint().descriptor.processed.offset, 0);

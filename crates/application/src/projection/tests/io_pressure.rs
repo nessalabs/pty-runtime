@@ -56,7 +56,7 @@ fn transfer_memory_pressure_releases_partial_admission_and_preserves_saved_sourc
     );
     let reference = saved(&h);
     // Another live reservation leaves room for plaintext but not protected bytes.
-    let held = Lease::one(h.budgets.checkpoints.clone(), 1064).unwrap();
+    let held = Lease::shared(h.budgets.checkpoints.clone(), 1064).unwrap();
     let mut transfer = h.owner.begin_transfer().unwrap();
     assert_eq!(h.step(), WorkSchedule::After(Duration::from_millis(5)));
     assert!(matches!(
@@ -104,9 +104,9 @@ fn restore_memory_or_resident_pressure_keeps_ordered_output_until_capacity_retur
         );
         let reference = saved(&h);
         let held = if resident_pressure {
-            Lease::one(h.budgets.resident.clone(), 4096).unwrap()
+            Lease::shared(h.budgets.resident.clone(), 4096).unwrap()
         } else {
-            Lease::one(h.budgets.checkpoints.clone(), 1064).unwrap()
+            Lease::shared(h.budgets.checkpoints.clone(), 1064).unwrap()
         };
         assert_eq!(h.owner.stage_output(b"after"), OutputAcceptance::Accepted);
         let mut view = h.owner.view().unwrap();
@@ -173,7 +173,7 @@ fn rejected_garbage_delete_retains_the_same_source_and_live_output_keeps_progres
     assert_eq!(h.owner.stage_output(b"b"), OutputAcceptance::Accepted);
     h.step();
     assert_eq!(h.owner.status().processed.offset, 2);
-    assert!(h.jobs.one());
+    assert!(h.jobs.run_one());
     let reference = h.store.entries.lock().unwrap().values().next().unwrap().0;
     h.jobs.reject.store(true, Ordering::Release);
     assert_eq!(h.step(), WorkSchedule::After(Duration::from_millis(5)));

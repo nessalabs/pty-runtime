@@ -94,7 +94,7 @@ fn native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operat
     assert_eq!(h.owner.status().failure, Some(ProjectionError::Worker));
     assert_eq!(h.owner.status().processed.offset, 0);
     assert_eq!(h.owner.status().published.offset, 9);
-    assert_eq!(h.owner.core.lock().unwrap().queue.len(), 1);
+    assert_eq!(h.owner.admission.lock().unwrap().queue.len(), 1);
     assert!(matches!(h.owner.view(), Err(ProjectionError::Worker)));
     h.close();
 }

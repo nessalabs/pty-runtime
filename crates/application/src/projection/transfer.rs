@@ -54,7 +54,7 @@ impl TransferObserver {
         self.journal.read(self.id, self.start.cursor, cursor, None)
     }
     /// Register one replaceable waker only while this exact cursor is pending.
-    /// Re-poll after waking; callers advance using Event::after().cursor. This
+    /// Re-poll after waking; callers advance using TransferEvent::after().cursor. This
     /// method borrows the observer, so cancellation can clear its registration.
     pub fn poll_read(
         &mut self,

@@ -71,7 +71,7 @@ impl Journal {
         })
     }
     pub fn reserve_observer(&self) -> Result<Lease, ProjectionError> {
-        Lease::pair(self.global_observers.clone(), self.observers.clone(), 1)
+        Lease::shared_and_local(self.global_observers.clone(), self.observers.clone(), 1)
     }
     pub fn open(self: &Arc<Self>, permit: Lease) -> Result<TransferObserver, ProjectionError> {
         let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
@@ -186,11 +186,19 @@ impl Journal {
                         _ => 0,
                     };
                     let leases = loop {
-                        let leases = Lease::pair(self.global_slots.clone(), self.slots.clone(), 1)
-                            .and_then(|slot| {
-                                Lease::pair(self.global_bytes.clone(), self.bytes.clone(), count)
-                                    .map(|bytes| (slot, bytes))
-                            });
+                        let leases = Lease::shared_and_local(
+                            self.global_slots.clone(),
+                            self.slots.clone(),
+                            1,
+                        )
+                        .and_then(|slot| {
+                            Lease::shared_and_local(
+                                self.global_bytes.clone(),
+                                self.bytes.clone(),
+                                count,
+                            )
+                            .map(|bytes| (slot, bytes))
+                        });
                         if leases.is_ok() {
                             break leases;
                         }

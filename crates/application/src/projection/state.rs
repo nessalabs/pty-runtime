@@ -14,13 +14,19 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub(super) enum Event {
+/// One admitted unit of work waiting in the ordered queue.
+///
+/// These are requests going *in*, not facts coming out — the observable facts a
+/// consumer reads back are `TransferEvent`s produced by the journal after the
+/// corresponding command succeeds. Every variant carries the `StagingLease` that
+/// admitted it, so dropping a command releases its quota exactly once.
+pub(super) enum Command {
     Output(Vec<u8>, StagingLease),
     Resize(TerminalSize, Arc<Ticket<ResizeOutcome>>, StagingLease),
     View(Arc<Ticket<ProjectedView>>, StagingLease),
     Checkpoint(SnapshotRequest, StagingLease),
 }
-impl Event {
+impl Command {
     pub fn fail(self, error: ProjectionError) {
         match self {
             Self::Resize(_, ticket, _) => ticket.complete(Err(error)),
@@ -30,28 +36,54 @@ impl Event {
         }
     }
 }
-pub(super) struct Core {
+/// Everything guarded by the *admission* lock: what has been accepted, and what
+/// the domain policy believes about it.
+///
+/// This is the half callers touch. It is deliberately separate from
+/// [`NativeWorkspace`] so that admitting output, reading status, or requesting
+/// cancellation never has to wait behind a native terminal operation:
+///
+/// ```text
+///   caller ──▶ [admission lock] ──▶ queue ──┐
+///                                           │ worker drains the queue while
+///   worker ──▶ [workspace lock] ──▶ native ─┘ holding the workspace lock
+/// ```
+///
+/// Lock order when both are needed is **workspace → admission**: the worker
+/// takes the workspace lock for the whole run and reaches into admission inside
+/// it (`worker::run`, `worker::failed`, `teardown::finish_after_shutdown` are
+/// the only three sites that take workspace at all). Callers only ever take
+/// admission, so they can never invert the order. Never hold either lock across
+/// a blocking store or OS call.
+pub(super) struct Admission {
     pub policy: ProjectionPolicy,
     pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,
-    pub queue: VecDeque<Event>,
+    pub queue: VecDeque<Command>,
     pub close_waiters: Vec<Arc<Ticket<()>>>,
     pub unreclaimed_failure: Option<ProjectionError>,
     pub cleanup_failure: Option<ProjectionError>,
     pub retry_cleanup: bool,
 }
-pub(super) struct Stored {
+pub(super) struct CommittedSource {
     pub reference: CheckpointRef,
     pub descriptor: CheckpointDescriptor,
     pub _disk: DiskLease,
 }
-pub(super) struct Unreclaimed {
+/// A source we failed to delete, or whose commit outcome was never confirmed.
+///
+/// Every field is read-never: this type exists purely to keep its `DiskLease`
+/// (and the identity that lease was charged against) alive, so the quota stays
+/// charged for storage we can no longer prove we released. Dropping one is the
+/// only thing that releases that charge, which is why the runtime holds these in
+/// a ledger for its whole lifetime rather than discarding them.
+pub(super) struct UnreclaimedSource {
     pub _reference: Option<CheckpointRef>,
     pub _key: pty_runtime_domain::checkpoint::CheckpointKey,
     pub _descriptor: CheckpointDescriptor,
     pub _disk: DiskLease,
 }
-impl From<Stored> for Unreclaimed {
-    fn from(source: Stored) -> Self {
+impl From<CommittedSource> for UnreclaimedSource {
+    fn from(source: CommittedSource) -> Self {
         Self {
             _reference: Some(source.reference),
             _key: source.reference.key,
@@ -82,7 +114,7 @@ pub(super) struct Resizing {
     pub _staging: StagingLease,
     pub operation: ProcessOperation<Result<(), pty_runtime_domain::process::ProcessError>>,
 }
-pub(super) enum IoKind {
+pub(super) enum BlockingJob {
     Commit {
         attempt: ParkAttempt,
         disk: DiskLease,
@@ -98,7 +130,7 @@ pub(super) enum IoKind {
         _staging: StagingLease,
     },
     Delete {
-        source: Stored,
+        source: CommittedSource,
         attempts: u32,
     },
 }
@@ -110,18 +142,25 @@ pub(super) enum IoResult {
 }
 pub(super) type IoMailbox = Arc<Mutex<Option<IoResult>>>;
 pub(super) struct PendingIo {
-    pub kind: IoKind,
+    pub kind: BlockingJob,
     pub mailbox: IoMailbox,
 }
-pub(super) struct Engine {
+/// Everything guarded by the *workspace* lock: exclusive ownership of the native
+/// terminal and of whatever operation is currently in flight against it.
+///
+/// Only the worker touches this. Holding it means "I am the one driving the
+/// engine right now", which is what lets [`ITerminal`] be a `&mut self` trait
+/// without any interior locking of its own. `terminal` is `None` while the model
+/// is parked or being restored; `io` holds at most one outstanding blocking job.
+pub(super) struct NativeWorkspace {
     pub config: pty_runtime_domain::terminal::TerminalConfig,
-    pub history_due: bool,
+    pub history_step_owed: bool,
     pub terminal: Option<Box<dyn ITerminal>>,
     pub resident: Option<Lease>,
-    pub source: Option<Stored>,
+    pub source: Option<CommittedSource>,
     pub restore_memory: Option<Lease>,
     pub io: Option<PendingIo>,
     pub reply: Option<Reply>,
     pub resize: Option<Resizing>,
-    pub garbage: VecDeque<(Stored, u32)>,
+    pub pending_deletes: VecDeque<(CommittedSource, u32)>,
 }

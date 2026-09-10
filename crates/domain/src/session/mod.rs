@@ -210,6 +210,25 @@ impl SessionStatus {
     }
 
     /// Whether terminal process supervision and output draining have both finished.
+    ///
+    /// Supervision and draining are separate facts, so a session is finished only
+    /// when *some* supervision outcome and a drain outcome are both known:
+    ///
+    /// ```text
+    ///   completion() = Some  ⟺  (exit ∨ supervision_error ∨ admission_error) ∧ drain
+    ///
+    ///   exit  supervision  admission  drain │ completion
+    ///   ─────────────────────────────────────────────────────────────────────
+    ///    ✓        ·           ·         ✓   │ Some   normal exit, output drained
+    ///    ·        ✓           ·         ✓   │ Some   supervision died; no exit invented
+    ///    ·        ·           ✓         ✓   │ Some   never launched
+    ///    ✓        ·           ·         ·   │ None   child gone, output still draining
+    ///    ·        ·           ·         ✓   │ None   drained, child unaccounted for
+    ///    ·        ·           ·         ·   │ None   still running
+    /// ```
+    ///
+    /// A failure is never encoded as a successful exit: the three left-hand
+    /// columns stay separate all the way into [`Completion`].
     pub fn completion(self) -> Option<Completion> {
         if (self.exit.is_some()
             || self.supervision_error.is_some()

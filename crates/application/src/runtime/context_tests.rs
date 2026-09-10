@@ -1,4 +1,4 @@
-use super::{SessionContext, SessionOptions, context::Events, quota::Quota};
+use super::{SessionContext, SessionOptions, context::SessionEventSink, quota::Quota};
 use crate::{diagnostics::RuntimeDiagnostics, process::IProcessEvents};
 use pty_runtime_domain::{SessionLifetime, terminal::TerminalSize};
 use std::sync::Arc;
@@ -22,7 +22,7 @@ fn poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges() {
         )
         .with_diagnostics(Some(diagnostics.clone())),
     );
-    let events = Events(Arc::downgrade(&context));
+    let events = SessionEventSink(Arc::downgrade(&context));
     assert_eq!(
         events.output(b"synthetic marker"),
         crate::process::OutputAcceptance::Accepted
@@ -32,7 +32,7 @@ fn poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges() {
     assert_eq!(observers.usage().used, 1);
     assert!(
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            context.record(|_| panic!("synthetic collaborator panic"));
+            context.update_and_notify(|_| panic!("synthetic collaborator panic"));
         }))
         .is_err()
     );
@@ -44,7 +44,11 @@ fn poisoned_context_drop_releases_owned_quotas_and_diagnostic_gauges() {
     assert_eq!(diagnostics.aggregate().retained_replay_bytes, 0);
 }
 
-fn callback_context() -> (Arc<SessionContext>, Events, Arc<RuntimeDiagnostics>) {
+fn callback_context() -> (
+    Arc<SessionContext>,
+    SessionEventSink,
+    Arc<RuntimeDiagnostics>,
+) {
     let diagnostics = RuntimeDiagnostics::new();
     let context = Arc::new(
         SessionContext::new(
@@ -58,7 +62,7 @@ fn callback_context() -> (Arc<SessionContext>, Events, Arc<RuntimeDiagnostics>) 
         )
         .with_diagnostics(Some(diagnostics.clone())),
     );
-    let events = Events(Arc::downgrade(&context));
+    let events = SessionEventSink(Arc::downgrade(&context));
     (context, events, diagnostics)
 }
 

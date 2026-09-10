@@ -13,23 +13,23 @@ fn ready_interleaves_live_bytes_and_controls_without_releasing_source_before_fin
     assert_eq!(h.owner.stage_output(b"?after"), OutputAcceptance::Accepted);
     let mut resize = h.owner.resize(TerminalSize::new(3, 1).unwrap()).unwrap();
     h.step(); // source read admitted
-    h.jobs.one();
+    h.jobs.run_one();
     h.step(); // READY, then first live feed before any history
     assert_eq!(h.owner.status().processed.offset, 12);
     assert_eq!(h.owner.status().history, RestorationProgress::Usable);
-    assert!(h.owner.engine.lock().unwrap().source.is_some());
-    assert!(h.owner.engine.lock().unwrap().restore_memory.is_some());
+    assert!(h.owner.workspace.lock().unwrap().source.is_some());
+    assert!(h.owner.workspace.lock().unwrap().restore_memory.is_some());
     assert_eq!(h.store.entries.lock().unwrap().len(), 1);
     h.step(); // reply completes; one history unit
     assert_eq!(*h.process.writes.lock().unwrap(), vec![b"R".to_vec()]);
-    assert!(h.owner.engine.lock().unwrap().source.is_some());
+    assert!(h.owner.workspace.lock().unwrap().source.is_some());
     h.step(); // resize OS operation admitted
     assert!(poll(&mut resize).is_pending());
     h.step(); // resize completed, then FINISH
     assert!(result(&mut resize).unwrap().model.is_ok());
     assert_eq!(h.owner.status().history, RestorationProgress::Complete);
-    assert!(h.owner.engine.lock().unwrap().source.is_none());
-    assert!(h.owner.engine.lock().unwrap().restore_memory.is_none());
+    assert!(h.owner.workspace.lock().unwrap().source.is_none());
+    assert!(h.owner.workspace.lock().unwrap().restore_memory.is_none());
     let trace = h.probe.trace.lock().unwrap().clone();
     let start = trace
         .iter()
@@ -90,7 +90,7 @@ fn drain_end_waits_for_history_validation_and_retains_corrupt_source() {
     h.owner.stage_output(b"live");
     h.owner.notify_output_drained(DrainOutcome::Eof);
     h.step();
-    h.jobs.one();
+    h.jobs.run_one();
     h.step();
     let event = match observer.read(observer.boundary().cursor).unwrap() {
         TransferRead::Event(event) => event,
@@ -109,7 +109,7 @@ fn drain_end_waits_for_history_validation_and_retains_corrupt_source() {
         ),
         _ => panic!("expected failure end"),
     }
-    assert!(h.owner.engine.lock().unwrap().source.is_some());
+    assert!(h.owner.workspace.lock().unwrap().source.is_some());
     assert_eq!(h.store.entries.lock().unwrap().len(), 1);
     h.close();
 }

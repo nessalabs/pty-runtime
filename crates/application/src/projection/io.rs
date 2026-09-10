@@ -1,7 +1,7 @@
 use super::{
     ProjectionCoordinator, ProjectionError,
     budgets::{DiskLease, IoMemory, Lease},
-    state::{CommitOutcome, Engine, Event, IoKind, IoMailbox, IoResult, PendingIo},
+    state::{BlockingJob, Command, CommitOutcome, IoMailbox, IoResult, NativeWorkspace, PendingIo},
 };
 use crate::scheduling::WorkSchedule;
 use pty_runtime_domain::checkpoint::CheckpointKey;
@@ -35,17 +35,21 @@ impl ProjectionCoordinator {
         }
         Ok(mailbox)
     }
-    pub(super) fn start_read(&self, engine: &mut Engine, transfer: Option<Event>) -> WorkSchedule {
+    pub(super) fn start_read(
+        &self,
+        workspace: &mut NativeWorkspace,
+        transfer: Option<Command>,
+    ) -> WorkSchedule {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
-        let Some(source) = &engine.source else {
+        let Some(source) = &workspace.source else {
             self.fail(ProjectionError::Worker);
             return WorkSchedule::Dormant;
         };
         let memory = match IoMemory::acquire(
             &self.budgets,
-            engine.config.checkpoint_bytes,
+            workspace.config.checkpoint_bytes,
             self.protected_bytes,
         ) {
             Ok(memory) => memory,
@@ -56,26 +60,26 @@ impl ProjectionCoordinator {
                 return WorkSchedule::After(Duration::from_millis(5));
             }
         };
-        let kind = if let Some(Event::Checkpoint(request, staging)) = transfer {
-            IoKind::Transfer {
+        let kind = if let Some(Command::Checkpoint(request, staging)) = transfer {
+            BlockingJob::Transfer {
                 request,
                 memory,
                 _staging: staging,
             }
         } else {
             let resident =
-                match Lease::one(self.budgets.resident.clone(), engine.config.native_bytes) {
+                match Lease::shared(self.budgets.resident.clone(), workspace.config.native_bytes) {
                     Ok(resident) => resident,
                     Err(_) => return WorkSchedule::After(Duration::from_millis(5)),
                 };
-            IoKind::Restore { resident, memory }
+            BlockingJob::Restore { resident, memory }
         };
         let store = services.store.clone();
         let protector = services.protector.clone();
         let reference = source.reference;
         let descriptor = source.descriptor.clone();
         let max = self.protected_bytes;
-        let plaintext_max = engine.config.checkpoint_bytes;
+        let plaintext_max = workspace.config.checkpoint_bytes;
         let job = move || {
             IoResult::Read((|| {
                 let bytes = store.read(reference, max)?;
@@ -96,9 +100,9 @@ impl ProjectionCoordinator {
         match self.submit_io(job) {
             Ok(mailbox) => {
                 let pending = PendingIo { kind, mailbox };
-                if matches!(pending.kind, IoKind::Restore { .. }) {
+                if matches!(pending.kind, BlockingJob::Restore { .. }) {
                     let result = self
-                        .core
+                        .admission
                         .lock()
                         .unwrap_or_else(|e| e.into_inner())
                         .policy
@@ -107,27 +111,27 @@ impl ProjectionCoordinator {
                         self.fail(error);
                     }
                 }
-                engine.io = Some(pending);
+                workspace.io = Some(pending);
                 WorkSchedule::Dormant
             }
             Err(error) => {
-                if let IoKind::Transfer { request, .. } = kind {
+                if let BlockingJob::Transfer { request, .. } = kind {
                     request.fail(error);
                 }
                 WorkSchedule::After(Duration::from_millis(5))
             }
         }
     }
-    pub(super) fn start_park(&self, engine: &mut Engine) -> WorkSchedule {
+    pub(super) fn start_park(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
         let attempt = {
-            let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-            if !core.queue.is_empty() {
+            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+            if !admission.queue.is_empty() {
                 return WorkSchedule::After(Duration::ZERO);
             }
-            match core.policy.begin_park(services.clock.now()) {
+            match admission.policy.begin_park(services.clock.now()) {
                 Ok(attempt) => attempt,
                 Err(_) => return WorkSchedule::Dormant,
             }
@@ -136,17 +140,17 @@ impl ProjectionCoordinator {
             let max = self.protected_bytes;
             let memory = IoMemory::acquire(
                 &self.budgets,
-                engine.config.checkpoint_bytes,
+                workspace.config.checkpoint_bytes,
                 self.protected_bytes,
             )?;
             let disk = DiskLease::acquire(&self.budgets, max)?;
-            let terminal = engine.terminal.as_mut().ok_or(ProjectionError::Closed)?;
+            let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
             let descriptor = self.descriptor();
             let checkpoint = self.native_call(|| terminal.checkpoint(descriptor.clone()))?;
             if checkpoint.descriptor != descriptor {
                 return Err(ProjectionError::InvalidConfiguration);
             }
-            if checkpoint.bytes.capacity() > engine.config.checkpoint_bytes {
+            if checkpoint.bytes.capacity() > workspace.config.checkpoint_bytes {
                 return Err(ProjectionError::Capacity);
             }
             Ok((checkpoint, memory, disk))
@@ -154,7 +158,7 @@ impl ProjectionCoordinator {
         let (checkpoint, memory, disk) = match result {
             Ok(values) => values,
             Err(error) => {
-                self.core
+                self.admission
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .policy
@@ -198,8 +202,8 @@ impl ProjectionCoordinator {
         };
         match self.submit_io(job) {
             Ok(mailbox) => {
-                engine.io = Some(PendingIo {
-                    kind: IoKind::Commit {
+                workspace.io = Some(PendingIo {
+                    kind: BlockingJob::Commit {
                         attempt,
                         disk,
                         _memory: memory,
@@ -208,7 +212,7 @@ impl ProjectionCoordinator {
                 })
             }
             Err(error) => {
-                self.core
+                self.admission
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .policy
@@ -218,15 +222,15 @@ impl ProjectionCoordinator {
         }
         WorkSchedule::Dormant
     }
-    pub(super) fn start_delete(&self, engine: &mut Engine) -> WorkSchedule {
+    pub(super) fn start_delete(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
-        let Some((source, attempts)) = engine.garbage.pop_front() else {
+        let Some((source, attempts)) = workspace.pending_deletes.pop_front() else {
             return WorkSchedule::Dormant;
         };
         if attempts >= self.options.max_park_attempts {
-            engine.garbage.push_front((source, attempts));
+            workspace.pending_deletes.push_front((source, attempts));
             return WorkSchedule::Dormant;
         }
         let store = services.store.clone();
@@ -235,14 +239,14 @@ impl ProjectionCoordinator {
             IoResult::Delete(store.delete(reference).map_err(ProjectionError::from))
         }) {
             Ok(mailbox) => {
-                engine.io = Some(PendingIo {
-                    kind: IoKind::Delete { source, attempts },
+                workspace.io = Some(PendingIo {
+                    kind: BlockingJob::Delete { source, attempts },
                     mailbox,
                 });
                 WorkSchedule::Dormant
             }
             Err(_) => {
-                engine.garbage.push_front((source, attempts));
+                workspace.pending_deletes.push_front((source, attempts));
                 WorkSchedule::After(Duration::from_millis(5))
             }
         }

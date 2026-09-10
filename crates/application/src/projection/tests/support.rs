@@ -75,14 +75,14 @@ impl IBlockingExecutor for Jobs {
         Ok(())
     }
     fn shutdown(&self) {
-        while self.one() {}
+        while self.run_one() {}
     }
 }
 impl Jobs {
     pub fn take(&self) -> Option<Box<dyn FnOnce() + Send>> {
         self.jobs.lock().unwrap().pop_front()
     }
-    pub fn one(&self) -> bool {
+    pub fn run_one(&self) -> bool {
         if let Some(work) = self.take() {
             work();
             true
@@ -200,7 +200,7 @@ impl Harness {
     pub fn pump(&self) {
         for _ in 0..128 {
             let schedule = self.step();
-            let io = self.jobs.one();
+            let io = self.jobs.run_one();
             if !io && !matches!(schedule,WorkSchedule::After(delay) if delay.is_zero()) {
                 return;
             }

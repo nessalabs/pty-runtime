@@ -1,7 +1,7 @@
 use super::{
     ProjectionBudgets, ProjectionError, ProjectionOptions, ProjectionStatus,
     budgets::Lease,
-    state::{Core, Engine},
+    state::{Admission, NativeWorkspace},
 };
 use crate::{
     checkpoint::{ICheckpointProtector, ICheckpointStore},
@@ -49,8 +49,8 @@ pub struct ProjectionCoordinator {
     pub(super) protected_bytes: usize,
     pub(super) services: Mutex<Option<ProjectionServices>>,
     pub(super) budgets: Arc<ProjectionBudgets>,
-    pub(super) core: Mutex<Core>,
-    pub(super) engine: Mutex<Engine>,
+    pub(super) admission: Mutex<Admission>,
+    pub(super) workspace: Mutex<NativeWorkspace>,
     pub(super) handle: Mutex<Option<Arc<dyn IWorkHandle>>>,
     pub(super) local_bytes: Arc<Quota>,
     pub(super) local_slots: Arc<Quota>,
@@ -102,7 +102,7 @@ impl ProjectionCoordinator {
         if !services.terminal.capabilities().checkpoints {
             return Err(ProjectionError::InvalidConfiguration);
         }
-        let resident = Lease::one(budgets.resident.clone(), options.terminal.native_bytes)?;
+        let resident = Lease::shared(budgets.resident.clone(), options.terminal.native_bytes)?;
         if services.terminal.compatibility().is_empty()
             || services.terminal.compatibility().len() > 4096
         {
@@ -118,7 +118,7 @@ impl ProjectionCoordinator {
             .map_err(|_| ProjectionError::Capacity)?;
         let owner = Arc::new(Self {
             journal: super::journal::Journal::new(lifetime, options, &budgets),
-            core: Mutex::new(Core {
+            admission: Mutex::new(Admission {
                 policy: ProjectionPolicy::new(lifetime, options, services.clock.now())?,
                 queue,
                 output_drain: None,
@@ -127,7 +127,7 @@ impl ProjectionCoordinator {
                 cleanup_failure: None,
                 retry_cleanup: false,
             }),
-            engine: Mutex::new(Engine {
+            workspace: Mutex::new(NativeWorkspace {
                 terminal: Some(terminal),
                 resident: Some(resident),
                 source: None,
@@ -135,9 +135,9 @@ impl ProjectionCoordinator {
                 io: None,
                 reply: None,
                 resize: None,
-                garbage: VecDeque::new(),
+                pending_deletes: VecDeque::new(),
                 config: options.terminal,
-                history_due: false,
+                history_step_owed: false,
             }),
             local_bytes: Arc::new(Quota::new(options.staging_bytes)),
             local_slots: Arc::new(Quota::new(options.staging_slots)),
@@ -184,7 +184,7 @@ impl ProjectionCoordinator {
     }
     /// Independent exact parser positions, residency and failure facts.
     pub fn status(&self) -> ProjectionStatus {
-        self.core
+        self.admission
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .policy
