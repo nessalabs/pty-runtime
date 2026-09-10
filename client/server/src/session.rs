@@ -101,7 +101,11 @@ pub fn run(
         Err(error) => return fail(&outbound, format!("command rejected: {error:?}")),
     };
 
-    let id = match SessionId::new("client".to_owned()) {
+    // The runtime is shared, so a fixed id makes the second connection collide
+    // with the first instead of starting its own session.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let ordinal = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let id = match SessionId::new(format!("client-{ordinal}")) {
         Ok(id) => id,
         Err(error) => return fail(&outbound, format!("invalid session id: {error:?}")),
     };
@@ -115,242 +119,257 @@ pub fn run(
         Ok(session) => session,
         Err(error) => return fail(&outbound, format!("spawn failed: {error:?}")),
     };
-    let mut observer = match session.attach(AttachPosition::Oldest) {
-        Ok(observer) => observer,
-        Err(error) => return fail(&outbound, format!("attach failed: {error:?}")),
-    };
-
-    // The engine that turns bytes into a grid. This is the same terminal the
-    // runtime uses for checkpointing, so what the browser draws is what a
-    // snapshot would preserve.
-    let factory = pty_runtime_infrastructure::terminal::GhosttyTerminalFactory;
-    let mut terminal = match factory.create(terminal_config(size)) {
-        Ok(terminal) => terminal,
-        Err(error) => return fail(&outbound, format!("terminal unavailable: {error:?}")),
-    };
-
-    let mut sent = Sent::default();
-    let mut styles = StyleTable::default();
-    // History rows resolve colours against the same palette as frames, so the
-    // client keeps one style table for both.
-    let mut palette = pty_runtime::terminal::TerminalPalette {
-        foreground: None,
-        background: None,
-        cursor: None,
-        indexed: [[0; 3]; 256],
-    };
-    let mut pending_input: std::collections::VecDeque<u8> = std::collections::VecDeque::new();
-    // The submitted chunk is retained beside the operation so the part the OS
-    // did not accept can be requeued rather than lost.
-    let mut writing: Option<(ProcessOperation<WriteOutcome>, Vec<u8>)> = None;
-    let mut resizing = None;
-    let mut generation = 0u64;
-    let mut next_frame = Instant::now();
-    let mut dirty = true;
-    let mut exited = None;
-
-    loop {
-        // Client commands. Input is written through the session so the child
-        // sees it; the terminal only ever sees the child's output.
-        match inbound.try_recv() {
-            Ok(Command::Input(bytes)) => {
-                // Only one write may be in flight, so queue rather than drop:
-                // typing faster than the child reads must not lose keystrokes.
-                pending_input.extend(bytes);
-            }
-            Ok(Command::Resize { cols, rows }) => {
-                if let Ok(size) = TerminalSize::new(cols, rows) {
-                    generation += 1;
-                    if terminal.resize(size, generation).is_err() {
-                        fail(&outbound, "terminal resize failed");
-                        break;
-                    }
-                    match session.resize(size) {
-                        Ok(operation) => resizing = Some(operation),
-                        Err(error) => {
-                            fail(&outbound, format!("session resize failed: {error:?}"));
-                            break;
-                        }
-                    }
-                    // Project immediately: waiting for the child to redraw leaves
-                    // the previous geometry on screen while the window moves.
-                    dirty = true;
-                }
-            }
-            Ok(Command::History { start, count }) => {
-                // Reading history moves nothing and cannot fail the session:
-                // a refusal is reported and the terminal carries on.
-                match terminal.history(start, count.min(500)) {
-                    Ok(history) => {
-                        let (rows, pending, reset) =
-                            wire::encode_history(&history, &mut styles, &palette);
-                        if reset {
-                            let _ = outbound.blocking_send(ServerMessage::Ready {
-                                v: VERSION,
-                                cols: size.cols(),
-                                rows: size.rows(),
-                                palette: wire::WirePalette::from(&palette),
-                            });
-                        }
-                        if !pending.is_empty() {
-                            let _ = outbound.blocking_send(ServerMessage::Styles {
-                                v: VERSION,
-                                styles: pending,
-                            });
-                        }
-                        if outbound
-                            .blocking_send(ServerMessage::History {
-                                v: VERSION,
-                                start: history.start,
-                                rows,
-                                total: history.total,
-                                scrollback: history.scrollback,
-                            })
-                            .is_err()
-                        {
-                            break;
-                        }
-                    }
-                    Err(error) => {
-                        fail(&outbound, format!("history unavailable: {error:?}"));
-                    }
-                }
-            }
-            Err(mpsc::error::TryRecvError::Empty) => {}
-            Err(mpsc::error::TryRecvError::Disconnected) => break,
-        }
-
-        // A write reports how much the OS actually accepted. Treating a ready
-        // operation as a delivered one drops the remainder silently, which at a
-        // prompt looks like the terminal swallowing what was typed.
-        let finished = match &mut writing {
-            Some((operation, _)) => poll(operation),
-            None => None,
+    // Every exit from here on must release the session: the runtime is
+    // shared, and an id left registered refuses every later connection.
+    'session: {
+        let mut observer = match session.attach(AttachPosition::Oldest) {
+            Ok(observer) => observer,
+            Err(error) => break 'session fail(&outbound, format!("attach failed: {error:?}")),
         };
-        if let Some(outcome) = finished {
-            if let Some((_, chunk)) = writing.take() {
-                let accepted = outcome.written.min(chunk.len());
-                // Requeue the unaccepted tail ahead of anything typed since, so
-                // the child still sees one ordered stream.
-                for byte in chunk[accepted..].iter().rev() {
-                    pending_input.push_front(*byte);
+
+        // The engine that turns bytes into a grid. This is the same terminal the
+        // runtime uses for checkpointing, so what the browser draws is what a
+        // snapshot would preserve.
+        let factory = pty_runtime_infrastructure::terminal::GhosttyTerminalFactory;
+        let mut terminal = match factory.create(terminal_config(size)) {
+            Ok(terminal) => terminal,
+            Err(error) => break 'session fail(&outbound, format!("terminal unavailable: {error:?}")),
+        };
+
+        let mut sent = Sent::default();
+        let mut styles = StyleTable::default();
+        // History rows resolve colours against the same palette as frames, so the
+        // client keeps one style table for both.
+        let mut palette = pty_runtime::terminal::TerminalPalette {
+            foreground: None,
+            background: None,
+            cursor: None,
+            indexed: [[0; 3]; 256],
+        };
+        let mut pending_input: std::collections::VecDeque<u8> = std::collections::VecDeque::new();
+        // The submitted chunk is retained beside the operation so the part the OS
+        // did not accept can be requeued rather than lost.
+        let mut writing: Option<(ProcessOperation<WriteOutcome>, Vec<u8>)> = None;
+        let mut resizing = None;
+        let mut generation = 0u64;
+        let mut next_frame = Instant::now();
+        let mut dirty = true;
+        let mut exited = None;
+
+        loop {
+            // Client commands. Input is written through the session so the child
+            // sees it; the terminal only ever sees the child's output.
+            match inbound.try_recv() {
+                Ok(Command::Input(bytes)) => {
+                    // Only one write may be in flight, so queue rather than drop:
+                    // typing faster than the child reads must not lose keystrokes.
+                    pending_input.extend(bytes);
                 }
+                Ok(Command::Resize { cols, rows }) => {
+                    if let Ok(size) = TerminalSize::new(cols, rows) {
+                        generation += 1;
+                        if terminal.resize(size, generation).is_err() {
+                            fail(&outbound, "terminal resize failed");
+                            break;
+                        }
+                        match session.resize(size) {
+                            Ok(operation) => resizing = Some(operation),
+                            Err(error) => {
+                                fail(&outbound, format!("session resize failed: {error:?}"));
+                                break;
+                            }
+                        }
+                        // Project immediately: waiting for the child to redraw leaves
+                        // the previous geometry on screen while the window moves.
+                        dirty = true;
+                    }
+                }
+                Ok(Command::History { start, count }) => {
+                    // Reading history moves nothing and cannot fail the session:
+                    // a refusal is reported and the terminal carries on.
+                    match terminal.history(start, count.min(500)) {
+                        Ok(history) => {
+                            let (rows, pending, reset) =
+                                wire::encode_history(&history, &mut styles, &palette);
+                            if reset {
+                                let _ = outbound.blocking_send(ServerMessage::Ready {
+                                    v: VERSION,
+                                    cols: size.cols(),
+                                    rows: size.rows(),
+                                    palette: wire::WirePalette::from(&palette),
+                                });
+                            }
+                            if !pending.is_empty() {
+                                let _ = outbound.blocking_send(ServerMessage::Styles {
+                                    v: VERSION,
+                                    styles: pending,
+                                });
+                            }
+                            if outbound
+                                .blocking_send(ServerMessage::History {
+                                    v: VERSION,
+                                    start: history.start,
+                                    rows,
+                                    total: history.total,
+                                    scrollback: history.scrollback,
+                                })
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                        Err(error) => {
+                            fail(&outbound, format!("history unavailable: {error:?}"));
+                        }
+                    }
+                }
+                Err(mpsc::error::TryRecvError::Empty) => {}
+                Err(mpsc::error::TryRecvError::Disconnected) => break,
             }
-            if let Some(error) = outcome.error {
-                fail(&outbound, format!("write failed: {error:?}"));
-                break;
-            }
-        }
-        if writing.is_none() && !pending_input.is_empty() {
-            let take = pending_input.len().min(input_chunk);
-            let bytes: Vec<u8> = pending_input.drain(..take).collect();
-            match session.write(&bytes) {
-                Ok(operation) => writing = Some((operation, bytes)),
-                Err(error) => {
+
+            // A write reports how much the OS actually accepted. Treating a ready
+            // operation as a delivered one drops the remainder silently, which at a
+            // prompt looks like the terminal swallowing what was typed.
+            let finished = match &mut writing {
+                Some((operation, _)) => poll(operation),
+                None => None,
+            };
+            if let Some(outcome) = finished {
+                if let Some((_, chunk)) = writing.take() {
+                    let accepted = outcome.written.min(chunk.len());
+                    // Requeue the unaccepted tail ahead of anything typed since, so
+                    // the child still sees one ordered stream.
+                    for byte in chunk[accepted..].iter().rev() {
+                        pending_input.push_front(*byte);
+                    }
+                }
+                if let Some(error) = outcome.error {
                     fail(&outbound, format!("write failed: {error:?}"));
                     break;
                 }
             }
-        }
-        if let Some(operation) = &mut resizing {
-            if poll(operation).is_some() {
-                resizing = None;
+            if writing.is_none() && !pending_input.is_empty() {
+                let take = pending_input.len().min(input_chunk);
+                let bytes: Vec<u8> = pending_input.drain(..take).collect();
+                match session.write(&bytes) {
+                    Ok(operation) => writing = Some((operation, bytes)),
+                    Err(error) => {
+                        fail(&outbound, format!("write failed: {error:?}"));
+                        break;
+                    }
+                }
             }
-        }
+            if let Some(operation) = &mut resizing {
+                if poll(operation).is_some() {
+                    resizing = None;
+                }
+            }
 
-        // Output. A gap means the display fell behind its replay window; for a
-        // demo the honest thing is to say so rather than draw a wrong screen.
-        let mut fed = false;
-        loop {
-            match observer.try_next() {
-                Ok(Some(OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }))) => {
-                    for chunk in bytes.chunks(4096) {
-                        match terminal.feed(chunk) {
-                            // A query such as DSR or device attributes is
-                            // answered by the terminal, not the child. The
-                            // reply is input as far as the child is concerned,
-                            // so it joins the same queue; dropping it leaves a
-                            // program waiting for an answer that never comes.
-                            Ok(effects) => pending_input.extend(effects.0),
-                            Err(_) => {
-                                fail(&outbound, "terminal rejected output");
-                                return;
+            // Output. A gap means the display fell behind its replay window; for a
+            // demo the honest thing is to say so rather than draw a wrong screen.
+            let mut fed = false;
+            loop {
+                match observer.try_next() {
+                    Ok(Some(OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }))) => {
+                        for chunk in bytes.chunks(4096) {
+                            match terminal.feed(chunk) {
+                                // A query such as DSR or device attributes is
+                                // answered by the terminal, not the child. The
+                                // reply is input as far as the child is concerned,
+                                // so it joins the same queue; dropping it leaves a
+                                // program waiting for an answer that never comes.
+                                Ok(effects) => pending_input.extend(effects.0),
+                                Err(_) => {
+                                    fail(&outbound, "terminal rejected output");
+                                    break 'session;
+                                }
+                            }
+                        }
+                        fed = true;
+                    }
+                    Ok(Some(OutputEvent::Replay(ReplayPage::Gap { .. }))) => {
+                        fail(&outbound, "display fell behind the replay window");
+                        break 'session;
+                    }
+                    Ok(Some(OutputEvent::Complete(completion))) => {
+                        exited = Some(match completion.status.exit {
+                            Some(ExitStatus::Code(code)) => Some(code),
+                            _ => None,
+                        });
+                        break;
+                    }
+                    Ok(Some(_)) | Ok(None) => break,
+                    Err(error) => {
+                        fail(&outbound, format!("output failed: {error:?}"));
+                        break 'session;
+                    }
+                }
+            }
+
+            // Anything fed leaves the projection stale until a frame actually goes
+            // out. Tracking that separately from "bytes arrived this iteration"
+            // matters: output that lands before the next deadline must still be
+            // drawn, not dropped because the tick was early.
+            dirty |= fed;
+
+            // Project on the frame cadence, or immediately once the child is gone
+            // so the last output is never left undrawn.
+            let now = Instant::now();
+            if exited.is_some() || (dirty && now >= next_frame) {
+                next_frame = now + FRAME_INTERVAL;
+                match terminal.view() {
+                    Ok(view) => {
+                        dirty = false;
+                        palette = view.palette.clone();
+                        // Row counts ride along with every frame so a client never
+                        // has to request history just to learn the window size.
+                        let mut total = 0usize;
+                        let mut scrollback = 0usize;
+                        // SAFETY-equivalent: this is a read-only projection call.
+                        let counts = terminal.history(u64::MAX, 0);
+                        if let Ok(counts) = counts {
+                            total = counts.total as usize;
+                            scrollback = counts.scrollback as usize;
+                        }
+                        for message in
+                            sent.diff(&view, &mut styles, total as u64, scrollback as u64)
+                        {
+                            if outbound.blocking_send(message).is_err() {
+                                break 'session;
                             }
                         }
                     }
-                    fed = true;
+                    Err(error) => {
+                        fail(&outbound, format!("projection failed: {error:?}"));
+                        break 'session;
+                    }
                 }
-                Ok(Some(OutputEvent::Replay(ReplayPage::Gap { .. }))) => {
-                    fail(&outbound, "display fell behind the replay window");
-                    return;
-                }
-                Ok(Some(OutputEvent::Complete(completion))) => {
-                    exited = Some(match completion.status.exit {
-                        Some(ExitStatus::Code(code)) => Some(code),
-                        _ => None,
-                    });
-                    break;
-                }
-                Ok(Some(_)) | Ok(None) => break,
-                Err(error) => {
-                    fail(&outbound, format!("output failed: {error:?}"));
-                    return;
-                }
+            }
+
+            if let Some(status) = exited {
+                let _ = outbound.blocking_send(ServerMessage::Exit { v: VERSION, status });
+                break;
+            }
+
+            if !fed && writing.is_none() && pending_input.is_empty() {
+                // Nothing arrived and nothing is owed; yield rather than spin the
+                // core. Stay responsive while a frame is still pending.
+                std::thread::sleep(Duration::from_millis(if dirty { 1 } else { 4 }));
             }
         }
 
-        // Anything fed leaves the projection stale until a frame actually goes
-        // out. Tracking that separately from "bytes arrived this iteration"
-        // matters: output that lands before the next deadline must still be
-        // drawn, not dropped because the tick was early.
-        dirty |= fed;
-
-        // Project on the frame cadence, or immediately once the child is gone
-        // so the last output is never left undrawn.
-        let now = Instant::now();
-        if exited.is_some() || (dirty && now >= next_frame) {
-            next_frame = now + FRAME_INTERVAL;
-            match terminal.view() {
-                Ok(view) => {
-                    dirty = false;
-                    palette = view.palette.clone();
-                    // Row counts ride along with every frame so a client never
-                    // has to request history just to learn the window size.
-                    let mut total = 0usize;
-                    let mut scrollback = 0usize;
-                    // SAFETY-equivalent: this is a read-only projection call.
-                    let counts = terminal.history(u64::MAX, 0);
-                    if let Ok(counts) = counts {
-                        total = counts.total as usize;
-                        scrollback = counts.scrollback as usize;
-                    }
-                    for message in
-                        sent.diff(&view, &mut styles, total as u64, scrollback as u64)
-                    {
-                        if outbound.blocking_send(message).is_err() {
-                            return;
-                        }
-                    }
-                }
-                Err(error) => {
-                    fail(&outbound, format!("projection failed: {error:?}"));
-                    return;
-                }
-            }
-        }
-
-        if let Some(status) = exited {
-            let _ = outbound.blocking_send(ServerMessage::Exit { v: VERSION, status });
-            break;
-        }
-
-        if !fed && writing.is_none() && pending_input.is_empty() {
-            // Nothing arrived and nothing is owed; yield rather than spin the
-            // core. Stay responsive while a frame is still pending.
-            std::thread::sleep(Duration::from_millis(if dirty { 1 } else { 4 }));
-        }
     }
 
     let _ = session.cancel();
+    // `forget` refuses a session that has not finished. Dropping that failure
+    // used to be harmless because the runtime died with the socket; now it
+    // leaks the slot for the life of the server, so wait for the child to be
+    // reaped before releasing it.
+    if let Ok(mut completion) = session.wait() {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline && poll(&mut completion).is_none() {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
     let _ = runtime.forget(&id);
 }

@@ -247,30 +247,6 @@ function cssColor(rgb, fallback) {
   return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 }
 
-function samePalette(a, b) {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  if (a.foreground !== b.foreground && JSON.stringify(a.foreground) !== JSON.stringify(b.foreground)) {
-    return false;
-  }
-  if (a.background !== b.background && JSON.stringify(a.background) !== JSON.stringify(b.background)) {
-    return false;
-  }
-  if (a.cursor !== b.cursor && JSON.stringify(a.cursor) !== JSON.stringify(b.cursor)) {
-    return false;
-  }
-  const left = a.indexed || [];
-  const right = b.indexed || [];
-  if (left.length !== right.length) return false;
-  for (let i = 0; i < left.length; i++) {
-    const x = left[i];
-    const y = right[i];
-    if (x === y) continue;
-    if (!x || !y || x[0] !== y[0] || x[1] !== y[1] || x[2] !== y[2]) return false;
-  }
-  return true;
-}
-
 function pasteTextPayload(text, bracketed) {
   const wrapped = bracketed ? `\x1b[200~${text}\x1b[201~` : text;
   return toBase64(encoder.encode(wrapped));

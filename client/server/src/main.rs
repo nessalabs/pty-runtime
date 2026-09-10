@@ -54,7 +54,10 @@ fn main() {
     let runtime = match Runtime::new(
         vec![cwd],
         RuntimeOptions {
-            max_sessions: 1,
+            // One runtime now serves every socket, so this is the number of
+            // browsers that can be attached at once rather than a per-socket
+            // ceiling of one.
+            max_sessions: 8,
             replay_bytes: 1024 * 1024,
             ..RuntimeOptions::default()
         },
