@@ -4,6 +4,31 @@ use super::{
 };
 use crate::scheduling::{IScheduledWork, WorkSchedule};
 use std::time::Duration;
+/// What this run of the worker is for, once the terminal states are ruled out.
+///
+/// ```text
+///   Closing/Closed ─▶ cleanup             (handled before this enum)
+///   Failed         ─▶ work_while_failed   (handled before this enum)
+///   terminal: None ─▶ Detached   read the committed source back
+///   Usable         ─▶ Restoring  interleave history steps with commands
+///   otherwise      ─▶ Serving    drain queue, reap sources, consider parking
+/// ```
+enum Phase {
+    Detached,
+    Restoring,
+    Serving,
+}
+impl Phase {
+    fn of(residency: Residency, workspace: &NativeWorkspace) -> Self {
+        if workspace.terminal.is_none() {
+            Self::Detached
+        } else if residency == Residency::Usable {
+            Self::Restoring
+        } else {
+            Self::Serving
+        }
+    }
+}
 impl IScheduledWork for ProjectionCoordinator {
     fn run(&self) -> WorkSchedule {
         let Ok(services) = self.services() else {
@@ -11,13 +36,18 @@ impl IScheduledWork for ProjectionCoordinator {
         };
         let mut workspace = self.workspace.lock().unwrap_or_else(|e| e.into_inner());
         self.finish_io(&mut workspace);
-        let status = self.status();
-        if matches!(status.residency, Residency::Closing | Residency::Closed) {
+        // Residency as observed *before* draining in-flight OS work.
+        let residency = self.status().residency;
+        if matches!(residency, Residency::Closing | Residency::Closed) {
             return self.cleanup(&mut workspace);
         }
-        if status.residency == Residency::Failed {
+        if residency == Residency::Failed {
             return self.work_while_failed(&mut workspace);
         }
+        // Polling can itself fail the projection without returning a schedule,
+        // so failure is re-read against the state polling leaves behind. The
+        // phase below still keys off the pre-poll residency: a concurrent
+        // close() lands on the next run, which close() has already woken.
         if let Some(schedule) = self.poll_inflight_operations(&mut workspace) {
             return schedule;
         }
@@ -25,88 +55,10 @@ impl IScheduledWork for ProjectionCoordinator {
             return self.work_while_failed(&mut workspace);
         }
         self.seal_journal_if_drained(&workspace);
-        if workspace.terminal.is_none() {
-            if workspace.io.is_some() {
-                return WorkSchedule::Dormant;
-            }
-            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-            if admission.queue.is_empty() {
-                return WorkSchedule::Dormant;
-            }
-            let transfer = if matches!(admission.queue.front(), Some(Command::Checkpoint(..))) {
-                admission.queue.pop_front()
-            } else {
-                None
-            };
-            drop(admission);
-            return self.start_read(&mut workspace, transfer);
-        }
-        if status.residency == Residency::Usable {
-            let event = {
-                let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-                let allowed = match admission.queue.front() {
-                    Some(Command::View(..)) => true,
-                    Some(Command::Output(..) | Command::Resize(..)) => {
-                        services.terminal.capabilities().mutation_during_restore
-                    }
-                    _ => false,
-                };
-                if allowed && !workspace.history_step_owed {
-                    admission.queue.pop_front()
-                } else {
-                    None
-                }
-            };
-            if let Some(event) = event {
-                // One admitted operation then one history unit: neither a flood
-                // nor observation churn can starve source validation indefinitely.
-                workspace.history_step_owed = true;
-                return self.apply_command(&mut workspace, event);
-            }
-            let result = match &mut workspace.terminal {
-                Some(terminal) => self.native_call(|| terminal.restore_history_step()),
-                None => return WorkSchedule::Dormant,
-            };
-            workspace.history_step_owed = false;
-            match result {
-                Ok(progress) => self.history_progress(&mut workspace, progress),
-                Err(error) => self.fail(error),
-            }
-            return WorkSchedule::After(Duration::ZERO);
-        }
-        let maintenance = if workspace.io.is_none() && !workspace.pending_deletes.is_empty() {
-            Some(self.start_delete(&mut workspace))
-        } else {
-            None
-        };
-        let event = self
-            .admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .queue
-            .pop_front();
-        if let Some(event) = event {
-            return self.apply_command(&mut workspace, event);
-        }
-        if let Some(schedule) = maintenance {
-            return schedule;
-        }
-        if workspace.io.is_some() {
-            return WorkSchedule::Dormant;
-        }
-        if !workspace.pending_deletes.is_empty() {
-            return self.start_delete(&mut workspace);
-        }
-        let delay = self
-            .admission
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .policy
-            .park_delay(services.clock.now());
-        match delay {
-            Some(delay) if delay.is_zero() => self.start_park(&mut workspace),
-            Some(delay) => WorkSchedule::After(delay),
-            None => WorkSchedule::Dormant,
+        match Phase::of(residency, &workspace) {
+            Phase::Detached => self.read_back_source(&mut workspace),
+            Phase::Restoring => self.restore_step(&mut workspace, &services),
+            Phase::Serving => self.serve(&mut workspace, &services),
         }
     }
     fn failed(&self) -> WorkSchedule {
@@ -121,6 +73,110 @@ impl IScheduledWork for ProjectionCoordinator {
     }
 }
 impl ProjectionCoordinator {
+    /// No live model: the committed source has to be read back before anything
+    /// else can run. A queued checkpoint at the head is handed to the read so a
+    /// transfer can be served straight from the parked source without first
+    /// restoring a native owner.
+    fn read_back_source(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
+        if workspace.io.is_some() {
+            return WorkSchedule::Dormant;
+        }
+        let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+        if admission.queue.is_empty() {
+            return WorkSchedule::Dormant;
+        }
+        let transfer = if matches!(admission.queue.front(), Some(Command::Checkpoint(..))) {
+            admission.queue.pop_front()
+        } else {
+            None
+        };
+        drop(admission);
+        self.start_read(workspace, transfer)
+    }
+    /// Active screens are observable but history is still being validated.
+    ///
+    /// One admitted command then one history unit, strictly alternating: neither
+    /// an output flood nor observation churn can starve source validation, and
+    /// validation cannot starve observers. Engines without
+    /// `mutation_during_restore` admit only views until history finishes.
+    fn restore_step(
+        &self,
+        workspace: &mut NativeWorkspace,
+        services: &super::ProjectionServices,
+    ) -> WorkSchedule {
+        let command = {
+            let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
+            let allowed = match admission.queue.front() {
+                Some(Command::View(..)) => true,
+                Some(Command::Output(..) | Command::Resize(..)) => {
+                    services.terminal.capabilities().mutation_during_restore
+                }
+                _ => false,
+            };
+            if allowed && !workspace.history_step_owed {
+                admission.queue.pop_front()
+            } else {
+                None
+            }
+        };
+        if let Some(command) = command {
+            workspace.history_step_owed = true;
+            return self.apply_command(workspace, command);
+        }
+        let result = match &mut workspace.terminal {
+            Some(terminal) => self.native_call(|| terminal.restore_history_step()),
+            None => return WorkSchedule::Dormant,
+        };
+        workspace.history_step_owed = false;
+        match result {
+            Ok(progress) => self.history_progress(workspace, progress),
+            Err(error) => self.fail(error),
+        }
+        WorkSchedule::After(Duration::ZERO)
+    }
+    /// Normal service. Admitted commands come first so queued work is never
+    /// delayed by maintenance; source deletion only starts when the queue is
+    /// empty, and parking only when there is no work and nothing to reap.
+    fn serve(
+        &self,
+        workspace: &mut NativeWorkspace,
+        services: &super::ProjectionServices,
+    ) -> WorkSchedule {
+        let maintenance = if workspace.io.is_none() && !workspace.pending_deletes.is_empty() {
+            Some(self.start_delete(workspace))
+        } else {
+            None
+        };
+        let command = self
+            .admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .queue
+            .pop_front();
+        if let Some(command) = command {
+            return self.apply_command(workspace, command);
+        }
+        if let Some(schedule) = maintenance {
+            return schedule;
+        }
+        if workspace.io.is_some() {
+            return WorkSchedule::Dormant;
+        }
+        if !workspace.pending_deletes.is_empty() {
+            return self.start_delete(workspace);
+        }
+        let delay = self
+            .admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .policy
+            .park_delay(services.clock.now());
+        match delay {
+            Some(delay) if delay.is_zero() => self.start_park(workspace),
+            Some(delay) => WorkSchedule::After(delay),
+            None => WorkSchedule::Dormant,
+        }
+    }
     pub(super) fn fail(&self, error: ProjectionError) {
         let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
         admission.policy.fail(error);
