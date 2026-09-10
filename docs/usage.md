@@ -41,8 +41,8 @@ continue independently. A parked immutable checkpoint can serve transfer without
 restoring a native model. Restoration reports readiness separately from history
 completion and interleaves queued live work with bounded history steps. Native
 pages made inapplicable by live mutation are counted explicitly; a finished
-source with skipped pages is not complete history restoration. See the
-[release gap audit](archive/milestones/release-gap-audit.md) for qualification scope.
+source with skipped pages is not complete history restoration. See
+[verification.md](verification.md) for what has been checked so far.
 
 For raw sessions use `resize`; for projected sessions use `resize_projected` so
 OS size and model state are ordered and partial outcomes remain visible. A write
@@ -75,7 +75,7 @@ the live population to obtain a complete scan. Known abandoned work that exceeds
 the deletion budget also blocks new admission.
 Legacy directories outside the arena are not discovered or deleted. The empty
 arena itself remains as bounded coordination metadata for that configured parent.
-See [crash-cleanup evidence](verification/checkpoint-crash-cleanup.md) for limits.
+See [projection / parking behavior](features/projection-parking.md) for limits.
 An injected `ICheckpointStore` must obey immutable
 object, bounded read, commit and cleanup contracts; it never receives plaintext
 from the default protector.
@@ -95,7 +95,8 @@ privately and starts it through a fresh exec. Each session has two persistent
 helpers in addition to its workload. Ordinary finite same-session foreground and
 background jobs are the cleanup scope; session escape and unbounded hostile
 forking are outside that guarantee. Platform process/descriptor limits still
-apply. See [Guardian evidence](verification/guardian/README.md) for measured costs
+apply. Guardian costs are measured via process fixtures and the load harness;
+see [`features/guardian-helper-image.md`](features/guardian-helper-image.md).
 and remaining failure/distribution qualification. macOS/Linux arm64 and x86_64
 are targets; only explicitly recorded runs establish tested coverage.
 

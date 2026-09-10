@@ -1,8 +1,0 @@
-   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.26s
-     Running `target/debug/examples/terminal_corpus 509 1 64`
-corpus=v1 case=0 seed=509 steps=64
-
-thread 'main' (18260613) panicked at crates/infrastructure/examples/terminal_corpus_support/runner.rs:83:47:
-called `Result::unwrap()` on an `Err` value: EngineFailure
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

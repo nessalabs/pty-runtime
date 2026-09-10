@@ -1,8 +1,0 @@
-
-running 3 tests
-test live_resize_and_quota_pressure_report_validated_but_inapplicable_history ... ok
-test restored_live_feed_keeps_continuation_callbacks_and_reply_bounds ... ok
-test skipped_history_still_requires_valid_finish_and_rejects_future_mutation ... ok
-
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
-

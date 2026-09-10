@@ -1,9 +1,0 @@
-{
-  "platform": "macOS-26.6-arm64-arm-64bit",
-  "sources": {
-    "experiments/native/native-memory.c": "afa02a70c7d2ba566b8fb4f3381b85ac15c2c91e09d89cf005b6a6826027321b",
-    "experiments/native/packed-pages.h": "194ced7087df2e73c6cf8fb77de996ae4184bbd6558b73df08b441e12ce3d779",
-    "experiments/native/platform.h": "46a72d2cf2fba3bf12cd777aee59608568813d38508183fcff73cdcd45f42c52",
-    "work/experiment-cache/native-bin/native-memory": "83d37b34feff3724f7a178c1b319f04c475fee3d389e1e273ecaaffb61af5c71"
-  }
-}

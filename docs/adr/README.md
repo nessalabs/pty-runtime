@@ -12,4 +12,5 @@ point here; they do not replace ADRs.
 | [0005](0005-domain-boundaries-and-adapters.md) | Dependency direction, ports, adapters | process-pty, projection-parking, coverage-native |
 | [0006](0006-scrollback-projection.md) | Read-only scrollback range queries (not viewport scroll) | scrollback-history, client-demo |
 
-Numeric targets in ADRs remain proposals until the linked verification rows pass.
+Numeric targets in ADRs remain proposals until
+[`../verification.md`](../verification.md) says the matching work is closed.

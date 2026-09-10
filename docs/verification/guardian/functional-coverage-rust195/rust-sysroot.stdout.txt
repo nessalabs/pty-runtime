@@ -1,1 +1,0 @@
-/Users/nessa/.rustup/toolchains/1.95.0-aarch64-apple-darwin

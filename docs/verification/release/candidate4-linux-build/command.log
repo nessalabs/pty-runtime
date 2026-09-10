@@ -1,7 +1,0 @@
-   Compiling getrandom v0.4.3
-   Compiling tokio v1.53.1
-   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-candidate4/crates/infrastructure)
-   Compiling uuid v1.26.0
-   Compiling event-stream v0.1.0 (https://github.com/nessalabs/event-stream?rev=66ba7525260040d6265276692088dca6dae0737e#66ba7525)
-   Compiling pty-runtime v0.1.0 (/home/user/Documents/pty-runtime-candidate4)
-    Finished `release` profile [optimized] target(s) in 25.44s

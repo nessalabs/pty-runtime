@@ -4,17 +4,15 @@
 
 ## Intent
 
-Finite shared and per-session budgets. Dedicated readers are the initial default
-with measured stack cost. Release workloads (throughput, latency, soak, capacity)
-are defined in ADR 0002/0004; experiments are not substitutes.
+Shared and per-session budgets stay finite. Release load (throughput, latency,
+soak, capacity) is defined in the ADRs. Experiments are not a substitute.
 
 ## Code
 
-- `scripts/release/load.py` and load support
-- Runtime diagnostics / resource snapshots on `Runtime`
+- `scripts/release/load.py` and related support
+- Runtime resource snapshots on `Runtime`
 
-## Verification
+## Status
 
-See [verification index → performance](../verification/README.md#performance--load).
-Key folders: `load-capacity/`, `load-*`, `reader-memory-gauges/`,
-`projected-capacity-methodology/`, `release/` (load candidates).
+See [`../verification.md`](../verification.md) — full release load is still open.
+Keep bulky run output outside git.

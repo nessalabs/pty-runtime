@@ -1,9 +1,0 @@
-   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/infrastructure)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.09s
-     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-c20ebf329985d666)
-
-running 1 test
-test process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
-

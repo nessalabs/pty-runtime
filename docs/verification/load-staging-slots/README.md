@@ -1,9 +1,0 @@
-# Fixture-only parser staging slot override
-
-The release fixture now accepts `--staging-slots N`, default 256, validated before population creation as 1 through 1,048,576 to match the existing public ProjectionOptions bound. It sets only each projected session's staging_slots. Product defaults, global parser limits, control request limits, raw sessions and the transient raw cancellation session are unchanged. The structured start record includes `projection_staging_slots_per_session` with the effective requested value for projected sessions and null for raw-only cases. The Config debug record also retains the configured value.
-
-`config-before.log` preserves the targeted new-feature regression before implementation: the old parser ignored the unrecognized flag and accepted `--staging-slots 0`. This was a fixture-configuration feature gap, not a runtime defect. `config-after.log` records all ten example tests passing, including invalid/overflow/non-numeric values, default 256 and explicit finite boundary/sweep values. `clippy.log` records focused warnings-as-errors success. Commands used isolated CARGO_TARGET_DIR=work/load-capacity-test-target with `cargo test --locked --no-default-features --features event-stream --example release_load` and corresponding `cargo clippy ... -- -D warnings`.
-
-No independent workloads or native builds were run; root coordinates the 32/64/128/256 projected sweep after the active full run. Existing matrix/frozen data remain unchanged. If adding matrix rows, use the existing runner's direct CLI-key form `"staging-slots": 64` so its command builder emits `--staging-slots 64`; no generic Python argument transformation is part of this change.
-
-Source hashes are retained in source.json. Independent correctness review was requested from interactive_review and organization review from terminal_contract_review. This evidence is fixture implementation verification, not a capacity/latency improvement claim.

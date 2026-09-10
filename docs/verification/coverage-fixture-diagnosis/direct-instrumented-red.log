@@ -1,2 +1,0 @@
-failed-checks:["stdin_tty", "stdout_tty", "stderr_tty", "controlling_tty", "environment"];llvm-profile-present:false;unexpected-env-count:1
-unexpected-env-keys:["__LLVM_PROFILE_RT_INIT_ONCE"]

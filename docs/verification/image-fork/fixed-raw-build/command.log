@@ -1,4 +1,0 @@
-   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6/crates/infrastructure)
-   Compiling pty-runtime v0.1.0 (/home/user/Documents/pty-runtime-spawn-diagnostic6)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.59s
-  Executable tests/raw_runtime.rs (target/debug/deps/raw_runtime-07b904908a54cf76)

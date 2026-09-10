@@ -1,9 +1,0 @@
-{
-  "os": "Linux-6.8.0-117-generic-x86_64-with-glibc2.39",
-  "uname": "Linux agents-server-one-1788854910-861837 6.8.0-117-generic #117-Ubuntu SMP PREEMPT_DYNAMIC Tue May  5 19:26:24 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux",
-  "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
-  "repeats": 25,
-  "cases": 150,
-  "failures": 0,
-  "source_sha256": "7b20bc2b905317b6d0e2625e15a4f7a8fabb0598f9bc6d7c4b43c2069d2d5225"
-}

@@ -5,17 +5,15 @@
 
 ## Intent
 
-Ghostty is reached only through the native bridge with sized structs, budgets,
-and ownership rules. Coverage tooling and boundary tests prove contracts; they
-do not alone discharge release rows in the ledger.
+Ghostty is only reached through the native bridge, with sized structs and clear
+ownership. Coverage tools help find gaps; they do not by themselves mean
+“release done.”
 
 ## Code
 
-- `scripts/native/` — C bridge, bootstrap, patches
-- `crates/infrastructure/src/terminal/` — FFI and projection
+- `scripts/native/`
+- `crates/infrastructure/src/terminal/`
 
-## Verification
+## Status
 
-See [verification index → coverage](../verification/README.md#coverage--native).
-Key folders: `native-coverage/`, `native-instrumentation/`, `coverage-*`,
-`native-boundary-independent/`.
+See [`../verification.md`](../verification.md).

@@ -5,19 +5,27 @@
 
 ## Intent
 
-Projected sessions maintain an authoritative native terminal model. Idle models
-park to an encrypted disk checkpoint by default (60s without mutation), restore
-with READY before history completion, and expose ordered transfer to consumers.
-Process ownership continues while parked.
+Projected sessions keep a real terminal model. Idle models can park to an
+encrypted disk checkpoint (default: 60s without changes), restore carefully, and
+hand state to consumers in order. The process keeps running while parked.
+
+## Behavior
+
+- Private namespace + runtime-owned encryption key; trusted parent and size ceiling
+  via `StorageOptions`.
+- Normal teardown removes owned objects. Crash cleanup uses directory locks (not
+  PIDs) and finite budgets; incomplete cleanup can block new temporary stores.
+- No recursive delete, no reading ciphertext to decide what to remove, no auto
+  cleanup of old dirs outside the arena.
+- Restarting the owner process does **not** bring back live sessions (ADR 0003).
+- More embedding detail: [`../usage.md`](../usage.md).
 
 ## Code
 
-- `crates/application/src/projection/` — budgets, parking, IO, transfer
-- `crates/infrastructure/src/terminal/` — Ghostty adapter
-- Checkpoint store / protector adapters under infrastructure
+- `crates/application/src/projection/`
+- `crates/infrastructure/src/terminal/`
+- Checkpoint adapters + `checkpoint_*` tests under infrastructure
 
-## Verification
+## Status
 
-See [verification index → projection](../verification/README.md#projection--parking--checkpoints).
-Key folders: `loop3/`, `loop4/`, `parser-control-admission/`,
-`projection-io-*`, `checkpoint-crash-cleanup.md`.
+See [`../verification.md`](../verification.md).

@@ -58,17 +58,18 @@ release performance/repetition/soak requirements. P1/P2 findings in the accepted
 scope block acceptance until independently re-reviewed as resolved.
 
 Record findings with file/line evidence and severity, changes made, and unresolved
-items under `docs/archive/reviews` (or a fresh feature-scoped note linked from
-`docs/verification`). Re-review fixes; never mark an issue resolved only
-because the author says it is. No unresolved correctness/architecture blocker may
-be called a passed milestone. Run the gate again after review changes.
+items by updating `docs/verification.md` (plain English) and keeping specialist
+notes out of the tree unless the user asks for them. Re-review fixes; never mark
+an issue resolved only because the author says it is. No unresolved
+correctness/architecture blocker may be called a passed milestone. Run the gate
+again after review changes.
 
 Use meaningful deterministic tests, real Unix child fixtures and real Ghostty
-contract tests. Mocks verify orchestration only. Every ADR receives a proof record
-under `docs/verification`: requirement, implementation location, command, platform,
-source revision, raw evidence, result and remaining gaps. Record not-run explicitly.
-Performance repeats, lifecycle/reconnect counts and the 12-hour soak remain full
-release requirements. Do not replace them with smaller green tests.
+contract tests. Mocks verify orchestration only. Keep a short plain-English status
+in `docs/verification.md` (what works / what is still open). Do not check gate/load
+log dumps into git. Performance repeats, lifecycle/reconnect counts and the
+12-hour soak remain full release requirements. Do not replace them with smaller
+green tests.
 
 Review existing tests against intended behaviors before adding missing coverage.
 An independent test reviewer must add missing acceptance tests, and those tests

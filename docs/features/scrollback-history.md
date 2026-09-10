@@ -1,24 +1,21 @@
 # Scrollback / history
 
-**ADRs:** [0006](../adr/0006-scrollback-projection.md), restore rules in
+**ADRs:** [0006](../adr/0006-scrollback-projection.md),
 [0003](../adr/0003-session-parking-and-state-transfer.md)
 
 ## Intent
 
-Expose retained history as a **read-only range query** (absolute rows within the
-current engine window). Do not scroll a shared viewport to serve readers.
-Indices are window-relative and shift under eviction. Live scrollback is
-byte-budgeted (`history_bytes`); cold disk paging for infinite history is a
-future extension, not the current demo default (16 MiB hot window).
+History is a **read-only range** of rows in the current window. Do not scroll a
+shared viewport to serve readers. Indexes move when old rows are evicted. Live
+history is byte-budgeted (`history_bytes`); infinite cold storage is future work
+(demo default stays a finite hot window, e.g. 16 MiB).
 
 ## Code
 
-- Domain: `crates/domain/src/terminal/view.rs` (`TerminalHistory`)
-- Infrastructure: `rt_rows` / history projection
-- Demo client: wheel → `history` WebSocket messages (`client/`)
+- `crates/domain/src/terminal/view.rs` (`TerminalHistory`)
+- History projection in infrastructure
+- Demo: wheel → `history` messages in `client/`
 
-## Verification
+## Status
 
-See [verification index → scrollback](../verification/README.md#scrollback--history).
-Key folders: `scrollback/`, `page-admission/`, `page-capacity/`,
-`continuation-c1/`, `decode-budget/`, `mouse-modes/`, `packed-pages/`.
+See [`../verification.md`](../verification.md).

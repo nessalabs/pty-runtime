@@ -1,3 +1,0 @@
-   Compiling pty-runtime v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.48s
-     Running tests/event_stream_decode_contract.rs (target/debug/deps/event_stream_decode_contract-d2b6d7158c47020d)

@@ -14,9 +14,7 @@ write acknowledgement, and bounded replay are first-class.
 - `crates/infrastructure/src/process/` — Unix backend, spawn, IO, supervision
 - Public facade: `pty_runtime::Runtime`
 
-## Verification
+## Status
 
-See [verification index → process-pty](../verification/README.md#process--pty-ownership).
-Key folders: `foundation/`, `loop2/`, `process-pressure-race/`,
-`close-completion-race/`, `g1-raw-acceptance` (archived narrative under
-`archive/milestones/`).
+See [`../verification.md`](../verification.md). Re-run process fixtures and
+`python3 scripts/gate.py`.

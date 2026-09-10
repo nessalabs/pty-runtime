@@ -1,6 +1,0 @@
-{"case":"ground","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}
-{"case":"utf8","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}
-{"case":"csi","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}
-{"case":"osc","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}
-{"case":"dcs","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}
-{"case":"alternate","roundtrip":true,"binary_roundtrip_equal":true,"additional_cycles":10,"resume_and_resize":true,"replies":true,"truncated_and_corrupt_rejected":true}

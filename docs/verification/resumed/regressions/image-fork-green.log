@@ -1,9 +1,0 @@
-   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.44s
-     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-724137e3fdbfca24)
-
-running 1 test
-test process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.12s
-

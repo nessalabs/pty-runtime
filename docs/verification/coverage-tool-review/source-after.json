@@ -1,4 +1,0 @@
-{
-  "scripts/coverage.py": "4da9ab79d503eb8d656eef2d0cf0efc9a6900dbd4f04b70aea4d13e3a0bead05",
-  "crates/application/src/projection/tests/shutdown.rs": "44c635d116eaa3c61ddd41a8b248e0bb4ea4c8a1c4d3e11324aaec64328fcec1"
-}

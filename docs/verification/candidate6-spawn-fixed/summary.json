@@ -1,7 +1,0 @@
-{
-  "trials": 200,
-  "passed": true,
-  "elapsed_seconds": 11.710343599319458,
-  "scope": "200 repetitions of existing four-test raw_runtime binary with child-owned image materialization; diagnostic-only initial-spawn logging retained in isolated checkout",
-  "limitation": "Scoped regression evidence, not full gate or release load; original fork regression still needed stronger test handoff at this source"
-}

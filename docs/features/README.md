@@ -1,8 +1,8 @@
 # Features
 
-Short maps from product area → ADR, code, and verification. Keep these pages
-thin: durable rules belong in ADRs; executed proof belongs in
-[`../verification/`](../verification/README.md).
+Product behavior by area. Embedding guide: [`../usage.md`](../usage.md).
+What we have checked: [`../verification.md`](../verification.md). Binding
+decisions: [`../adr/`](../adr/README.md).
 
 | Feature | Page |
 | --- | --- |

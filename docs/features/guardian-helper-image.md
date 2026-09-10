@@ -1,21 +1,20 @@
 # Guardian / helper image
 
-**ADRs:** [0001](../adr/0001-pty-runtime.md) (process ownership / helpers)
+**ADRs:** [0001](../adr/0001-pty-runtime.md)
 
 ## Intent
 
-Each admitted PTY uses packaged helper processes. The guardian image is
-materialized privately so caller forks never inherit a writable executable fd
-(ETXTBSY). Construction has a hard single-threaded/`atfork` precondition.
+Each admitted PTY uses packaged helper processes. The helper image is staged so
+caller forks never inherit a writable executable (avoids ETXTBSY). Construction
+expects a single-threaded / `atfork`-safe caller.
 
 ## Code
 
-- `crates/infrastructure/src/process/image.rs` — staging owner
-- `crates/infrastructure/src/process/image_materialize.rs` — fork-isolated writer
+- `crates/infrastructure/src/process/image.rs`
+- `crates/infrastructure/src/process/image_materialize.rs`
 - `crates/infrastructure/src/process/guardian.rs`, `spawner.rs`, `supervisor.rs`
+- Fixtures: `crates/infrastructure/tests/fixtures/process_image_*`
 
-## Verification
+## Status
 
-See [verification index → guardian](../verification/README.md#guardian--helper-image).
-Key folders: `guardian/`, `bundled-helper-image/`, `helper-image-fork-contract/`,
-`image-fork/`, `candidate6-spawn-*`.
+See [`../verification.md`](../verification.md).
