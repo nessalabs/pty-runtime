@@ -1,0 +1,14 @@
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/serde-9ef639c04f31ae96.d: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/serde-614cdae90589608a/out/private.rs
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/libserde-9ef639c04f31ae96.rlib: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/serde-614cdae90589608a/out/private.rs
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/libserde-9ef639c04f31ae96.rmeta: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/serde-614cdae90589608a/out/private.rs
+
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/serde-614cdae90589608a/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/serde-614cdae90589608a/out

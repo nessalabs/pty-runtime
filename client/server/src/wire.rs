@@ -1,0 +1,329 @@
+//! Version 1 wire messages and the projection-to-frame diff.
+//!
+//! The server renders, so everything here turns a `TerminalView` into
+//! something a browser can paint without knowing anything about terminals.
+use pty_runtime::terminal::{
+    MouseEncoding, MouseTracking, TerminalCell, TerminalColor, TerminalCursor, TerminalModes,
+    TerminalPalette, TerminalStyle, TerminalView, Underline,
+};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+pub const VERSION: u32 = 1;
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum ClientMessage {
+    Hello { v: u32, cols: u16, rows: u16 },
+    Input { v: u32, data: String },
+    Resize { v: u32, cols: u16, rows: u16 },
+}
+
+impl ClientMessage {
+    pub fn version(&self) -> u32 {
+        match self {
+            Self::Hello { v, .. } | Self::Input { v, .. } | Self::Resize { v, .. } => *v,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct Cursor {
+    pub col: u16,
+    pub row: u16,
+    pub visible: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Row {
+    pub y: u16,
+    /// `[text, width, style_id]` per cell.
+    pub cells: Vec<(String, u8, u32)>,
+}
+
+#[derive(Debug, Default, Serialize, PartialEq, Eq, Hash, Clone)]
+pub struct WireStyle {
+    pub id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fg: Option<[u8; 3]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bg: Option<[u8; 3]>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub bold: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub italic: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub faint: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub inverse: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub invisible: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub strikethrough: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub overline: bool,
+    #[serde(skip_serializing_if = "str::is_empty")]
+    pub underline: &'static str,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum ServerMessage {
+    Ready {
+        v: u32,
+        cols: u16,
+        rows: u16,
+        palette: WirePalette,
+    },
+    Styles {
+        v: u32,
+        styles: Vec<WireStyle>,
+    },
+    Modes {
+        v: u32,
+        alternate_screen: bool,
+        bracketed_paste: bool,
+        application_cursor: bool,
+        /// Which events the program wants: none, press, press_release,
+        /// button_motion or any_motion.
+        mouse: &'static str,
+        /// How it expects them encoded: legacy or sgr.
+        mouse_encoding: &'static str,
+    },
+    Frame {
+        v: u32,
+        seq: u64,
+        cursor: Cursor,
+        rows: Vec<Row>,
+    },
+    Exit {
+        v: u32,
+        status: Option<i32>,
+    },
+    Error {
+        v: u32,
+        message: String,
+    },
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq, Clone)]
+pub struct WirePalette {
+    pub foreground: Option<[u8; 3]>,
+    pub background: Option<[u8; 3]>,
+    pub cursor: Option<[u8; 3]>,
+    pub indexed: Vec<[u8; 3]>,
+}
+
+impl From<&TerminalPalette> for WirePalette {
+    fn from(palette: &TerminalPalette) -> Self {
+        Self {
+            foreground: palette.foreground,
+            background: palette.background,
+            cursor: palette.cursor,
+            indexed: palette.indexed.to_vec(),
+        }
+    }
+}
+
+/// Resolve a color to literal sRGB, or leave it to the client's default.
+///
+/// Palette entries are resolved here rather than in the browser so a client
+/// never has to carry terminal color rules, and so an OSC palette override is
+/// applied by whoever actually knows about it.
+fn color(value: &TerminalColor, palette: &TerminalPalette) -> Option<[u8; 3]> {
+    match value {
+        TerminalColor::Default => None,
+        TerminalColor::Palette(index) => Some(palette.indexed[*index as usize]),
+        TerminalColor::Rgb(r, g, b) => Some([*r, *g, *b]),
+    }
+}
+
+fn underline(value: Underline) -> &'static str {
+    match value {
+        Underline::None => "",
+        Underline::Single => "single",
+        Underline::Double => "double",
+        Underline::Curly => "curly",
+        Underline::Dotted => "dotted",
+        Underline::Dashed => "dashed",
+    }
+}
+
+/// Interns styles so a frame carries small integers rather than repeating a
+/// full style on every cell. Terminals reuse a handful of styles across a whole
+/// screen, so this is most of the wire saving.
+#[derive(Default)]
+pub struct StyleTable {
+    ids: HashMap<WireStyle, u32>,
+    pending: Vec<WireStyle>,
+}
+
+impl StyleTable {
+    pub fn intern(&mut self, style: &TerminalStyle, palette: &TerminalPalette) -> u32 {
+        let mut wire = WireStyle {
+            id: 0,
+            fg: color(&style.foreground, palette),
+            bg: color(&style.background, palette),
+            bold: style.bold,
+            italic: style.italic,
+            faint: style.faint,
+            inverse: style.inverse,
+            invisible: style.invisible,
+            strikethrough: style.strikethrough,
+            overline: style.overline,
+            underline: underline(style.underline),
+        };
+        if wire == WireStyle::default() {
+            return 0;
+        }
+        if let Some(id) = self.ids.get(&wire) {
+            return *id;
+        }
+        // Zero is reserved for the default style, so identifiers start at one.
+        let id = self.ids.len() as u32 + 1;
+        wire.id = id;
+        self.ids.insert(wire.clone(), id);
+        self.pending.push(wire);
+        id
+    }
+
+    /// Styles first seen since the previous call, to send before the frame
+    /// that references them.
+    pub fn take_pending(&mut self) -> Vec<WireStyle> {
+        std::mem::take(&mut self.pending)
+    }
+}
+
+fn encode_row(cells: &[TerminalCell], styles: &mut StyleTable, palette: &TerminalPalette) -> Row {
+    Row {
+        y: 0,
+        cells: cells
+            .iter()
+            .map(|cell| {
+                (
+                    cell.text.clone(),
+                    cell.width,
+                    styles.intern(&cell.style, palette),
+                )
+            })
+            .collect(),
+    }
+}
+
+/// What the client has already been shown, so only differences are sent.
+#[derive(Default)]
+pub struct Sent {
+    rows: Vec<Vec<TerminalCell>>,
+    size: Option<(u16, u16)>,
+    palette: Option<WirePalette>,
+    modes: Option<TerminalModes>,
+    cursor: Option<TerminalCursor>,
+    seq: u64,
+}
+
+impl Sent {
+    /// Messages that bring the client up to date, in the order they must be
+    /// sent: styles before the frame that uses them.
+    pub fn diff(&mut self, view: &TerminalView, styles: &mut StyleTable) -> Vec<ServerMessage> {
+        let mut messages = Vec::new();
+        let cols = usize::from(view.size.cols());
+        let rows = usize::from(view.size.rows());
+
+        // `ready` carries the geometry as well as the palette, so it has to be
+        // re-sent when either changes. A resize that only moved the dimensions
+        // would otherwise leave the client rendering at the previous width,
+        // which is what a shrink followed by a grow used to look like.
+        let palette = WirePalette::from(&view.palette);
+        let size = (view.size.cols(), view.size.rows());
+        if self.palette.as_ref() != Some(&palette) || self.size != Some(size) {
+            messages.push(ServerMessage::Ready {
+                v: VERSION,
+                cols: size.0,
+                rows: size.1,
+                palette: palette.clone(),
+            });
+            self.palette = Some(palette);
+            self.size = Some(size);
+            // The client drops what it holds on a geometry change, and a new
+            // palette invalidates every colour already resolved, so nothing
+            // retained here can still be compared against.
+            self.rows.clear();
+        }
+
+        if self.modes != Some(view.modes) {
+            messages.push(ServerMessage::Modes {
+                v: VERSION,
+                alternate_screen: view.modes.alternate_screen,
+                bracketed_paste: view.modes.bracketed_paste,
+                application_cursor: view.modes.application_cursor,
+                mouse: match view.modes.mouse {
+                    MouseTracking::None => "none",
+                    MouseTracking::Press => "press",
+                    MouseTracking::PressRelease => "press_release",
+                    MouseTracking::ButtonMotion => "button_motion",
+                    MouseTracking::AnyMotion => "any_motion",
+                },
+                mouse_encoding: match view.modes.mouse_encoding {
+                    MouseEncoding::Legacy => "legacy",
+                    MouseEncoding::Sgr => "sgr",
+                },
+            });
+            self.modes = Some(view.modes);
+        }
+
+        // A resize changes what every row means, so nothing retained about the
+        // old geometry can be compared against the new one.
+        if self.rows.len() != rows || self.rows.first().is_some_and(|r| r.len() != cols) {
+            self.rows = vec![Vec::new(); rows];
+        }
+
+        let mut changed = Vec::new();
+        for y in 0..rows {
+            let start = y * cols;
+            let Some(row) = view.cells.get(start..start + cols) else {
+                break;
+            };
+            if self.rows[y] == row {
+                continue;
+            }
+            let mut encoded = encode_row(row, styles, &view.palette);
+            encoded.y = y as u16;
+            changed.push(encoded);
+            self.rows[y] = row.to_vec();
+        }
+
+        let pending = styles.take_pending();
+        if !pending.is_empty() {
+            messages.push(ServerMessage::Styles {
+                v: VERSION,
+                styles: pending,
+            });
+        }
+
+        // The cursor moves without any cell changing: backspace at a prompt,
+        // arrow keys, a program repositioning. Diffing rows alone would leave
+        // the caret stranded where it last happened to be drawn.
+        let cursor_moved = self.cursor != Some(view.cursor);
+        self.cursor = Some(view.cursor);
+
+        if !changed.is_empty() || cursor_moved || self.seq == 0 {
+            self.seq += 1;
+            messages.push(ServerMessage::Frame {
+                v: VERSION,
+                seq: self.seq,
+                cursor: Cursor {
+                    col: view.cursor.col,
+                    row: view.cursor.row,
+                    visible: view.cursor.visible,
+                },
+                rows: changed,
+            });
+        }
+
+        messages
+    }
+}

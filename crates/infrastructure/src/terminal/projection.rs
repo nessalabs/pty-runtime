@@ -88,7 +88,24 @@ impl GhosttyTerminal {
                 alternate_screen: info.alternate != 0,
                 bracketed_paste: info.paste != 0,
                 application_cursor: info.application_cursor != 0,
-                mouse_reporting: info.mouse != 0,
+                // Later modes win: a program that enables any-event
+                // tracking over button tracking wants the wider set.
+                mouse: if info.mouse_any != 0 {
+                    MouseTracking::AnyMotion
+                } else if info.mouse_button != 0 {
+                    MouseTracking::ButtonMotion
+                } else if info.mouse_normal != 0 {
+                    MouseTracking::PressRelease
+                } else if info.mouse_x10 != 0 {
+                    MouseTracking::Press
+                } else {
+                    MouseTracking::None
+                },
+                mouse_encoding: if info.mouse_sgr != 0 {
+                    MouseEncoding::Sgr
+                } else {
+                    MouseEncoding::Legacy
+                },
             },
             palette: TerminalPalette {
                 foreground: (info.has_foreground != 0).then_some(info.foreground),

@@ -5,7 +5,7 @@ static bool mode(RuntimeTerminal *o, GhosttyMode value) {
   return !ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_MODE, &m) && m.value;
 }
 int rt_info(RuntimeTerminal *o, RuntimeInfo *out) {
-  bool visible, pending, mouse;
+  bool visible, pending;
   GhosttyTerminalScreen screen;
   GET(GHOSTTY_TERMINAL_DATA_COLS, &out->cols);
   GET(GHOSTTY_TERMINAL_DATA_ROWS, &out->rows);
@@ -14,11 +14,18 @@ int rt_info(RuntimeTerminal *o, RuntimeInfo *out) {
   GET(GHOSTTY_TERMINAL_DATA_CURSOR_VISIBLE, &visible);
   GET(GHOSTTY_TERMINAL_DATA_CURSOR_PENDING_WRAP, &pending);
   GET(GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, &screen);
-  GET(GHOSTTY_TERMINAL_DATA_MOUSE_TRACKING, &mouse);
-  out->visible = visible; out->pending_wrap = pending; out->mouse = mouse;
+  out->visible = visible; out->pending_wrap = pending;
   out->alternate = screen == GHOSTTY_TERMINAL_SCREEN_ALTERNATE;
   out->paste = mode(o, GHOSTTY_MODE_BRACKETED_PASTE);
   out->application_cursor = mode(o, GHOSTTY_MODE_DECCKM);
+  /* Tracking and encoding are separate questions: a program picks which
+   * events it wants, then whether they arrive in SGR or the legacy form
+   * that cannot express a column past 223. */
+  out->mouse_x10 = mode(o, GHOSTTY_MODE_X10_MOUSE);
+  out->mouse_normal = mode(o, GHOSTTY_MODE_NORMAL_MOUSE);
+  out->mouse_button = mode(o, GHOSTTY_MODE_BUTTON_MOUSE);
+  out->mouse_any = mode(o, GHOSTTY_MODE_ANY_MOUSE);
+  out->mouse_sgr = mode(o, GHOSTTY_MODE_SGR_MOUSE);
   GhosttyColorRgb foreground = {0}, background = {0}, cursor, palette[256];
   int fr = ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_COLOR_FOREGROUND, &foreground);
   int br = ghostty_terminal_get(o->terminal, GHOSTTY_TERMINAL_DATA_COLOR_BACKGROUND, &background);

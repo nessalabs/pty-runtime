@@ -16,7 +16,10 @@ typedef struct {
 } RuntimeTerminal;
 typedef struct {
   uint16_t cols, rows, x, y;
-  uint8_t visible, pending_wrap, alternate, paste, application_cursor, mouse;
+  uint8_t visible, pending_wrap, alternate, paste, application_cursor;
+  /* Individual mouse modes: which events are wanted, and how they are
+   * encoded. A single aggregate cannot answer either question. */
+  uint8_t mouse_x10, mouse_normal, mouse_button, mouse_any, mouse_sgr;
   uint8_t foreground[3], background[3], cursor_color[3], has_cursor_color, has_foreground, has_background;
   uint8_t palette[256][3];
 } RuntimeInfo;

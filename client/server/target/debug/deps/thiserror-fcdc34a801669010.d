@@ -1,0 +1,14 @@
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/thiserror-fcdc34a801669010.d: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/thiserror-83606357a99287fc/out/private.rs
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/libthiserror-fcdc34a801669010.rlib: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/thiserror-83606357a99287fc/out/private.rs
+
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/deps/libthiserror-fcdc34a801669010.rmeta: /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/thiserror-83606357a99287fc/out/private.rs
+
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs:
+/Users/nessa/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs:
+/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/thiserror-83606357a99287fc/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/nessa/Documents/NessaLabs/pty-runtime/client/server/target/debug/build/thiserror-83606357a99287fc/out
