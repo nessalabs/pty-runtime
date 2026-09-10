@@ -49,14 +49,16 @@ impl ProjectionCoordinator {
                         },
                         _disk: disk,
                     };
-                    self.budgets
+                    self.quotas
+                        .shared
                         .unreclaimed
                         .lock()
                         .unwrap_or_else(|e| e.into_inner())
                         .push(source);
                 }
                 PendingIo::Delete { source, .. } => self
-                    .budgets
+                    .quotas
+                    .shared
                     .unreclaimed
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
@@ -72,7 +74,8 @@ impl ProjectionCoordinator {
         }
         {
             let mut ledger = self
-                .budgets
+                .quotas
+                .shared
                 .unreclaimed
                 .lock()
                 .unwrap_or_else(|e| e.into_inner());

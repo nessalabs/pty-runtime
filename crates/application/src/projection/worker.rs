@@ -238,7 +238,8 @@ impl ProjectionCoordinator {
                 // Slots were reserved before commit, so this preallocated ledger
                 // cannot grow beyond its independently admitted identity limit.
                 let mut ledger = self
-                    .budgets
+                    .quotas
+                    .shared
                     .unreclaimed
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());

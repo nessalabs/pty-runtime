@@ -79,7 +79,8 @@ impl ProjectionCoordinator {
                             },
                             _disk: disk,
                         };
-                        self.budgets
+                        self.quotas
+                            .shared
                             .unreclaimed
                             .lock()
                             .unwrap_or_else(|e| e.into_inner())

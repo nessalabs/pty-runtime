@@ -3,7 +3,7 @@ use super::{
     budgets::Lease,
     state::{Command, NativeWorkspace, Reply, Resizing},
 };
-use crate::{runtime::quota::InputLease, scheduling::WorkSchedule};
+use crate::scheduling::WorkSchedule;
 use pty_runtime_domain::{process::ProcessError, terminal::CheckpointDescriptor};
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
@@ -39,11 +39,7 @@ impl ProjectionCoordinator {
                 let Some(process) = process else {
                     return Some(WorkSchedule::Dormant);
                 };
-                let lease = match InputLease::acquire(
-                    self.input_bytes.clone(),
-                    self.input_slots.clone(),
-                    reply.bytes.len(),
-                ) {
+                let lease = match self.input.reserve(reply.bytes.len()) {
                     Ok(lease) => lease,
                     Err(_) => return Some(WorkSchedule::After(Duration::from_millis(5))),
                 };
@@ -120,14 +116,16 @@ impl ProjectionCoordinator {
     ) -> WorkSchedule {
         match event {
             Command::Output(bytes, mut staging) => {
-                let memory =
-                    match Lease::shared(self.budgets.views.clone(), workspace.config.reply_bytes) {
-                        Ok(memory) => memory,
-                        Err(_) => {
-                            self.requeue(Command::Output(bytes, staging));
-                            return WorkSchedule::After(Duration::from_millis(5));
-                        }
-                    };
+                let memory = match Lease::shared(
+                    self.quotas.shared.views.clone(),
+                    workspace.config.reply_bytes,
+                ) {
+                    Ok(memory) => memory,
+                    Err(_) => {
+                        self.requeue(Command::Output(bytes, staging));
+                        return WorkSchedule::After(Duration::from_millis(5));
+                    }
+                };
                 let result = match &mut workspace.terminal {
                     Some(terminal) => self.native_call(|| terminal.feed(&bytes)),
                     None => Err(ProjectionError::Closed),
@@ -208,7 +206,7 @@ impl ProjectionCoordinator {
                     options.terminal = workspace.config;
                     let result = options
                         .view_reservation()
-                        .and_then(|count| Lease::shared(self.budgets.views.clone(), count))
+                        .and_then(|count| Lease::shared(self.quotas.shared.views.clone(), count))
                         .and_then(|lease| {
                             let terminal =
                                 workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;

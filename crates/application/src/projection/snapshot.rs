@@ -56,7 +56,7 @@ impl ProjectionCoordinator {
             return;
         }
         let result = Lease::shared(
-            self.budgets.checkpoints.clone(),
+            self.quotas.shared.checkpoints.clone(),
             workspace.config.checkpoint_bytes,
         )
         .and_then(|lease| {

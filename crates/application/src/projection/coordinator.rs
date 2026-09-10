@@ -1,6 +1,6 @@
 use super::{
     ProjectionBudgets, ProjectionError, ProjectionOptions, ProjectionStatus,
-    budgets::Lease,
+    budgets::{InputQuotas, Lease, SessionQuotas},
     state::{Admission, NativeWorkspace},
 };
 use crate::{
@@ -53,15 +53,11 @@ pub struct ProjectionCoordinator {
     pub(super) compatibility: CompatibilityId,
     pub(super) protected_bytes: usize,
     pub(super) services: Mutex<Option<ProjectionServices>>,
-    pub(super) budgets: Arc<ProjectionBudgets>,
+    pub(super) quotas: SessionQuotas,
     pub(super) admission: Mutex<Admission>,
     pub(super) workspace: Mutex<NativeWorkspace>,
     pub(super) handle: Mutex<Option<Arc<dyn IWorkHandle>>>,
-    pub(super) local_bytes: Arc<Quota>,
-    pub(super) local_slots: Arc<Quota>,
-    pub(super) local_requests: Arc<Quota>,
-    pub(super) input_bytes: Arc<Quota>,
-    pub(super) input_slots: Arc<Quota>,
+    pub(super) input: InputQuotas,
     pub(super) process: Mutex<Option<Arc<dyn IProcessSession>>>,
     pub(super) stall_generation: AtomicU64,
 }
@@ -118,8 +114,9 @@ impl ProjectionCoordinator {
         queue
             .try_reserve_exact(queue_slots)
             .map_err(|_| ProjectionError::Capacity)?;
+        let quotas = SessionQuotas::new(budgets, &options);
         let owner = Arc::new(Self {
-            journal: super::journal::Journal::new(lifetime, options, &budgets),
+            journal: super::journal::Journal::new(lifetime, options, &quotas.shared),
             admission: Mutex::new(Admission {
                 policy: ProjectionPolicy::new(lifetime, options, services.clock.now())?,
                 queue,
@@ -141,17 +138,13 @@ impl ProjectionCoordinator {
                 config: options.terminal,
                 history_step_owed: false,
             }),
-            local_bytes: Arc::new(Quota::new(options.staging_bytes)),
-            local_slots: Arc::new(Quota::new(options.staging_slots)),
-            local_requests: Arc::new(Quota::new(options.request_slots)),
             options,
             compatibility,
             protected_bytes,
             services: Mutex::new(Some(services)),
-            budgets,
+            quotas,
             handle: Mutex::new(None),
-            input_bytes,
-            input_slots,
+            input: InputQuotas::new(input_bytes, input_slots),
             process: Mutex::new(None),
             stall_generation: AtomicU64::new(0),
         });

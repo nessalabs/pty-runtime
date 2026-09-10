@@ -54,7 +54,7 @@ impl ProjectionCoordinator {
             return WorkSchedule::Dormant;
         };
         let memory = match IoMemory::acquire(
-            &self.budgets,
+            &self.quotas.shared,
             workspace.config.checkpoint_bytes,
             self.protected_bytes,
         ) {
@@ -105,11 +105,13 @@ impl ProjectionCoordinator {
                 }
             }
         } else {
-            let resident =
-                match Lease::shared(self.budgets.resident.clone(), workspace.config.native_bytes) {
-                    Ok(resident) => resident,
-                    Err(_) => return WorkSchedule::After(Duration::from_millis(5)),
-                };
+            let resident = match Lease::shared(
+                self.quotas.shared.resident.clone(),
+                workspace.config.native_bytes,
+            ) {
+                Ok(resident) => resident,
+                Err(_) => return WorkSchedule::After(Duration::from_millis(5)),
+            };
             match self.submit_io(job) {
                 Ok(mailbox) => {
                     let result = self
@@ -149,11 +151,11 @@ impl ProjectionCoordinator {
         let result = (|| {
             let max = self.protected_bytes;
             let memory = IoMemory::acquire(
-                &self.budgets,
+                &self.quotas.shared,
                 workspace.config.checkpoint_bytes,
                 self.protected_bytes,
             )?;
-            let disk = DiskLease::acquire(&self.budgets, max)?;
+            let disk = DiskLease::acquire(&self.quotas.shared, max)?;
             let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
             let descriptor = self.descriptor();
             let checkpoint = self.native_call(|| terminal.checkpoint(descriptor.clone()))?;

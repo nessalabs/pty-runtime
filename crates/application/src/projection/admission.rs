@@ -1,9 +1,6 @@
 use super::{
     PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionError, ProjectionOperation,
-    Residency, ResizeOutcome,
-    budgets::{Lease, StagingLease},
-    observation::Ticket,
-    state::Command,
+    Residency, ResizeOutcome, budgets::StagingLease, observation::Ticket, state::Command,
 };
 use crate::process::OutputAcceptance;
 use pty_runtime_domain::terminal::TerminalSize;
@@ -12,23 +9,13 @@ impl ProjectionCoordinator {
     pub(super) fn reserve_staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
         // Zero-payload controls already hold a bounded request ticket. Output
         // must not consume their admission; both remain in the same FIFO queue.
-        let slots = if bytes == 0 {
-            None
+        let (slots, bytes) = if bytes == 0 {
+            (None, None)
         } else {
-            Some(Lease::shared_and_local(
-                self.budgets.staging_slots.clone(),
-                self.local_slots.clone(),
-                1,
-            )?)
-        };
-        let bytes = if bytes == 0 {
-            None
-        } else {
-            Some(Lease::shared_and_local(
-                self.budgets.staging_bytes.clone(),
-                self.local_bytes.clone(),
-                bytes,
-            )?)
+            (
+                Some(self.quotas.staging_slot()?),
+                Some(self.quotas.staging_bytes(bytes)?),
+            )
         };
         Ok(StagingLease {
             timing: None,
@@ -40,12 +27,7 @@ impl ProjectionCoordinator {
     pub(super) fn reserve_request_slot<T: Send + 'static>(
         &self,
     ) -> Result<(Arc<Ticket<T>>, ProjectionOperation<T>), ProjectionError> {
-        let lease = Lease::shared_and_local(
-            self.budgets.requests.clone(),
-            self.local_requests.clone(),
-            1,
-        )?;
-        Ok(Ticket::new(Some(lease)))
+        Ok(Ticket::new(Some(self.quotas.request_slot()?)))
     }
     /// Admit an entire reader chunk once. Rejection neither copies nor advances positions.
     /// Replay publication must follow Accepted; evictable replay never backs this queue.

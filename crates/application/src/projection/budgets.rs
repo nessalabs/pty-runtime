@@ -1,5 +1,8 @@
-use crate::{runtime::quota::Quota, scheduling::ICapacitySignal};
-use pty_runtime_domain::projection::{ProjectionError, ProjectionLimits};
+use crate::{
+    runtime::quota::{InputLease, Quota},
+    scheduling::ICapacitySignal,
+};
+use pty_runtime_domain::projection::{ProjectionError, ProjectionLimits, ProjectionOptions};
 use std::sync::{Arc, Mutex};
 
 /// One runtime's projection reservations, independent of replay and provider quotas.
@@ -148,6 +151,74 @@ impl Drop for Lease {
         }
     }
 }
+/// One session's halves of the projection quotas, each bound to the runtime-wide
+/// half it is always charged against at the same moment.
+///
+/// Every projection reservation is a pair: a global ceiling shared by all
+/// sessions, and this session's own share of it. Passing those two around as
+/// loose `Arc<Quota>` values meant each call site had to know which global
+/// pairs with which local, and mispairing them compiled perfectly well. Holding
+/// them together here means the pairing is made once, at construction.
+pub(super) struct SessionQuotas {
+    /// Runtime-wide ceilings, also read directly for the budgets that have no
+    /// per-session half (views, checkpoints, resident memory, disk).
+    pub shared: Arc<ProjectionBudgets>,
+    staging_bytes: Arc<Quota>,
+    staging_slots: Arc<Quota>,
+    requests: Arc<Quota>,
+}
+
+impl SessionQuotas {
+    pub fn new(shared: Arc<ProjectionBudgets>, options: &ProjectionOptions) -> Self {
+        Self {
+            shared,
+            staging_bytes: Arc::new(Quota::new(options.staging_bytes)),
+            staging_slots: Arc::new(Quota::new(options.staging_slots)),
+            requests: Arc::new(Quota::new(options.request_slots)),
+        }
+    }
+    /// Reserve one parser chunk against both halves of the staging-slot budget.
+    pub fn staging_slot(&self) -> Result<Lease, ProjectionError> {
+        Lease::shared_and_local(
+            self.shared.staging_slots.clone(),
+            self.staging_slots.clone(),
+            1,
+        )
+    }
+    /// Reserve parser payload against both halves of the staging-byte budget.
+    pub fn staging_bytes(&self, bytes: usize) -> Result<Lease, ProjectionError> {
+        Lease::shared_and_local(
+            self.shared.staging_bytes.clone(),
+            self.staging_bytes.clone(),
+            bytes,
+        )
+    }
+    /// Reserve one outstanding observation/control wait.
+    pub fn request_slot(&self) -> Result<Lease, ProjectionError> {
+        Lease::shared_and_local(self.shared.requests.clone(), self.requests.clone(), 1)
+    }
+}
+
+/// The runtime-wide input quotas an authoritative reply is charged against.
+///
+/// Replies the terminal generates go into the same bounded input path as caller
+/// writes, so they are charged against the runtime's quotas rather than any
+/// per-session share.
+pub(super) struct InputQuotas {
+    bytes: Arc<Quota>,
+    slots: Arc<Quota>,
+}
+
+impl InputQuotas {
+    pub fn new(bytes: Arc<Quota>, slots: Arc<Quota>) -> Self {
+        Self { bytes, slots }
+    }
+    /// Admit one reply chunk, or report that the input path is saturated.
+    pub fn reserve(&self, bytes: usize) -> Result<InputLease, crate::runtime::RuntimeError> {
+        InputLease::acquire(self.bytes.clone(), self.slots.clone(), bytes)
+    }
+}
+
 pub(super) struct StagingLease {
     pub timing: Option<crate::diagnostics::Timing>,
     pub bytes: Option<Lease>,
