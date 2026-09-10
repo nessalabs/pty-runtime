@@ -71,6 +71,38 @@ pub struct WireStyle {
     pub underline: &'static str,
 }
 
+/// Style identity without the allocated id, so interning can reuse entries.
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
+struct StyleKey {
+    fg: Option<[u8; 3]>,
+    bg: Option<[u8; 3]>,
+    bold: bool,
+    italic: bool,
+    faint: bool,
+    inverse: bool,
+    invisible: bool,
+    strikethrough: bool,
+    overline: bool,
+    underline: &'static str,
+}
+
+impl From<&WireStyle> for StyleKey {
+    fn from(style: &WireStyle) -> Self {
+        Self {
+            fg: style.fg,
+            bg: style.bg,
+            bold: style.bold,
+            italic: style.italic,
+            faint: style.faint,
+            inverse: style.inverse,
+            invisible: style.invisible,
+            strikethrough: style.strikethrough,
+            overline: style.overline,
+            underline: style.underline,
+        }
+    }
+}
+
 fn is_false(value: &bool) -> bool {
     !*value
 }
@@ -177,13 +209,13 @@ fn underline(value: Underline) -> &'static str {
 /// screen, so this is most of the wire saving.
 #[derive(Default)]
 pub struct StyleTable {
-    ids: HashMap<WireStyle, u32>,
+    ids: HashMap<StyleKey, u32>,
     pending: Vec<WireStyle>,
 }
 
 impl StyleTable {
     pub fn intern(&mut self, style: &TerminalStyle, palette: &TerminalPalette) -> u32 {
-        let mut wire = WireStyle {
+        let wire = WireStyle {
             id: 0,
             fg: color(&style.foreground, palette),
             bg: color(&style.background, palette),
@@ -196,16 +228,18 @@ impl StyleTable {
             overline: style.overline,
             underline: underline(style.underline),
         };
-        if wire == WireStyle::default() {
+        if StyleKey::from(&wire) == StyleKey::default() {
             return 0;
         }
-        if let Some(id) = self.ids.get(&wire) {
+        let key = StyleKey::from(&wire);
+        if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         // Zero is reserved for the default style, so identifiers start at one.
         let id = self.ids.len() as u32 + 1;
+        let mut wire = wire;
         wire.id = id;
-        self.ids.insert(wire.clone(), id);
+        self.ids.insert(key, id);
         self.pending.push(wire);
         id
     }
@@ -214,6 +248,14 @@ impl StyleTable {
     /// that references them.
     pub fn take_pending(&mut self) -> Vec<WireStyle> {
         std::mem::take(&mut self.pending)
+    }
+
+    /// Drop every interned style. Required when the client is told to forget
+    /// its table (a new `ready`), or previously allocated ids would be reused
+    /// without retransmission.
+    pub fn clear(&mut self) {
+        self.ids.clear();
+        self.pending.clear();
     }
 }
 
@@ -284,7 +326,9 @@ impl Sent {
         // which is what a shrink followed by a grow used to look like.
         let palette = WirePalette::from(&view.palette);
         let size = (view.size.cols(), view.size.rows());
-        if self.palette.as_ref() != Some(&palette) || self.size != Some(size) {
+        let palette_changed = self.palette.as_ref() != Some(&palette);
+        let size_changed = self.size != Some(size);
+        if palette_changed || size_changed {
             messages.push(ServerMessage::Ready {
                 v: VERSION,
                 cols: size.0,
@@ -293,10 +337,13 @@ impl Sent {
             });
             self.palette = Some(palette);
             self.size = Some(size);
-            // The client drops what it holds on a geometry change, and a new
-            // palette invalidates every colour already resolved, so nothing
-            // retained here can still be compared against.
+            // Geometry changes force a full frame rewrite. Palette changes also
+            // invalidate every previously resolved colour, so drop the table;
+            // size-only resizes keep ids so the client does not flash unstyled.
             self.rows.clear();
+            if palette_changed {
+                styles.clear();
+            }
         }
 
         if self.modes != Some(view.modes) {

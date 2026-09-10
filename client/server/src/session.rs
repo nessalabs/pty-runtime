@@ -81,12 +81,16 @@ pub fn run(
     // server's own environment often has none, and without it `clear` and every
     // curses program refuse to run. The runtime renders with Ghostty, so
     // advertising xterm-256color is accurate rather than merely convenient.
+    // Strip host NO_COLOR / FORCE_COLOR=0: agent and CI shells often set them,
+    // and htop/ncurses then draw a monochrome UI even though this PTY is a
+    // full color terminal.
+    let removals = vec!["NO_COLOR".into(), "FORCE_COLOR".into()];
     let overrides = vec![
         ("TERM".into(), "xterm-256color".into()),
         ("COLORTERM".into(), "truecolor".into()),
     ];
     let command = match CommandSpec::new(shell.into(), cwd.clone(), Vec::new())
-        .and_then(|spec| spec.with_environment(EnvironmentPolicy::Inherit, vec![], overrides))
+        .and_then(|spec| spec.with_environment(EnvironmentPolicy::Inherit, removals, overrides))
     {
         Ok(command) => command,
         Err(error) => return fail(&outbound, format!("command rejected: {error:?}")),
@@ -170,6 +174,9 @@ pub fn run(
                             break;
                         }
                     }
+                    // Project immediately: waiting for the child to redraw leaves
+                    // the previous geometry on screen while the window moves.
+                    dirty = true;
                 }
             }
             Ok(Command::History { start, count }) => {

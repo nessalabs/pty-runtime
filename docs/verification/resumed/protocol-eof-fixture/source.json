@@ -1,0 +1,17 @@
+{
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "source": "scripts/guardian/protocol.rs",
+  "sha256": "2a1a51213f3455009ffab91159eebb039d46146c7ff900265418c858cef794b5",
+  "scope": "tests-only correction; production Channel unchanged",
+  "commands": [
+    "cargo test --locked -p pty-runtime-infrastructure --no-default-features --lib process::protocol::tests",
+    "cargo test --locked -p pty-runtime-infrastructure --no-default-features --lib"
+  ],
+  "result": "targeted 5 passed; concurrent library 17 passed",
+  "original_failure": "docs/verification/resumed/macos-gate-final/command.log",
+  "limitations": [
+    "Linux execution not run by this reviewer",
+    "Original failure establishes premature assertion, not direct attribution to a particular concurrent fork",
+    "Full gate rerun required after change"
+  ]
+}

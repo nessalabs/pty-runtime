@@ -6,15 +6,24 @@ mod session;
 mod wire;
 
 use axum::{
-    Router,
+    Json, Router,
+    body::Bytes,
     extract::{
         State,
         ws::{Message, WebSocket, WebSocketUpgrade},
     },
+    http::{HeaderMap, StatusCode, header},
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use serde::Deserialize;
+use serde_json::json;
+use std::{
+    net::SocketAddr,
+    path::PathBuf,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::sync::mpsc;
 use wire::{ClientMessage, ServerMessage, VERSION};
 
@@ -22,6 +31,7 @@ use wire::{ClientMessage, ServerMessage, VERSION};
 struct AppState {
     shell: String,
     web: Arc<PathBuf>,
+    paste_dir: Arc<PathBuf>,
 }
 
 #[tokio::main]
@@ -35,15 +45,22 @@ async fn main() {
     // The page and component are served from the repository rather than
     // embedded, so editing them does not need a rebuild.
     let web = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../web");
+    let paste_dir = std::env::temp_dir().join("pty-runtime-paste");
+    if let Err(error) = std::fs::create_dir_all(&paste_dir) {
+        eprintln!("cannot create paste directory {}: {error}", paste_dir.display());
+        std::process::exit(1);
+    }
     let state = AppState {
         shell,
         web: Arc::new(web),
+        paste_dir: Arc::new(paste_dir),
     };
 
     let app = Router::new()
         .route("/", get(index))
         .route("/terminal.js", get(component))
         .route("/ws", get(upgrade))
+        .route("/paste-file", post(paste_file))
         .with_state(state);
 
     let address = SocketAddr::from(([127, 0, 0, 1], port));
@@ -90,22 +107,117 @@ async fn upgrade(upgrade: WebSocketUpgrade, State(state): State<AppState>) -> Re
     upgrade.on_upgrade(move |socket| serve(socket, state))
 }
 
-/// Decode base64 input without pulling in a dependency for one direction of
-/// one message. Invalid input yields no bytes rather than an error, because a
-/// malformed frame should not take the session down.
-fn base64(input: &str) -> Vec<u8> {
+const PASTE_BYTES: usize = 8 * 1024 * 1024;
+
+#[derive(Debug, Deserialize)]
+struct PasteJson {
+    name: Option<String>,
+    #[serde(default, rename = "type")]
+    media_type: Option<String>,
+    data: String,
+}
+
+/// Save a clipboard image under a private temp directory and return its path.
+/// The browser pastes that absolute path as ordinary terminal text.
+async fn paste_file(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Response {
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("");
+
+    let (bytes, name, media_type) = if content_type.starts_with("application/json") {
+        let Ok(payload) = serde_json::from_slice::<PasteJson>(&body) else {
+            return (StatusCode::BAD_REQUEST, "invalid paste json").into_response();
+        };
+        let Ok(bytes) = decode_base64(&payload.data) else {
+            return (StatusCode::BAD_REQUEST, "invalid paste base64").into_response();
+        };
+        (bytes, payload.name, payload.media_type)
+    } else if content_type.starts_with("image/") {
+        let name = headers
+            .get(header::CONTENT_DISPOSITION)
+            .and_then(|value| value.to_str().ok())
+            .and_then(disposition_filename)
+            .map(str::to_owned);
+        (body.to_vec(), name, Some(content_type.to_owned()))
+    } else {
+        return (
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "send image/* or application/json",
+        )
+            .into_response();
+    };
+
+    if bytes.is_empty() || bytes.len() > PASTE_BYTES {
+        return (StatusCode::PAYLOAD_TOO_LARGE, "paste exceeds 8 MiB").into_response();
+    }
+
+    let extension = paste_extension(name.as_deref(), media_type.as_deref());
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_nanos())
+        .unwrap_or(0);
+    let path = state.paste_dir.join(format!("paste-{stamp}{extension}"));
+    if let Err(error) = tokio::fs::write(&path, &bytes).await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("cannot write paste: {error}"),
+        )
+            .into_response();
+    }
+    Json(json!({ "path": path.to_string_lossy() })).into_response()
+}
+
+fn paste_extension(name: Option<&str>, media_type: Option<&str>) -> &'static str {
+    if let Some(name) = name {
+        let lower = name.to_ascii_lowercase();
+        for (suffix, extension) in [
+            (".png", ".png"),
+            (".jpg", ".jpg"),
+            (".jpeg", ".jpg"),
+            (".gif", ".gif"),
+            (".webp", ".webp"),
+            (".tif", ".tif"),
+            (".tiff", ".tif"),
+        ] {
+            if lower.ends_with(suffix) {
+                return extension;
+            }
+        }
+    }
+    match media_type.unwrap_or("") {
+        "image/jpeg" => ".jpg",
+        "image/gif" => ".gif",
+        "image/webp" => ".webp",
+        "image/tiff" => ".tif",
+        _ => ".png",
+    }
+}
+
+fn disposition_filename(value: &str) -> Option<&str> {
+    value.split(';').find_map(|part| {
+        let part = part.trim();
+        part.strip_prefix("filename=")
+            .map(|name| name.trim_matches('"'))
+    })
+}
+
+fn decode_base64(input: &str) -> Result<Vec<u8>, ()> {
     const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut lookup = [255u8; 256];
     for (index, byte) in TABLE.iter().enumerate() {
         lookup[*byte as usize] = index as u8;
     }
-    let mut out = Vec::new();
+    let mut out = Vec::with_capacity(input.len() / 4 * 3);
     let mut accumulator = 0u32;
     let mut bits = 0u32;
     for byte in input.bytes() {
+        if byte == b'=' || byte.is_ascii_whitespace() {
+            continue;
+        }
         let value = lookup[byte as usize];
         if value == 255 {
-            continue;
+            return Err(());
         }
         accumulator = (accumulator << 6) | u32::from(value);
         bits += 6;
@@ -114,7 +226,14 @@ fn base64(input: &str) -> Vec<u8> {
             out.push((accumulator >> bits) as u8);
         }
     }
-    out
+    Ok(out)
+}
+
+/// Decode base64 input without pulling in a dependency for one direction of
+/// one message. Invalid input yields no bytes rather than an error, because a
+/// malformed frame should not take the session down.
+fn base64(input: &str) -> Vec<u8> {
+    decode_base64(input).unwrap_or_default()
 }
 
 async fn serve(mut socket: WebSocket, state: AppState) {

@@ -210,6 +210,25 @@ impl Channel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        thread,
+        time::{Duration, Instant},
+    };
+
+    fn await_eof(channel: &mut Channel) -> io::Result<()> {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            assert_eq!(channel.receive()?, None, "unexpected trailing frame");
+            if channel.eof() {
+                return Ok(());
+            }
+            assert!(
+                Instant::now() < deadline,
+                "peer close did not become observable"
+            );
+            thread::sleep(Duration::from_millis(1));
+        }
+    }
     #[test]
     fn fragments_reassemble_without_interpreting_partial_records() {
         let (mut writer, reader) = UnixStream::pair().unwrap();
@@ -230,7 +249,10 @@ mod tests {
         writer.write_all(&bytes[..3]).unwrap();
         drop(writer);
         assert!(channel.receive().unwrap().is_none());
-        assert!(channel.receive().is_err());
+        assert_eq!(
+            await_eof(&mut channel).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
     }
     #[test]
     fn status_backpressure_has_a_fixed_record_bound() {
@@ -263,7 +285,7 @@ mod tests {
         peer.write_all(&retired.encode()).unwrap();
         drop(peer);
         assert_eq!(channel.receive().unwrap(), Some(retired));
-        assert_eq!(channel.receive().unwrap(), None);
+        await_eof(&mut channel).unwrap();
         assert!(channel.eof());
     }
     #[test]
@@ -276,10 +298,18 @@ mod tests {
         channel.flush().unwrap();
         let retired = Frame::new(Kind::Retiring, 7, [123, 0, 0, 0]);
         peer.write_all(&retired.encode()[..3]).unwrap();
+        // Model a concurrent fork retaining this endpoint until it execs/exits.
+        // Dropping one descriptor must not be mistaken for observable EOF.
+        let retained_peer = peer.try_clone().unwrap();
         drop(peer);
         assert!(channel.receive().unwrap().is_none());
+        assert!(channel.receive().unwrap().is_none());
+        assert!(!channel.eof());
+        // Do not shutdown or drain the peer: unread Release must still exercise
+        // reset on Linux and EOF on Darwin when its final descriptor closes.
+        drop(retained_peer);
         assert_eq!(
-            channel.receive().unwrap_err().kind(),
+            await_eof(&mut channel).unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
         assert!(channel.eof());

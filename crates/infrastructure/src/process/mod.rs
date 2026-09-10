@@ -3,6 +3,7 @@ mod backend;
 mod endpoints;
 mod guardian;
 mod image;
+mod image_materialize;
 mod io;
 mod lifecycle;
 #[path = "../../../../scripts/guardian/protocol.rs"]

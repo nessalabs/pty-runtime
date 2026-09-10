@@ -98,13 +98,16 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
                             assert not snapshot['zombies'], snapshot
                         process.stdin.write('continue\n')
                         process.stdin.flush()
-                if time.monotonic() >= next_sample and process.poll() is None:
+                # The acknowledged closed census is final; the owner may exit
+                # while queued completion output is still being drained.
+                if 'closed' not in checkpoints and time.monotonic() >= next_sample and process.poll() is None:
                     record(census.sample(process.pid, workloads, 'periodic'))
                     next_sample = time.monotonic() + sample_seconds
             result = process.wait(timeout=10)
             reader.join(timeout=2)
             close_pipes()
             assert result == 0 and complete, ('trial failed', result, complete)
+            assert 'closed' in checkpoints, 'trial omitted final closed census'
             if starts:
                 record(dict(event='producer_start_skew', nanoseconds=max(starts)-min(starts), count=len(starts)))
             if config['active'] > 0:

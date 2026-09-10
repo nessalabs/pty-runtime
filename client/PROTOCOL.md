@@ -19,6 +19,20 @@ engine is the single source of truth for what the screen looks like.
 
 `GET /` serves the demo page and `GET /terminal.js` the component.
 
+`POST /paste-file` accepts one pasted image and is the only part of this
+protocol that is not the WebSocket. A clipboard image cannot be sent as
+terminal input: the child expects bytes on a tty, not a file, and no escape
+sequence in this runtime's repertoire carries one. The server therefore writes
+the image to a private directory and answers with its absolute path, which the
+client pastes as ordinary text — the same thing a person dragging a file into a
+terminal gets, and what an image-aware program at the prompt expects to read.
+
+The request body is either the image itself with an `image/*` content type, or
+`application/json` as `{"name": ..., "type": ..., "data": <base64>}`. A body
+over 8 MiB is refused with 413. The stored name is derived from a timestamp and
+an extension chosen from an allowlist, never from the client's filename, so a
+paste cannot name the file it lands in.
+
 ## Client to server
 
 ### hello
@@ -151,8 +165,9 @@ program never agreed to parse.
 on the alternate screen and has *not* asked for mouse tracking, the reference
 client turns wheel movement into cursor keys. That is what makes the wheel
 scroll in vim and less, and it is what terminal emulators do for the same
-reason. Off the alternate screen a wheel does nothing, because there is no
-scrollback in this version to move through.
+reason. Off the alternate screen the same wheel moves the client's own view
+through retained history using `history` requests, because the rows exist on
+the server and the viewing position belongs to the client.
 
 ### history
 
@@ -203,6 +218,7 @@ view, so a program writing while a viewer is scrolled back does not refresh
 what that viewer sees until the next request.
 
 Mouse input is carried, but as ordinary `input` bytes encoded by the client
-rather than as a message of its own. A version 2 that reported the individual
-tracking modes could move that encoding to the server, where the mode is
-known.
+rather than as a message of its own. Version 1 reports the tracking mode and
+the encoding separately, so the client has everything it needs to encode
+correctly; a version 2 could still move the encoding to the server, which would
+make a wrong client encoding impossible rather than merely avoidable.

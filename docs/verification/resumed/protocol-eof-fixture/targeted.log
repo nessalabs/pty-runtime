@@ -1,0 +1,13 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.19s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-06c475aec9df509e)
+
+running 5 tests
+test process::protocol::tests::stale_generation_and_partial_eof_are_rejected ... ok
+test process::protocol::tests::fragments_reassemble_without_interpreting_partial_records ... ok
+test process::protocol::tests::peer_reset_cannot_turn_a_partial_final_record_into_clean_eof ... ok
+test process::protocol::tests::peer_close_after_final_record_preserves_eof_with_unread_control ... ok
+test process::protocol::tests::status_backpressure_has_a_fixed_record_bound ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+

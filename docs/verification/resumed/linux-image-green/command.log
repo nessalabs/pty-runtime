@@ -1,0 +1,35 @@
+   Compiling libc v0.2.189
+   Compiling version_check v0.9.5
+   Compiling cfg-if v1.0.4
+   Compiling typenum v1.20.1
+   Compiling subtle v2.6.1
+   Compiling cpufeatures v0.2.17
+   Compiling zeroize v1.9.0
+   Compiling generic-array v0.14.7
+   Compiling opaque-debug v0.3.1
+   Compiling pty-runtime-domain v0.1.0 (/home/user/Documents/pty-runtime-resumed/crates/domain)
+   Compiling futures-core v0.3.34
+   Compiling pty-runtime-infrastructure v0.1.0 (/home/user/Documents/pty-runtime-resumed/crates/infrastructure)
+   Compiling getrandom v0.2.16
+   Compiling rand_core v0.6.4
+   Compiling pty-runtime-application v0.1.0 (/home/user/Documents/pty-runtime-resumed/crates/application)
+   Compiling crypto-common v0.1.7
+   Compiling inout v0.1.4
+   Compiling universal-hash v0.5.1
+   Compiling cipher v0.4.4
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling aead v0.5.2
+   Compiling futures-channel v0.3.34
+   Compiling chacha20poly1305 v0.10.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.96s
+     Running unittests src/lib.rs (target/debug/deps/pty_runtime_infrastructure-c20ebf329985d666)
+
+running 4 tests
+test process::image_materialize::tests::materializer_missing_parent_preserves_mask_and_returns_not_found ... ok
+test process::image_materialize::tests::materializer_preserves_bytes_permissions_and_caller_mask ... ok
+test process::image_materialize::tests::materializer_existing_destination_preserves_bytes_and_mask ... ok
+test process::image::fork_tests::constructor_image_executes_while_unrelated_child_is_between_fork_and_exec ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
+

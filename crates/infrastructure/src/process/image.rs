@@ -2,8 +2,8 @@
 use pty_runtime_domain::process::ProcessError;
 use std::{
     fs::{self, DirBuilder, OpenOptions},
-    io::{Read, Write},
-    os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt},
+    io::Read,
+    os::unix::fs::{DirBuilderExt, OpenOptionsExt},
     path::{Path, PathBuf},
 };
 
@@ -14,6 +14,16 @@ pub(super) struct HelperImage {
 }
 impl HelperImage {
     pub fn new(bundled: Option<&Path>) -> Result<Self, ProcessError> {
+        Self::materialize(
+            bundled,
+            #[cfg(test)]
+            None,
+        )
+    }
+    fn materialize(
+        bundled: Option<&Path>,
+        #[cfg(test)] mut staging_observer: Option<&mut dyn FnMut()>,
+    ) -> Result<Self, ProcessError> {
         if let Some(path) = bundled {
             // Verify a bounded byte-for-byte copy, not only a pathname or mtime.
             // The selected image may already carry its application's signature;
@@ -51,16 +61,14 @@ impl HelperImage {
                 executable: directory.join("guardian"),
                 directory,
             };
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o700)
-                .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-                .open(&image.executable)
-                .map_err(super::error)?;
-            file.write_all(IMAGE).map_err(super::error)?;
-            file.set_permissions(fs::Permissions::from_mode(0o500))
-                .map_err(super::error)?;
+            #[cfg(test)]
+            if let Some(observer) = staging_observer.as_mut() {
+                super::image_materialize::write_observed(&image.executable, IMAGE, observer)?;
+            } else {
+                super::image_materialize::write(&image.executable, IMAGE)?;
+            }
+            #[cfg(not(test))]
+            super::image_materialize::write(&image.executable, IMAGE)?;
             return Ok(image);
         }
         Err(ProcessError::Capacity)
@@ -75,3 +83,7 @@ impl Drop for HelperImage {
         let _ = fs::remove_dir(&self.directory);
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/fixtures/process_image_fork.rs"]
+mod fork_tests;

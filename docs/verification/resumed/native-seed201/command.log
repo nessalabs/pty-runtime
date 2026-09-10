@@ -1,0 +1,4 @@
+   Compiling pty-runtime-infrastructure v0.1.0 (/Users/nessa/Documents/NessaLabs/pty-runtime/crates/infrastructure)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.28s
+     Running `target/debug/examples/terminal_corpus 201 1 64`
+corpus=v1 case=0 seed=201 steps=64

@@ -76,6 +76,29 @@ const IS_APPLE = /Mac|iPhone|iPad/.test(
 );
 
 /**
+ * Clipboard chords belong to the browser, not the PTY.
+ *
+ * On Apple, Command-C/V/X/A. Elsewhere, Ctrl+Shift+C/V (and Ctrl+C only when
+ * there is a selection so bare Ctrl+C remains interrupt).
+ */
+export function isClipboardShortcut(event) {
+  const key = event.key.length === 1 ? event.key.toLowerCase() : "";
+  if (!key) return false;
+  if (IS_APPLE) {
+    if (!(event.metaKey && !event.ctrlKey && !event.altKey)) return false;
+    return key === "c" || key === "v" || key === "x" || key === "a";
+  }
+  if (!(event.ctrlKey && !event.metaKey && !event.altKey)) return false;
+  if (key === "v") return true;
+  if (key === "c") {
+    if (event.shiftKey) return true;
+    const selection = globalThis.getSelection?.();
+    return Boolean(selection && !selection.isCollapsed && selection.toString());
+  }
+  return false;
+}
+
+/**
  * xterm's modifier parameter: 1 plus a bitmask, so unmodified is 1.
  *
  * Applications read this to tell Shift+Left from Left, which is how editors
@@ -98,6 +121,10 @@ function modifierParameter(event) {
  * than `ESC [ A`, and full-screen programs read the difference.
  */
 export function keyBytes(event, applicationCursor) {
+  // Leave copy/paste/select-all for the browser; otherwise Command-V is sent
+  // as a literal "v" and preventDefault kills the paste event.
+  if (isClipboardShortcut(event)) return null;
+
   const { key, ctrlKey, altKey } = event;
   const modifier = modifierParameter(event);
 
@@ -218,6 +245,61 @@ function cssColor(rgb, fallback) {
   return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 }
 
+function samePalette(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.foreground !== b.foreground && JSON.stringify(a.foreground) !== JSON.stringify(b.foreground)) {
+    return false;
+  }
+  if (a.background !== b.background && JSON.stringify(a.background) !== JSON.stringify(b.background)) {
+    return false;
+  }
+  if (a.cursor !== b.cursor && JSON.stringify(a.cursor) !== JSON.stringify(b.cursor)) {
+    return false;
+  }
+  const left = a.indexed || [];
+  const right = b.indexed || [];
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i++) {
+    const x = left[i];
+    const y = right[i];
+    if (x === y) continue;
+    if (!x || !y || x[0] !== y[0] || x[1] !== y[1] || x[2] !== y[2]) return false;
+  }
+  return true;
+}
+
+function pasteTextPayload(text, bracketed) {
+  const wrapped = bracketed ? `\x1b[200~${text}\x1b[201~` : text;
+  return toBase64(encoder.encode(wrapped));
+}
+
+/** Quote a filesystem path for the shell when it needs it. */
+function shellPath(path) {
+  if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(path)) return path;
+  return `'${path.replace(/'/g, `'\"'\"'`)}'`;
+}
+
+/** Derive the paste upload URL from the WebSocket endpoint. */
+function pasteEndpoint(wsUrl) {
+  const url = new URL(wsUrl, globalThis.location?.href ?? "http://127.0.0.1/");
+  url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+  url.pathname = "/paste-file";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+/** Keep overlapping rows across a geometry change instead of flashing blank. */
+function adaptLines(previous, cols, rows) {
+  return Array.from({ length: rows }, (_, y) => {
+    const row = previous.lines[y];
+    if (!row) return [];
+    if (row.length === cols) return row;
+    return row.length > cols ? row.slice(0, cols) : row;
+  });
+}
+
 /** Turn a wire style into inline CSS, resolving inverse against the palette. */
 function styleToCss(style, palette) {
   if (!style) return null;
@@ -320,6 +402,7 @@ function runs(cells, palette, styles, cellWidth) {
 
 export function Terminal({
   url = `ws://${location.host}/ws`,
+  pasteUrl,
   cols: fixedCols,
   rows: fixedRows,
   fontFamily = "ui-monospace, SFMono-Regular, Menlo, monospace",
@@ -359,6 +442,7 @@ export function Terminal({
   // layout is entirely determined by the cell box, so this is the only
   // measurement the component needs.
   const [cell, setCell] = useState({ width: 8, height: 17 });
+  const lastSize = useRef(null);
   useLayoutEffect(() => {
     const probe = document.createElement("span");
     probe.style.cssText = `position:absolute;visibility:hidden;font-family:${fontFamily};font-size:${fontSize}px;line-height:1.2`;
@@ -366,7 +450,11 @@ export function Terminal({
     document.body.appendChild(probe);
     const box = probe.getBoundingClientRect();
     document.body.removeChild(probe);
-    setCell({ width: box.width / 100, height: box.height });
+    // Quantize so subpixel font metrics cannot chatter across cell edges.
+    setCell({
+      width: Math.round((box.width / 100) * 1000) / 1000,
+      height: Math.round(box.height * 1000) / 1000,
+    });
   }, [fontFamily, fontSize]);
 
   const send = useCallback((message) => {
@@ -381,16 +469,38 @@ export function Terminal({
   // fallback size and leave the grid narrower than the window.
   const cellRef = useRef(cell);
   cellRef.current = cell;
-  const measure = useCallback(() => {
-    if (fixedCols && fixedRows) return { cols: fixedCols, rows: fixedRows };
-    const element = containerRef.current;
-    const box = cellRef.current;
-    if (!element || !element.clientWidth) return { cols: 80, rows: 24 };
-    return {
-      cols: Math.max(1, Math.floor(element.clientWidth / box.width)),
-      rows: Math.max(1, Math.floor(element.clientHeight / box.height)),
-    };
-  }, [fixedCols, fixedRows]);
+  const measure = useCallback(
+    (width, height) => {
+      if (fixedCols && fixedRows) return { cols: fixedCols, rows: fixedRows };
+      const element = containerRef.current;
+      const box = cellRef.current;
+      const w = width ?? element?.clientWidth;
+      const h = height ?? element?.clientHeight;
+      if (!w || !h) return { cols: 80, rows: 24 };
+      // One-pixel inset avoids floor chatter when the box sits on a cell edge
+      // during continuous window drags.
+      const cols = Math.max(1, Math.floor(Math.max(0, w - 1) / box.width));
+      const rows = Math.max(1, Math.floor(Math.max(0, h - 1) / box.height));
+      const last = lastSize.current;
+      if (!last) return { cols, rows };
+      // Hysteresis: stay on the announced geometry until half a cell of slack
+      // clearly crosses the boundary. Stops N↔N±1 flicker mid-drag.
+      let nextCols = cols;
+      let nextRows = rows;
+      if (cols < last.cols && w + box.width * 0.5 >= last.cols * box.width) {
+        nextCols = last.cols;
+      } else if (cols > last.cols && w < (last.cols + 0.5) * box.width) {
+        nextCols = last.cols;
+      }
+      if (rows < last.rows && h + box.height * 0.5 >= last.rows * box.height) {
+        nextRows = last.rows;
+      } else if (rows > last.rows && h < (last.rows + 0.5) * box.height) {
+        nextRows = last.rows;
+      }
+      return { cols: nextCols, rows: nextRows };
+    },
+    [fixedCols, fixedRows],
+  );
 
   useEffect(() => {
     const socket = new WebSocket(url);
@@ -415,7 +525,13 @@ export function Terminal({
       }
       switch (message.type) {
         case "ready":
-          setPalette(message.palette);
+          setPalette((previous) => {
+            // Size-only ready keeps style ids; a new palette must not.
+            if (!samePalette(previous, message.palette)) {
+              stylesRef.current = new Map();
+            }
+            return message.palette;
+          });
           setScroll((previous) => ({ ...previous, screenRows: message.rows }));
           setGrid((previous) =>
             previous.cols === message.cols && previous.rows === message.rows
@@ -423,9 +539,10 @@ export function Terminal({
               : {
                   cols: message.cols,
                   rows: message.rows,
-                  lines: Array.from({ length: message.rows }, () => []),
+                  lines: adaptLines(previous, message.cols, message.rows),
                 },
           );
+          lastSize.current = { cols: message.cols, rows: message.rows };
           break;
         case "styles":
           for (const style of message.styles) stylesRef.current.set(style.id, style);
@@ -487,8 +604,9 @@ export function Terminal({
     if (fixedCols && fixedRows) return;
     const element = containerRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => {
-      const size = measure();
+    let frame = 0;
+    const announce = (width, height) => {
+      const size = measure(width, height);
       // Announce only real changes; a ResizeObserver fires for any layout
       // pass, and a resize is disruptive to a full-screen program.
       if (size.cols === lastSize.current?.cols && size.rows === lastSize.current?.rows) {
@@ -496,9 +614,32 @@ export function Terminal({
       }
       lastSize.current = size;
       send({ type: "resize", ...size });
+    };
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      let width = element.clientWidth;
+      let height = element.clientHeight;
+      const box = entry?.contentBoxSize?.[0];
+      if (box) {
+        width = box.inlineSize;
+        height = box.blockSize;
+      } else if (entry?.contentRect) {
+        width = entry.contentRect.width;
+        height = entry.contentRect.height;
+      }
+      // Coalesce to one measurement per frame so drag events cannot spam
+      // SIGWINCH and leave the grid oscillating between adjacent sizes.
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        announce(width, height);
+      });
     });
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [cell, fixedCols, fixedRows, measure, send]);
 
   const onKeyDown = useCallback(
@@ -562,7 +703,6 @@ export function Terminal({
     [cellAt, send],
   );
 
-  const lastSize = useRef(null);
   const wheelRef = useRef(0);
   const draggingRef = useRef(null);
   const onMouseDown = useCallback(
@@ -649,19 +789,67 @@ export function Terminal({
     if (modesRef.current.mouse !== "none") event.preventDefault();
   }, []);
 
+  const onCopy = useCallback((event) => {
+    const selection = globalThis.getSelection?.()?.toString();
+    if (!selection) return;
+    // Normalize NBSP from layout so pasted shell commands stay plain ASCII.
+    event.clipboardData?.setData("text/plain", selection.replace(/\u00a0/g, " "));
+    event.preventDefault();
+  }, []);
+
   const onPaste = useCallback(
     (event) => {
       event.preventDefault();
-      const text = event.clipboardData.getData("text");
-      if (!text) return;
-      // Bracketed paste lets the program tell a paste from typing, which is
-      // what stops an editor auto-indenting pasted code.
-      const wrapped = modesRef.current.bracketed_paste
-        ? `\x1b[200~${text}\x1b[201~`
-        : text;
-      send({ type: "input", data: toBase64(encoder.encode(wrapped)) });
+      const clipboard = event.clipboardData;
+      if (!clipboard) return;
+
+      const text = clipboard.getData("text/plain") || clipboard.getData("text");
+      if (text) {
+        // Bracketed paste lets the program tell a paste from typing, which is
+        // what stops an editor auto-indenting pasted code.
+        send({
+          type: "input",
+          data: pasteTextPayload(text, modesRef.current.bracketed_paste),
+        });
+        return;
+      }
+
+      const imageItem = [...(clipboard.items || [])].find((item) =>
+        item.type.startsWith("image/"),
+      );
+      const imageFile =
+        imageItem?.getAsFile?.() ||
+        [...(clipboard.files || [])].find((file) => file.type.startsWith("image/"));
+
+      if (imageFile) {
+        const endpoint = pasteUrl || pasteEndpoint(url);
+        void (async () => {
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "content-type": imageFile.type || "image/png",
+                "content-disposition": `attachment; filename="${(imageFile.name || "clipboard.png").replace(/"/g, "")}"`,
+              },
+              body: imageFile,
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (!payload?.path) return;
+            send({
+              type: "input",
+              data: pasteTextPayload(
+                shellPath(payload.path),
+                modesRef.current.bracketed_paste,
+              ),
+            });
+          } catch {
+            // Paste is best-effort; a failed upload must not take the session down.
+          }
+        })();
+      }
     },
-    [send],
+    [pasteUrl, send, url],
   );
 
   const background = cssColor(palette?.background, "#101014");
@@ -674,6 +862,7 @@ export function Terminal({
       ref: containerRef,
       tabIndex: 0,
       onKeyDown,
+      onCopy,
       onPaste,
       onMouseDown,
       onMouseUp,
@@ -693,6 +882,8 @@ export function Terminal({
         whiteSpace: "pre",
         outline: "none",
         cursor: "text",
+        userSelect: "text",
+        WebkitUserSelect: "text",
       },
       "data-status": status,
     },
