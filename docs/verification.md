@@ -40,12 +40,20 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 
 **Review status: incomplete.** `AGENTS.md` requires three independent specialist
 reviews per loop. Two ran to completion — DDD/dependency-direction and Clean
-Code/SOLID — and their findings are reflected below and in "What is still open".
-**The third, adversarial behavioural correctness, did not run: it terminated on
-an API spend limit.** Nothing in this pass has had an independent concurrency,
-resource-bound, cleanup or failure-injection review. The mechanical gate is
-green and the suite is stable over five consecutive full runs, but neither is a
-substitute, and this loop must not be called passed until that review is done.
+Code/SOLID — and their findings drove the work recorded below; every P1 and P2
+they raised is either fixed or listed as open. **The third, adversarial
+behavioural correctness, did not run: it terminated on an API spend limit.**
+Nothing in this pass has had an independent concurrency, resource-bound, cleanup
+or failure-injection review, which is exactly the axis a refactor touching lock
+ownership most needs. The mechanical gate is green and the suite is stable over
+repeated full runs, but neither is a substitute. **This loop is not passed.**
+
+The specific questions that review was scoped to answer, and which remain
+unanswered: whether the documented lock tiers hold under every interleaving;
+whether `SourceReaper` is exactly equivalent to the pre-refactor retry logic;
+whether the readiness check in `finish_io` has a TOCTOU window against a
+concurrent blocking worker; and whether reordering the residency check in
+`bind_process` opened a race with a concurrent `close()`.
 
 A Clean Code review of the domain and application core, applied in verified
 steps. **No behaviour changed at any step**: every pre-existing test passes with
@@ -125,43 +133,38 @@ What changed:
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
   the ADRs — re-run the notice script when dependencies change.
-- **The `ProjectionCoordinator` god object is NOT resolved.** A later pass
-  extracted `SourceReaper` and `Wiring`, taking the type from 16 fields to 7.
-  An independent review measured what actually changed and the answer is: not
-  enough. Field count fell because three data clumps were boxed; **the method
-  count went up** (45 → 50 across the nine files holding its `impl` blocks), no
-  responsibility left the type, and all nine files still reach every field. The
-  commit message for that change ("Two concerns … now own their own state")
-  overstated it, and this record previously repeated the overstatement.
+- **`ProjectionCoordinator` — responsibility moved, size did not.** The first
+  attempt boxed three data clumps into `Wiring`/`SessionQuotas`/`InputQuotas`,
+  took the type from 16 fields to 7, and claimed the god object was resolved. An
+  independent review measured it and rejected that: the method count had gone
+  *up*, no responsibility had left the type, and every file still reached every
+  field. That was correct and the commit message overstated the result.
 
-  What would actually meet the claim is moving *methods*, not fields: an
-  `AdmissionQueue` owning the queue mutex and its quotas, a `BlockingIo` owning
-  the in-flight job and the executor, an `impl` on `NativeWorkspace` for engine
-  driving, and a teardown owner. `SourceReaper` is the model — it is the one
-  piece of this work that genuinely took a responsibility away. That remaining
-  split changes locking and needs its own review loop.
-- `ITerminalFactory::compatibility` still returns `&'static str`, so the
-  application converts it to `CompatibilityId` rather than the adapter doing so
-  at its own boundary. Two independent reviews flagged this as the wrong side of
-  the port; `ITerminal::resize` was widened to `ControlGeneration` in the same
-  work, so the two newtypes are treated inconsistently.
-- `max_park_attempts` is a domain budget documented for parking retries, but it
-  is also used as the checkpoint-deletion retry bound. Tuning one silently
-  retunes the other, and the domain models only one of them.
-- `stage_output_observed` still reimplements the enqueue sequence inline instead
-  of using `admit()`, and holds the admission lock across staging reservation
-  and the payload copy.
-- Building an `UnreclaimedSource` from a park attempt is duplicated verbatim in
-  two files, and the unreclaimed ledger is a bare `Mutex<Vec<_>>` with no owner.
-- `ControlGeneration::from_raw` is public with no production caller; every use is
-  a test. Its Rustdoc justifies it by a deserialization contract that does not
-  exist.
-- The lock-order note added to `Admission` documents two mutexes, but six are
-  reachable from a coordinator. The three inside `Wiring` are leaf locks today —
-  load-bearing and undocumented.
-- Files under `client/` are outside `scripts/gate.py`'s size inventory, so
-  `client/server/src/wire.rs` (467 nonblank) and `session.rs` (355) exceed the
-  350-line rule without the gate noticing.
+  A second pass moved the responsibility. `AdmissionQueue` now owns the queue,
+  the domain policy, the drain fact and the cleanup waiters behind one mutex with
+  its fields private. The honest measurements:
+
+  | | before | after |
+  | --- | --- | --- |
+  | raw locks into admission state outside its owner | 16 | **0** |
+  | files reaching into that state directly | 6 | **0** |
+  | named operations on the new owner | — | 32 |
+  | coordinator methods | 45 | 49 |
+
+  The method count is the point worth being careful about: it did **not** fall,
+  because the coordinator's methods are now mostly thin delegation. What changed
+  is that they can no longer reach the state — `Admission`'s fields are
+  unreachable except through named operations. Whether that means "no longer a
+  god object" is a fair argument; what is measurable is that the coupling is
+  gone and the invariants that were previously spread across call sites
+  (`commit_park`'s atomic emptiness check, `admit_output`'s rejection precedence)
+  are now stated in one place.
+
+  Still worth doing, and not yet done: the blocking-I/O lifecycle
+  (`submit_io`/`start_*`/`finish_io`) and the native engine driving
+  (`apply_command`/`native_call`/`poll_inflight_operations`) are still coordinator
+  methods rather than types that own their state.
+
 
 ## Where to look next
 
