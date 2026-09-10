@@ -7,13 +7,14 @@
 use crate::wire::{self, ServerMessage, Sent, StyleTable, VERSION};
 use pty_runtime::{
     AttachPosition, CommandSpec, EnvironmentPolicy, ExitStatus, OutputEvent, ReplayPage, Runtime,
-    RuntimeOptions, SessionId, SessionOptions, TerminalSize, WriteOutcome,
+    SessionId, SessionOptions, TerminalSize, WriteOutcome,
     ports::{ITerminalFactory, ProcessOperation},
     terminal::TerminalConfig,
 };
 use std::{
     future::Future,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll, Waker},
     time::{Duration, Instant},
 };
@@ -61,7 +62,11 @@ fn fail(outbound: &mpsc::Sender<ServerMessage>, message: impl Into<String>) {
 
 /// Run one session to completion. Returns when the child exits or the socket
 /// closes, and always tears the session down before returning.
+///
+/// `runtime` must already be constructed on the process main thread before any
+/// multithreaded async executor starts (helper-image staging forks).
 pub fn run(
+    runtime: Arc<Runtime>,
     shell: String,
     cols: u16,
     rows: u16,
@@ -89,23 +94,11 @@ pub fn run(
         ("TERM".into(), "xterm-256color".into()),
         ("COLORTERM".into(), "truecolor".into()),
     ];
-    let command = match CommandSpec::new(shell.into(), cwd.clone(), Vec::new())
+    let command = match CommandSpec::new(shell.into(), cwd, Vec::new())
         .and_then(|spec| spec.with_environment(EnvironmentPolicy::Inherit, removals, overrides))
     {
         Ok(command) => command,
         Err(error) => return fail(&outbound, format!("command rejected: {error:?}")),
-    };
-
-    let runtime = match Runtime::new(
-        vec![cwd],
-        RuntimeOptions {
-            max_sessions: 1,
-            replay_bytes: 1024 * 1024,
-            ..RuntimeOptions::default()
-        },
-    ) {
-        Ok(runtime) => runtime,
-        Err(error) => return fail(&outbound, format!("runtime unavailable: {error:?}")),
     };
 
     let id = match SessionId::new("client".to_owned()) {

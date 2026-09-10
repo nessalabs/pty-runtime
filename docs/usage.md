@@ -1,7 +1,10 @@
 # Embedding and ownership
 
-Keep one `Runtime` alive for the lifetime of the sessions it owns. A `Session`
-is a control/observation handle; dropping it or an `Attachment` leaves the child
+Keep one `Runtime` alive for the lifetime of the sessions it owns. Construct it
+on the process main thread **before** starting a multithreaded async executor or
+other worker threads: construction forks to stage the helper image, and platform
+atfork handlers can deadlock if another thread holds a lock. A `Session` is a
+control/observation handle; dropping it or an `Attachment` leaves the child
 running. Dropping the runtime terminates its children and joins its workers.
 `shutdown()` does this explicitly and synchronously. Reconnect with `lookup(id)`
 and `attach(AttachPosition::Cursor(cursor))`; neither operation spawns a child.

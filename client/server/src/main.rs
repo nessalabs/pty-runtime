@@ -2,6 +2,9 @@
 //!
 //! Run with `cargo run` from `client/server`, then open the printed address.
 //! The protocol is described in `client/PROTOCOL.md`.
+//!
+//! `Runtime::new` forks to stage the helper image and must run before other
+//! threads exist. Construct it on the process main thread, then start Tokio.
 mod session;
 mod wire;
 
@@ -16,6 +19,7 @@ use axum::{
     response::{Html, IntoResponse, Response},
     routing::{get, post},
 };
+use pty_runtime::{Runtime, RuntimeOptions};
 use serde::Deserialize;
 use serde_json::json;
 use std::{
@@ -32,18 +36,36 @@ struct AppState {
     shell: String,
     web: Arc<PathBuf>,
     paste_dir: Arc<PathBuf>,
+    /// Built once before Tokio workers; shared across WebSocket sessions.
+    runtime: Arc<Runtime>,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_owned());
     let port: u16 = std::env::var("PORT")
         .ok()
         .and_then(|value| value.parse().ok())
         .unwrap_or(7749);
+    let Ok(cwd) = std::env::current_dir() else {
+        eprintln!("cannot read working directory");
+        std::process::exit(1);
+    };
+    // Stage the helper image while this process is still single-threaded.
+    let runtime = match Runtime::new(
+        vec![cwd],
+        RuntimeOptions {
+            max_sessions: 1,
+            replay_bytes: 1024 * 1024,
+            ..RuntimeOptions::default()
+        },
+    ) {
+        Ok(runtime) => Arc::new(runtime),
+        Err(error) => {
+            eprintln!("cannot construct runtime: {error:?}");
+            std::process::exit(1);
+        }
+    };
 
-    // The page and component are served from the repository rather than
-    // embedded, so editing them does not need a rebuild.
     let web = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../web");
     let paste_dir = std::env::temp_dir().join("pty-runtime-paste");
     if let Err(error) = std::fs::create_dir_all(&paste_dir) {
@@ -54,8 +76,26 @@ async fn main() {
         shell,
         web: Arc::new(web),
         paste_dir: Arc::new(paste_dir),
+        runtime,
     };
 
+    let tokio_runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("cannot start async runtime: {error}");
+            std::process::exit(1);
+        }
+    };
+    if let Err(error) = tokio_runtime.block_on(serve_http(state, port)) {
+        eprintln!("server stopped: {error}");
+        std::process::exit(1);
+    }
+}
+
+async fn serve_http(state: AppState, port: u16) -> Result<(), std::io::Error> {
     let app = Router::new()
         .route("/", get(index))
         .route("/terminal.js", get(component))
@@ -64,17 +104,9 @@ async fn main() {
         .with_state(state);
 
     let address = SocketAddr::from(([127, 0, 0, 1], port));
-    let listener = match tokio::net::TcpListener::bind(address).await {
-        Ok(listener) => listener,
-        Err(error) => {
-            eprintln!("cannot bind {address}: {error}");
-            std::process::exit(1);
-        }
-    };
+    let listener = tokio::net::TcpListener::bind(address).await?;
     println!("terminal demo on http://{address}");
-    if let Err(error) = axum::serve(listener, app).await {
-        eprintln!("server stopped: {error}");
-    }
+    axum::serve(listener, app).await
 }
 
 async fn index(State(state): State<AppState>) -> Response {
@@ -267,8 +299,9 @@ async fn serve(mut socket: WebSocket, state: AppState) {
     let (command_tx, command_rx) = mpsc::channel(64);
     let (frame_tx, mut frame_rx) = mpsc::channel(256);
     let shell = state.shell.clone();
+    let runtime = state.runtime.clone();
     let worker = std::thread::spawn(move || {
-        session::run(shell, cols, rows, command_rx, frame_tx);
+        session::run(runtime, shell, cols, rows, command_rx, frame_tx);
     });
 
     loop {

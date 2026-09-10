@@ -9,7 +9,8 @@ server owns one session and speaks `client/PROTOCOL.md`. Image paste saves under
 ## Code
 
 - `client/web/terminal.js`
-- `client/server/`
+- `client/server/` — builds one `Runtime` on the main thread before Tokio, then
+  shares it across WebSocket session workers
 - `client/PROTOCOL.md`
 - [`../examples/interactive.md`](../examples/interactive.md)
 

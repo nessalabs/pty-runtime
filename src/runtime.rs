@@ -14,6 +14,8 @@ pub struct Runtime {
 impl Runtime {
     /// Compose the default Unix process and in-memory registry adapters.
     /// Roots are a canonical launch-path policy, not a child filesystem sandbox.
+    /// Call from a single-threaded window before other workers exist: helper-image
+    /// staging forks, and platform atfork handlers can deadlock under locks.
     pub fn new(roots: Vec<PathBuf>, options: RuntimeOptions) -> Result<Self, RuntimeError> {
         Self::with_storage(roots, options, StorageOptions::default())
     }
