@@ -30,6 +30,9 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
   writable executable open (avoids fork/ETXTBSY issues).
 - The local demo client can edit, scroll history, paste (including images as a
   temp file path), and resize without the worst of the earlier flicker/paste bugs.
+  It builds one `Runtime` on the main thread before starting Tokio, then shares
+  it with session workers (helper-image staging must not fork under a live
+  multithreaded executor).
 - Mechanical gate and a large set of fixtures exist and are the usual proof of
   “this change still works.”
 
