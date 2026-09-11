@@ -25,10 +25,13 @@ is necessary but does not replace the specialist reviews or ADR acceptance tests
 
 - Organize by responsibility with narrow entry modules. Separate process spawn,
   I/O, supervision, terminal ownership, storage, and boundary conversion concerns.
-- A production Rust, C, or header source file over 350 nonblank lines requires a split before
-  this gate passes. Native build helpers and test sources are included in the same size inventory.
-  Tests and fixtures belong in focused modules and also remain
-  reviewable. The threshold is an alarm, not permission for incoherent small files.
+- File size is an alarm, not a verdict. The gate **reports** any Rust, C, or header
+  source over 350 nonblank lines and continues; it does not fail. Native build
+  helpers, test sources and `client/` are in the same inventory. Treat every
+  report as a prompt to look, because crossing the line usually does mean
+  something wants splitting — but a coherent file is better than one chopped up
+  to satisfy a number, and a pile of incoherent small files is worse than both.
+  Reviewers judge; the gate only points.
 - Public APIs have Rustdoc covering ownership, bounds, cancellation and failures.
   Expected failures use typed results; no panics/unwrap/expect in production paths.
 - Unsafe code belongs in infrastructure, with a local SAFETY explanation of

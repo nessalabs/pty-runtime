@@ -21,6 +21,7 @@ use pty_runtime_domain::{
     terminal::{ControlGeneration, RestorationProgress},
 };
 use std::{
+    collections::VecDeque,
     sync::{Arc, Mutex, MutexGuard},
     time::Duration,
 };
@@ -54,7 +55,12 @@ pub(super) enum CloseRequest {
     /// Cleanup already finished; this is its durable result.
     AlreadyClosed(Result<(), ProjectionError>),
     /// Closure has begun; these commands were queued and must be rejected.
-    Started(Vec<Command>),
+    ///
+    /// The queued container is handed over as-is rather than collected into a
+    /// fresh one: it is preallocated to the session's admission limit, and
+    /// reallocating it under the lock would add an unaccounted allocation that
+    /// could abort before any resource is released.
+    Started(VecDeque<Command>),
 }
 
 /// Why a parking attempt could not start.
@@ -65,6 +71,42 @@ pub(super) enum ParkStart {
     NotDue,
     /// Encoding may begin against this exact version.
     Ready(ParkAttempt),
+}
+
+/// What a closure admitting work may ask of the state, without being handed it.
+///
+/// `admit` and `admit_output` run caller code under the lock so that a
+/// per-command check and the push are one step. Passing `&mut Admission` in
+/// would have made that a hole: any caller could then reach `policy`, the queue
+/// and the drain fact directly, which is the coupling this type exists to end.
+/// The closure gets these four named operations instead.
+pub(super) struct Admitting<'a>(&'a mut Admission);
+
+impl Admitting<'_> {
+    /// Whether the reader has already reported its final drain, after which no
+    /// further output or control may be admitted.
+    pub fn is_draining(&self) -> bool {
+        self.0.output_drain.is_some()
+    }
+
+    /// Current terminal-ownership state.
+    pub fn residency(&self) -> Residency {
+        self.0.policy.status().residency
+    }
+
+    /// Record a mutation, which invalidates any outstanding parking attempt.
+    pub fn record_activity(&mut self, now: Duration) -> Result<(), ProjectionError> {
+        self.0.policy.record_activity(now)
+    }
+
+    /// Record all-or-none parser admission of this many bytes.
+    pub fn admit_output_bytes(
+        &mut self,
+        bytes: usize,
+        now: Duration,
+    ) -> Result<(), ProjectionError> {
+        self.0.policy.admit_output(bytes, now)
+    }
 }
 
 pub(super) struct AdmissionQueue {
@@ -120,11 +162,11 @@ impl AdmissionQueue {
     /// to wake the worker and waking re-enters this type through `fail`.
     pub fn admit(
         &self,
-        build: impl FnOnce(&mut Admission) -> Result<Command, ProjectionError>,
+        build: impl FnOnce(&mut Admitting<'_>) -> Result<Command, ProjectionError>,
     ) -> Result<(), ProjectionError> {
         let mut state = self.lock();
         Self::check_accepting(&state)?;
-        let command = build(&mut state)?;
+        let command = build(&mut Admitting(&mut state))?;
         state.queue.push_back(command);
         Ok(())
     }
@@ -140,10 +182,10 @@ impl AdmissionQueue {
     /// wake a worker that has nothing to do.
     pub fn admit_output(
         &self,
-        accept: impl FnOnce(&mut Admission) -> OutputAdmission,
+        accept: impl FnOnce(&mut Admitting<'_>) -> OutputAdmission,
     ) -> OutputOutcome {
         let mut state = self.lock();
-        match accept(&mut state) {
+        match accept(&mut Admitting(&mut state)) {
             OutputAdmission::Queue(command) => {
                 state.queue.push_back(command);
                 OutputOutcome::Queued
@@ -336,7 +378,7 @@ impl AdmissionQueue {
         if let Some(waiter) = waiter {
             state.close_waiters.push(waiter.clone());
         }
-        CloseRequest::Started(std::mem::take(&mut state.queue).into_iter().collect())
+        CloseRequest::Started(std::mem::take(&mut state.queue))
     }
 
     /// Mark the projection failed without draining the queue.
@@ -374,12 +416,13 @@ impl AdmissionQueue {
     }
 
     /// Abandon cleanup after both pools have joined: nothing can run again, so
-    /// the outcome is worker failure. Returns the commands to reject.
-    pub fn abandon_close(&self) -> Vec<Command> {
+    /// the outcome is worker failure. Returns the queued container itself, for
+    /// the same reason as [`CloseRequest::Started`].
+    pub fn abandon_close(&self) -> VecDeque<Command> {
         let mut state = self.lock();
         state.policy.close();
         state.cleanup_failure = Some(ProjectionError::Worker);
-        std::mem::take(&mut state.queue).into_iter().collect()
+        std::mem::take(&mut state.queue)
     }
 
     /// Settle as failed after abandoning cleanup. Returns the waiters.

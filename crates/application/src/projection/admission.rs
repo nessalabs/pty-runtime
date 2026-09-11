@@ -55,12 +55,12 @@ impl ProjectionCoordinator {
         self.stall_generation.store(generation, Ordering::Release);
         let admitted = self.queue.admit_output(|admission| {
             if matches!(
-                admission.policy.status().residency,
+                admission.residency(),
                 Residency::Closing | Residency::Closed
             ) {
                 return OutputAdmission::Rejected(OutputAcceptance::Closed);
             }
-            if admission.output_drain.is_some() {
+            if admission.is_draining() {
                 return OutputAdmission::Rejected(OutputAcceptance::Closed);
             }
             if bytes.is_empty() {
@@ -78,8 +78,7 @@ impl ProjectionCoordinator {
             }
             owned.extend_from_slice(bytes);
             if admission
-                .policy
-                .admit_output(bytes.len(), services.clock.now())
+                .admit_output_bytes(bytes.len(), services.clock.now())
                 .is_err()
             {
                 return OutputAdmission::Rejected(OutputAcceptance::Closed);
@@ -124,10 +123,10 @@ impl ProjectionCoordinator {
         let (ticket, wait) = self.reserve_request_slot()?;
         let mut lease = self.reserve_staging(0)?;
         self.admit(|admission| {
-            if admission.output_drain.is_some() {
+            if admission.is_draining() {
                 return Err(ProjectionError::Closed);
             }
-            admission.policy.record_activity(services.clock.now())?;
+            admission.record_activity(services.clock.now())?;
             lease.timing = timing;
             Ok(Command::Resize(size, ticket, lease))
         })?;
@@ -201,7 +200,7 @@ impl ProjectionCoordinator {
     /// failure fails the projection instead of rolling the admission back.
     pub(super) fn admit(
         &self,
-        build: impl FnOnce(&mut super::state::Admission) -> Result<Command, ProjectionError>,
+        build: impl FnOnce(&mut super::queue::Admitting<'_>) -> Result<Command, ProjectionError>,
     ) -> Result<(), ProjectionError> {
         self.queue.admit(build)?;
         if let Err(error) = self.wake() {

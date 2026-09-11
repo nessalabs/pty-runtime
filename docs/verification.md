@@ -171,7 +171,17 @@ What changed:
   The method count is the point worth being careful about: it did **not** fall,
   because the coordinator's methods are now mostly thin delegation. What changed
   is that they can no longer reach the state — `Admission`'s fields are
-  unreachable except through named operations. Whether that means "no longer a
+  unreachable except through named operations.
+
+  One caveat, raised by an automated reviewer on the pull request and worth
+  keeping: `admit` and `admit_output` run caller code under the lock so a
+  per-command check and the push are one step. That closure originally received
+  `&mut Admission`, which was a hole in exactly the claim above. It now receives
+  an `Admitting` view exposing four named operations, so the fields stay
+  unreachable — but the closure is still caller-supplied code running under the
+  lock, and a future operation added to `Admitting` widens that surface again.
+
+  Whether this means "no longer a
   god object" is a fair argument; what is measurable is that the coupling is
   gone and the invariants that were previously spread across call sites
   (`commit_park`'s atomic emptiness check, `admit_output`'s rejection precedence)
