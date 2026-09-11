@@ -237,20 +237,31 @@ What changed:
   methods rather than types that own their state.
 
 - Still open after the three reviews, all P3:
-  - `commit_park`'s engine-idle half is untested — a commit landing with an empty
-    queue but an in-flight reply or resize. The review confirmed the read is safe
-    (those fields are workspace-owned), but no test pins it.
+  - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
+    untested. `serve` only reaches `start_park` after
+    `poll_inflight_operations` has returned `None`, which requires both the reply
+    and resize slots to be clear, and nothing can set either between
+    `start_park` and the `finish_io` that lands the commit. Probing the whole
+    suite with an assertion at that call site never fired. It is kept as defence
+    against a future path that starts a commit without draining in-flight native
+    work first; that reasoning is now recorded at the parameter.
   - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
     region-coverage hole.
-  - `Wiring` is a grab-bag: frozen configuration and releasable collaborators
-    have different reasons to change and should not share a type. Its two
-    `#[cfg(test)]` injection seams could also be replaced by configuring the
-    harness before `create` rather than mutating a live projection.
+  - `Wiring`'s two `#[cfg(test)]` injection seams could be replaced by
+    configuring the harness before `create` rather than mutating a live
+    projection. (The frozen configuration has been split out into
+    `ProjectionConfig`; only the seams remain.)
   - Eight files in `projection/` define no type of their own; they partition one
     type's method list rather than splitting a responsibility.
-  - The blocking-I/O lifecycle and the native engine driving are still
-    coordinator methods rather than types owning their state — the same
-    treatment `AdmissionQueue` received.
+  - The **native engine driving** is still coordinator methods, and on measuring
+    it, moving it does not look like a win. `apply_command` touches five
+    collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four
+    workspace fields; `poll_inflight_operations` touches three and four. Passing
+    that as a context object to an `impl NativeWorkspace` renames `self` rather
+    than splitting a responsibility. Contrast the blocking jobs, which touched
+    **zero** collaborators and so came out cleanly. Recorded as considered and
+    declined rather than outstanding; it would need a different idea, not more
+    of the same one.
 
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes

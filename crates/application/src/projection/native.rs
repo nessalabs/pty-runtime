@@ -182,7 +182,7 @@ impl ProjectionCoordinator {
             }
             Command::View(ticket, _staging) => {
                 if !ticket.cancelled() {
-                    let mut options = self.wiring.options;
+                    let mut options = self.config.options;
                     options.terminal = workspace.config;
                     let result = options
                         .view_reservation()
@@ -251,7 +251,7 @@ impl ProjectionCoordinator {
     pub(super) fn descriptor(&self) -> CheckpointDescriptor {
         let status = self.status();
         CheckpointDescriptor {
-            compatibility: self.wiring.compatibility.clone(),
+            compatibility: self.config.compatibility.clone(),
             processed: status.processed,
             control_generation: status.control_generation,
         }

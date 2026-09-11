@@ -31,7 +31,7 @@ impl ProjectionCoordinator {
         let memory = match IoMemory::acquire(
             &self.quotas.shared,
             workspace.config.checkpoint_bytes,
-            self.wiring.protected_bytes,
+            self.config.protected_bytes,
         ) {
             Ok(memory) => memory,
             Err(error) => {
@@ -46,7 +46,7 @@ impl ProjectionCoordinator {
             services.protector.clone(),
             source.reference,
             source.descriptor.clone(),
-            self.wiring.protected_bytes,
+            self.config.protected_bytes,
             workspace.config.checkpoint_bytes,
         );
         // Both destinations read the same source through the same job; they
@@ -103,11 +103,11 @@ impl ProjectionCoordinator {
             ParkStart::NotDue => return WorkSchedule::Dormant,
         };
         let result = (|| {
-            let max = self.wiring.protected_bytes;
+            let max = self.config.protected_bytes;
             let memory = IoMemory::acquire(
                 &self.quotas.shared,
                 workspace.config.checkpoint_bytes,
-                self.wiring.protected_bytes,
+                self.config.protected_bytes,
             )?;
             let disk = DiskLease::acquire(&self.quotas.shared, max)?;
             let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
@@ -125,7 +125,7 @@ impl ProjectionCoordinator {
             Ok(values) => values,
             Err(error) => {
                 self.queue.park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.wiring.options.retry_after);
+                return WorkSchedule::After(self.config.options.retry_after);
             }
         };
         let descriptor = checkpoint.descriptor.clone();
@@ -138,7 +138,7 @@ impl ProjectionCoordinator {
             },
             checkpoint,
             descriptor,
-            self.wiring.protected_bytes,
+            self.config.protected_bytes,
         );
         match self.submit_io(job) {
             Ok(mailbox) => {
@@ -151,7 +151,7 @@ impl ProjectionCoordinator {
             }
             Err(error) => {
                 self.queue.park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.wiring.options.retry_after);
+                return WorkSchedule::After(self.config.options.retry_after);
             }
         }
         WorkSchedule::Dormant
