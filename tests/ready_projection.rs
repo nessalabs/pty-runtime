@@ -265,3 +265,137 @@ fn ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_sourc
     runtime.shutdown();
     assert_eq!(store.capacity().committed_bytes, 0);
 }
+
+/// A store that serves reads until told to stop, so a parked session can be
+/// made unrestorable after it has successfully committed.
+struct BreakableStore {
+    inner: FileCheckpointStore,
+    broken: AtomicBool,
+}
+impl ICheckpointStore for BreakableStore {
+    fn commit(
+        &self,
+        checkpoint: &pty_runtime::checkpoint::ProtectedCheckpoint,
+    ) -> Result<pty_runtime::checkpoint::CheckpointRef, pty_runtime::checkpoint::CheckpointError>
+    {
+        self.inner.commit(checkpoint)
+    }
+    fn read(
+        &self,
+        reference: pty_runtime::checkpoint::CheckpointRef,
+        max_bytes: usize,
+    ) -> Result<
+        pty_runtime::checkpoint::ProtectedCheckpoint,
+        pty_runtime::checkpoint::CheckpointError,
+    > {
+        if self.broken.load(Ordering::Acquire) {
+            return Err(pty_runtime::checkpoint::CheckpointError::Unavailable);
+        }
+        self.inner.read(reference, max_bytes)
+    }
+    fn delete(
+        &self,
+        reference: pty_runtime::checkpoint::CheckpointRef,
+    ) -> Result<(), pty_runtime::checkpoint::CheckpointError> {
+        self.inner.delete(reference)
+    }
+    fn capacity(&self) -> pty_runtime::checkpoint::CheckpointCapacity {
+        self.inner.capacity()
+    }
+}
+
+/// ADR 0003: "If a committed checkpoint cannot be restored, report projection
+/// unavailability and preserve process ownership and bounded raw I/O. Do not
+/// reset the terminal silently."
+///
+/// The first half — projection reports unavailable — is covered by unit tests
+/// against doubles. The second half is a cross-layer claim and was not covered
+/// anywhere: that the session keeps its child, keeps serving raw output, and
+/// still accepts input and cancellation after its projection is gone.
+#[test]
+fn an_unrestorable_checkpoint_fails_projection_without_taking_the_session_with_it() {
+    let gate = Arc::new(Gate::default());
+    gate.release();
+    let store = Arc::new(BreakableStore {
+        inner: FileCheckpointStore::temporary(None, 32 * 1024 * 1024).unwrap(),
+        broken: AtomicBool::new(false),
+    });
+    let backend = Arc::new(Backend::default());
+    let runtime = Runtime::with_projection_adapters(
+        RuntimeOptions::default(),
+        Arc::new(MemorySessionRepository::default()),
+        backend.clone(),
+        ProjectionServices {
+            terminal: Arc::new(Factory(gate.clone())),
+            clock: Arc::new(MonotonicSystemClock::default()),
+            scheduler: Arc::new(StdWorkScheduler::with_workers(2, 1).unwrap()),
+            blocking: Arc::new(BoundedBlockingExecutor::new(2, 1).unwrap()),
+            capacity: Arc::new(CondvarCapacitySignal::default()),
+            store: store.clone(),
+            protector: Arc::new(CheckpointProtector::new(8 * 1024 * 1024).unwrap()),
+        },
+    )
+    .unwrap();
+    let config = TerminalConfig::new(TerminalSize::new(80, 24).unwrap());
+    let mut options = SessionOptions::projected(config);
+    options.projection.as_mut().unwrap().park_after = Duration::from_millis(50);
+    let session = runtime
+        .spawn(
+            support::id("unrestorable"),
+            &support::command("echo", &[]),
+            options,
+        )
+        .unwrap();
+    let events = backend.0.lock().unwrap().as_ref().unwrap().clone();
+    let mut attachment = session.attach(AttachPosition::Oldest).unwrap();
+
+    assert_eq!(
+        events.output(b"before-park\r\n"),
+        OutputAcceptance::Accepted
+    );
+    until(|| session.projection_status().unwrap().unwrap().residency == Residency::Parked);
+
+    // The source is committed and the live model released. Break the store, then
+    // give the session new output: restoring it is now impossible.
+    store.broken.store(true, Ordering::Release);
+    assert_eq!(events.output(b"after-park\r\n"), OutputAcceptance::Accepted);
+    until(|| session.projection_status().unwrap().unwrap().residency == Residency::Failed);
+
+    let status = session.projection_status().unwrap().unwrap();
+    assert!(
+        status.failure.is_some(),
+        "an unrestorable checkpoint must report why projection is unavailable",
+    );
+    // Raw ownership is untouched. The claim that matters is not that already
+    // buffered bytes survive -- they were published before the failure -- but
+    // that the raw path keeps *working* afterwards, so output produced after the
+    // projection is gone still reaches an observer.
+    assert!(session.process_id().is_ok(), "the child is still owned");
+    assert_eq!(
+        events.output(b"after-failure\r\n"),
+        OutputAcceptance::Accepted,
+        "a failed projection must not start refusing the reader's output",
+    );
+
+    let expected: &[u8] = b"before-park\r\nafter-park\r\nafter-failure\r\n";
+    let mut seen = Vec::new();
+    while seen.len() < expected.len() {
+        match support::block_on(attachment.read_next()).unwrap() {
+            OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }) => seen.extend_from_slice(&bytes),
+            OutputEvent::Replay(_) => {}
+            OutputEvent::Complete(_) => break,
+        }
+    }
+    assert_eq!(
+        seen, expected,
+        "raw replay keeps serving bytes produced after projection failed",
+    );
+    assert_eq!(
+        support::block_on(session.write(b"still-writable").unwrap()).written,
+        14,
+        "bounded raw input is still admitted",
+    );
+    session
+        .cancel()
+        .expect("cancellation stays usable after projection failure");
+}

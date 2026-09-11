@@ -1,42 +1,20 @@
 use super::{
-    ProjectionCoordinator, ProjectionError,
+    ProjectionCoordinator, ProjectionError, blocking,
     budgets::{DiskLease, IoMemory, Lease},
     queue::ParkStart,
-    state::{Command, CommitOutcome, Mailbox, NativeWorkspace, PendingIo},
+    state::{Command, Mailbox, NativeWorkspace, PendingIo},
 };
 use crate::scheduling::WorkSchedule;
 use pty_runtime_domain::checkpoint::CheckpointKey;
-use std::{
-    panic::{AssertUnwindSafe, catch_unwind},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::Duration;
 impl ProjectionCoordinator {
-    /// Hand one job to the blocking pool and return the mailbox it will fill.
-    ///
-    /// The payload type is chosen by the caller and travels with the mailbox
-    /// into [`PendingIo`], so completion cannot misread one job's result as
-    /// another's. A panicking job publishes `Err(Worker)`.
+    /// Submit one job to the blocking pool against this projection's executor.
     fn submit_io<T: Send + 'static>(
         &self,
         work: impl FnOnce() -> Result<T, ProjectionError> + Send + 'static,
     ) -> Result<Mailbox<T>, ProjectionError> {
         let services = self.services()?;
-        let mailbox: Mailbox<T> = Arc::new(Mutex::new(None));
-        let output = mailbox.clone();
-        let wake = self.wiring.handle();
-        let job = Box::new(move || {
-            let result =
-                catch_unwind(AssertUnwindSafe(work)).unwrap_or(Err(ProjectionError::Worker));
-            *output.lock().unwrap_or_else(|e| e.into_inner()) = Some(result);
-            if let Some(wake) = wake {
-                let _ = wake.wake();
-            }
-        });
-        if services.blocking.submit(job).is_err() {
-            return Err(ProjectionError::Capacity);
-        }
-        Ok(mailbox)
+        blocking::submit(services.blocking.as_ref(), self.wiring.handle(), work)
     }
     pub(super) fn start_read(
         &self,
@@ -53,7 +31,7 @@ impl ProjectionCoordinator {
         let memory = match IoMemory::acquire(
             &self.quotas.shared,
             workspace.config.checkpoint_bytes,
-            self.wiring.protected_bytes,
+            self.config.protected_bytes,
         ) {
             Ok(memory) => memory,
             Err(error) => {
@@ -63,25 +41,14 @@ impl ProjectionCoordinator {
                 return WorkSchedule::After(Duration::from_millis(5));
             }
         };
-        let store = services.store.clone();
-        let protector = services.protector.clone();
-        let reference = source.reference;
-        let descriptor = source.descriptor.clone();
-        let max = self.wiring.protected_bytes;
-        let plaintext_max = workspace.config.checkpoint_bytes;
-        let job = move || {
-            let bytes = store.read(reference, max)?;
-            if bytes.ciphertext().len() != reference.bytes {
-                return Err(ProjectionError::Storage(
-                    pty_runtime_domain::checkpoint::CheckpointError::Unavailable,
-                ));
-            }
-            let checkpoint = protector.open(reference.key, &descriptor, bytes)?;
-            if checkpoint.descriptor != descriptor || checkpoint.bytes.capacity() > plaintext_max {
-                return Err(ProjectionError::InvalidConfiguration);
-            }
-            Ok(checkpoint)
-        };
+        let job = blocking::read_job(
+            services.store.clone(),
+            services.protector.clone(),
+            source.reference,
+            source.descriptor.clone(),
+            self.config.protected_bytes,
+            workspace.config.checkpoint_bytes,
+        );
         // Both destinations read the same source through the same job; they
         // differ only in what they own on completion and how they report a
         // rejected submission.
@@ -136,11 +103,11 @@ impl ProjectionCoordinator {
             ParkStart::NotDue => return WorkSchedule::Dormant,
         };
         let result = (|| {
-            let max = self.wiring.protected_bytes;
+            let max = self.config.protected_bytes;
             let memory = IoMemory::acquire(
                 &self.quotas.shared,
                 workspace.config.checkpoint_bytes,
-                self.wiring.protected_bytes,
+                self.config.protected_bytes,
             )?;
             let disk = DiskLease::acquire(&self.quotas.shared, max)?;
             let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
@@ -158,46 +125,21 @@ impl ProjectionCoordinator {
             Ok(values) => values,
             Err(error) => {
                 self.queue.park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.wiring.options.retry_after);
+                return WorkSchedule::After(self.config.options.retry_after);
             }
-        };
-        let store = services.store.clone();
-        let protector = services.protector.clone();
-        let key = CheckpointKey {
-            lifetime: attempt.processed.lifetime,
-            generation: attempt.generation,
         };
         let descriptor = checkpoint.descriptor.clone();
-        let max = self.wiring.protected_bytes;
-        // A commit always resolves to some CommitOutcome; the distinction between
-        // Rejected (nothing was stored) and Uncertain (something may have been)
-        // is the job's to make, so it is carried in the value, not in an error.
-        let job = move || {
-            let protected = match protector.protect(key, checkpoint) {
-                Ok(protected) => protected,
-                Err(error) => return Ok(CommitOutcome::Rejected(error.into())),
-            };
-            if protected.key != key
-                || protected.descriptor != descriptor
-                || protected.ciphertext().is_empty()
-                || protected.ciphertext().len() > max
-            {
-                return Ok(CommitOutcome::Rejected(
-                    ProjectionError::InvalidConfiguration,
-                ));
-            }
-            let len = protected.ciphertext().len();
-            let reference = match store.commit(&protected) {
-                Ok(reference) => reference,
-                Err(error) => return Ok(CommitOutcome::Rejected(error.into())),
-            };
-            if reference.key != key || reference.bytes != len {
-                return Ok(CommitOutcome::Uncertain(
-                    ProjectionError::InvalidConfiguration,
-                ));
-            }
-            Ok(CommitOutcome::Published(reference))
-        };
+        let job = blocking::commit_job(
+            services.store.clone(),
+            services.protector.clone(),
+            CheckpointKey {
+                lifetime: attempt.processed.lifetime,
+                generation: attempt.generation,
+            },
+            checkpoint,
+            descriptor,
+            self.config.protected_bytes,
+        );
         match self.submit_io(job) {
             Ok(mailbox) => {
                 workspace.io = Some(PendingIo::Commit {
@@ -209,7 +151,7 @@ impl ProjectionCoordinator {
             }
             Err(error) => {
                 self.queue.park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.wiring.options.retry_after);
+                return WorkSchedule::After(self.config.options.retry_after);
             }
         }
         WorkSchedule::Dormant
@@ -221,9 +163,8 @@ impl ProjectionCoordinator {
         let Some(attempt) = workspace.reaper.check_out() else {
             return WorkSchedule::Dormant;
         };
-        let store = services.store.clone();
-        let reference = attempt.source.reference;
-        match self.submit_io(move || store.delete(reference).map_err(ProjectionError::from)) {
+        let job = blocking::delete_job(services.store.clone(), attempt.source.reference);
+        match self.submit_io(job) {
             Ok(mailbox) => {
                 workspace.io = Some(PendingIo::Delete { attempt, mailbox });
                 WorkSchedule::Dormant

@@ -29,7 +29,7 @@ impl ProjectionCoordinator {
             match pending {
                 PendingIo::Commit { attempt, disk, .. } => {
                     let source = UnreclaimedSource::from_uncertain_park(
-                        &self.wiring.compatibility,
+                        &self.config.compatibility,
                         attempt,
                         disk,
                     );

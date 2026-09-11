@@ -292,6 +292,16 @@ impl AdmissionQueue {
     ///
     /// `engine_idle` reports the caller's exclusively-held native state; the
     /// queue is checked here so no command can slip in between the two.
+    ///
+    /// In the worker as it stands `engine_idle` is always true, and it is kept
+    /// as defence rather than as a live condition: `serve` only reaches
+    /// `start_park` after `poll_inflight_operations` has returned `None`, which
+    /// requires both the reply and the resize slot to be clear, and nothing can
+    /// set either between `start_park` and the `finish_io` that lands the
+    /// commit. Probing the whole suite with an assertion here never fired. A
+    /// future path that starts a commit without first draining in-flight native
+    /// work would make it live, which is why it is a parameter and not an
+    /// assumption.
     pub fn commit_park(&self, attempt: ParkAttempt, engine_idle: bool) -> bool {
         let mut state = self.lock();
         let quiet = engine_idle && state.queue.is_empty();

@@ -3,7 +3,7 @@ use super::{
     budgets::{InputQuotas, Lease, SessionQuotas},
     queue::AdmissionQueue,
     state::{Admission, NativeWorkspace},
-    wiring::Wiring,
+    wiring::{ProjectionConfig, Wiring},
 };
 use crate::{
     checkpoint::{ICheckpointProtector, ICheckpointStore},
@@ -45,6 +45,7 @@ pub struct ProjectionServices {
 /// state and cancellation never require the native ownership mutex.
 pub struct ProjectionCoordinator {
     pub(super) journal: Arc<super::journal::Journal>,
+    pub(super) config: ProjectionConfig,
     pub(super) wiring: Wiring,
     pub(super) quotas: SessionQuotas,
     pub(super) queue: AdmissionQueue,
@@ -131,7 +132,12 @@ impl ProjectionCoordinator {
                 config: options.terminal,
                 history_step_owed: false,
             }),
-            wiring: Wiring::new(options, compatibility, protected_bytes, services),
+            config: ProjectionConfig {
+                options,
+                compatibility,
+                protected_bytes,
+            },
+            wiring: Wiring::new(services),
             quotas,
             input: InputQuotas::new(input_bytes, input_slots),
             stall_generation: AtomicU64::new(0),

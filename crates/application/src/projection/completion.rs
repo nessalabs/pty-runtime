@@ -40,7 +40,7 @@ impl ProjectionCoordinator {
                         let source = CommittedSource {
                             reference,
                             descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: self.wiring.compatibility.clone(),
+                                compatibility: self.config.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },
@@ -61,7 +61,7 @@ impl ProjectionCoordinator {
                     }
                     CommitOutcome::Uncertain(error) => {
                         let entry = UnreclaimedSource::from_uncertain_park(
-                            &self.wiring.compatibility,
+                            &self.config.compatibility,
                             attempt,
                             disk,
                         );

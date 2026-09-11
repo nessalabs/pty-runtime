@@ -30,7 +30,13 @@ fn leaf<T>(slot: &Mutex<T>) -> super::queue::Guarded<'_, T> {
     )
 }
 
-pub(super) struct Wiring {
+/// What is fixed for the projection's whole life.
+///
+/// Separate from [`Wiring`] because the two have different reasons to change:
+/// this is decided once at creation and then only read, while the slots in
+/// `Wiring` exist to be released during cleanup. Holding them in one type meant
+/// every reader of a bound also went through the release protocol's mutexes.
+pub(super) struct ProjectionConfig {
     /// Validated per-session bounds and parking policy.
     pub options: ProjectionOptions,
     /// Validated once at creation and cloned into every descriptor, so no later
@@ -38,24 +44,20 @@ pub(super) struct Wiring {
     pub compatibility: CompatibilityId,
     /// Ciphertext bound this protector reports for the configured plaintext cap.
     pub protected_bytes: usize,
+}
+
+/// The injected collaborators, each released during cleanup.
+pub(super) struct Wiring {
     services: Mutex<Option<ProjectionServices>>,
     handle: Mutex<Option<Arc<dyn IWorkHandle>>>,
     process: Mutex<Option<Arc<dyn IProcessSession>>>,
 }
 
 impl Wiring {
-    /// Hold the injected boundaries for one projection. The scheduler
+    /// Hold the injected collaborators for one projection. The scheduler
     /// registration and the process are bound later, once they exist.
-    pub fn new(
-        options: ProjectionOptions,
-        compatibility: CompatibilityId,
-        protected_bytes: usize,
-        services: ProjectionServices,
-    ) -> Self {
+    pub fn new(services: ProjectionServices) -> Self {
         Self {
-            options,
-            compatibility,
-            protected_bytes,
             services: Mutex::new(Some(services)),
             handle: Mutex::new(None),
             process: Mutex::new(None),
