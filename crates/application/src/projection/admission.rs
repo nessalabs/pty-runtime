@@ -1,6 +1,9 @@
 use super::{
     PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionError, ProjectionOperation,
-    Residency, ResizeOutcome, budgets::StagingLease, observation::Ticket, queue::CloseRequest,
+    Residency, ResizeOutcome,
+    budgets::StagingLease,
+    observation::Ticket,
+    queue::{CloseRequest, OutputAdmission, OutputOutcome},
     state::Command,
 };
 use crate::process::OutputAcceptance;
@@ -50,28 +53,28 @@ impl ProjectionCoordinator {
         };
         let generation = services.capacity.generation();
         self.stall_generation.store(generation, Ordering::Release);
-        let accepted = self.queue.admit_output(|admission| {
+        let admitted = self.queue.admit_output(|admission| {
             if matches!(
                 admission.policy.status().residency,
                 Residency::Closing | Residency::Closed
             ) {
-                return Err(OutputAcceptance::Closed);
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
             }
             if admission.output_drain.is_some() {
-                return Err(OutputAcceptance::Closed);
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
             }
             if bytes.is_empty() {
-                return Err(OutputAcceptance::Accepted);
+                return OutputAdmission::Nothing;
             }
             if bytes.len() > self.wiring.options.terminal.feed_bytes {
-                return Err(OutputAcceptance::Backpressure);
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
             }
             let Ok(mut lease) = self.reserve_staging(bytes.len()) else {
-                return Err(OutputAcceptance::Backpressure);
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
             };
             let mut owned = Vec::new();
             if owned.try_reserve_exact(bytes.len()).is_err() {
-                return Err(OutputAcceptance::Backpressure);
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
             }
             owned.extend_from_slice(bytes);
             if admission
@@ -79,7 +82,7 @@ impl ProjectionCoordinator {
                 .admit_output(bytes.len(), services.clock.now())
                 .is_err()
             {
-                return Err(OutputAcceptance::Closed);
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
             }
             lease.timing = observed.map(|(diagnostics, started)| {
                 crate::diagnostics::Timing::new(
@@ -88,10 +91,13 @@ impl ProjectionCoordinator {
                     started,
                 )
             });
-            Ok(Command::Output(owned, lease))
+            OutputAdmission::Queue(Command::Output(owned, lease))
         });
-        if accepted != OutputAcceptance::Accepted {
-            return accepted;
+        match admitted {
+            OutputOutcome::Rejected(rejection) => return rejection,
+            // Nothing was queued, so there is nothing for the worker to do.
+            OutputOutcome::Accepted => return OutputAcceptance::Accepted,
+            OutputOutcome::Queued => (),
         }
         // Accepted staging is never rolled back after ownership transfer, even if
         // scheduler failure is reported. Failure preserves bytes for diagnostics.

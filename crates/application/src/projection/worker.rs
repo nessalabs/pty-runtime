@@ -81,10 +81,9 @@ impl ProjectionCoordinator {
         if workspace.io.is_some() {
             return WorkSchedule::Dormant;
         }
-        if self.queue.is_idle() {
+        let Some(transfer) = self.queue.take_checkpoint_if_any_work() else {
             return WorkSchedule::Dormant;
-        }
-        let transfer = self.queue.take_checkpoint_at_head();
+        };
         self.start_read(workspace, transfer)
     }
     /// Active screens are observable but history is still being validated.

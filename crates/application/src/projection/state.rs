@@ -52,24 +52,36 @@ impl Command {
 ///   worker ──▶ [workspace lock] ──▶ native ─┘ holding the workspace lock
 /// ```
 ///
-/// Six mutexes are reachable from a projection, in three tiers:
+/// Locks are acquired downward through these tiers and never upward:
 ///
 /// ```text
-///   tier 1   workspace              taken only by worker::run, worker::failed
-///                                   and teardown::finish_after_shutdown
-///   tier 2   AdmissionQueue         taken under tier 1, or alone by callers
-///   tier 3   Wiring::{services,     leaf locks: each is taken, cloned out of,
-///            handle, process},      and released before anything else runs.
-///            ProjectionBudgets::    None of them may be held across a call to
-///            unreclaimed            an injected port.
+///   tier 1  workspace            taken only by worker::run, worker::failed and
+///                                teardown::finish_after_shutdown
+///   tier 2  AdmissionQueue       under tier 1, or alone by callers
+///   tier 3  Wiring::{services,   leaves: taken, cloned or moved out of, and
+///           handle, process},    released before anything else runs. Never
+///           ProjectionBudgets::  held across a call to an injected port.
+///           unreclaimed,
+///           ICapacitySignal
 /// ```
 ///
-/// Acquiring downward is always safe; nothing acquires upward. Callers only ever
-/// take tier 2 and below, so they cannot invert the order against the worker.
-/// The tier-3 leaf property is load-bearing rather than incidental: `Wiring::wake`
-/// clones the handle out and drops its guard *before* calling `wake()`, because
-/// the scheduler may re-enter this projection. Never hold any of these across a
-/// blocking store or OS call.
+/// Callers only ever take tier 2 and below, so they cannot invert the order
+/// against the worker.
+///
+/// Two things about this are easy to get wrong and are load-bearing:
+///
+/// - `Wiring::wake` clones the handle out and drops its guard *before* calling
+///   `wake()`, because the scheduler may re-enter this projection.
+/// - `StagingLease::drop` notifies the runtime-wide capacity signal, and a lease
+///   is dropped under tier 2 whenever admission rejects a chunk. That is a
+///   global lock taken under a per-session one — permitted by the tier order,
+///   but it means tier 3 genuinely includes runtime-shared locks, not just this
+///   projection's own slots.
+///
+/// Not on this chart, because they are never taken under tier 2: `Journal`,
+/// each `Ticket`, and each in-flight `Mailbox`. The journal and ticket locks
+/// *are* held while running arbitrary caller code (`Waker::wake`), which is why
+/// they take their wakers out of the guard before invoking them.
 pub(super) struct Admission {
     pub policy: ProjectionPolicy,
     pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,

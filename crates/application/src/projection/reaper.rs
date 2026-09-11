@@ -43,26 +43,22 @@ pub(super) struct SourceReaper {
 }
 
 impl SourceReaper {
-    /// Reserve the queue up front against the same finite population that bounds
-    /// how many sources can exist: every `CommittedSource` holds a `DiskLease`
-    /// charging one `stored_slots`, so the queue can never exceed that limit.
-    /// Reserving here means `retire` cannot abort the process on an allocation
-    /// failure at the moment a source needs to be reclaimed.
-    pub fn new(max_attempts: u32, stored_slots: usize) -> Result<Self, ProjectionError> {
-        let mut queue = VecDeque::new();
-        queue
-            .try_reserve_exact(stored_slots)
-            .map_err(|_| ProjectionError::Capacity)?;
-        Ok(Self {
-            queue,
+    pub fn new(max_attempts: u32) -> Self {
+        Self {
+            queue: VecDeque::new(),
             max_attempts,
-        })
+        }
     }
 
     /// Queue a superseded source for deletion, starting its attempt count fresh.
     ///
-    /// Infallible: the capacity reserved in [`Self::new`] covers every source
-    /// that can hold a storage slot at once.
+    /// Grows on demand rather than reserving up front. The queue is bounded —
+    /// every `CommittedSource` holds a `DiskLease` charging one `stored_slots`,
+    /// so it can never exceed that runtime-wide limit — but that bound is shared
+    /// across all sessions, and in practice one session holds nought to two
+    /// entries. Reserving the global ceiling in every session would cost
+    /// hundreds of kilobytes each for storage almost none of them will use, and
+    /// would be charged against no quota.
     pub fn retire(&mut self, source: CommittedSource) {
         self.queue.push_back(DeleteAttempt {
             source,
@@ -128,9 +124,9 @@ impl SourceReaper {
 
     /// Hand over every held source as unreclaimed, releasing none of their
     /// reservations. Used when no further deletion will be attempted.
-    pub fn surrender(&mut self) -> impl Iterator<Item = UnreclaimedSource> + use<> {
-        std::mem::take(&mut self.queue)
-            .into_iter()
-            .map(|attempt| attempt.source.into())
+    /// Drains in place, so the queue keeps whatever capacity it had grown to
+    /// and a later `retire` does not have to reallocate.
+    pub fn surrender(&mut self) -> impl Iterator<Item = UnreclaimedSource> + '_ {
+        self.queue.drain(..).map(|attempt| attempt.source.into())
     }
 }

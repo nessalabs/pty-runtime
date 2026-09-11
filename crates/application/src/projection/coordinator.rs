@@ -107,10 +107,6 @@ impl ProjectionCoordinator {
         queue
             .try_reserve_exact(queue_slots)
             .map_err(|_| ProjectionError::Capacity)?;
-        let reaper = super::reaper::SourceReaper::new(
-            options.max_delete_attempts,
-            budgets.limits.stored_slots,
-        )?;
         let quotas = SessionQuotas::new(budgets, &options);
         let owner = Arc::new(Self {
             journal: super::journal::Journal::new(lifetime, options, &quotas.shared),
@@ -131,7 +127,7 @@ impl ProjectionCoordinator {
                 io: None,
                 reply: None,
                 resize: None,
-                reaper,
+                reaper: super::reaper::SourceReaper::new(options.max_delete_attempts),
                 config: options.terminal,
                 history_step_owed: false,
             }),
@@ -159,6 +155,16 @@ impl ProjectionCoordinator {
             return Err(ProjectionError::Closed);
         }
         self.wiring.bind_process(process)?;
+        // Cleanup may have completed between the check above and the bind. It
+        // clears the slot before it finishes, so anything left here after it is
+        // Closed would never be released.
+        if matches!(
+            self.status().residency,
+            super::Residency::Closing | super::Residency::Closed
+        ) {
+            self.wiring.unbind_process();
+            return Err(ProjectionError::Closed);
+        }
         let result = self.wake();
         if let Err(error) = result {
             self.fail(error);

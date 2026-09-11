@@ -79,6 +79,11 @@ impl Wiring {
     }
 
     /// Bind exactly one admitted process; a second binding is rejected.
+    ///
+    /// Binding and the caller's residency check cannot be one atomic step
+    /// without taking the admission lock under this one, which would invert the
+    /// lock order. The caller instead binds and then re-checks, using
+    /// [`Self::unbind_process`] to undo the bind if closure won the race.
     pub fn bind_process(&self, process: Arc<dyn IProcessSession>) -> Result<(), ProjectionError> {
         let mut slot = self.process.lock().unwrap_or_else(|e| e.into_inner());
         if slot.is_some() {
@@ -86,6 +91,17 @@ impl Wiring {
         }
         *slot = Some(process);
         Ok(())
+    }
+
+    /// Undo a bind that raced a completing cleanup, so the slot cannot outlive
+    /// the cleanup that was supposed to clear it.
+    pub fn unbind_process(&self) {
+        let taken = self
+            .process
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        drop(taken);
     }
 
     /// The bound process, if a child has been admitted yet.

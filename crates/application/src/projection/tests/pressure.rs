@@ -167,3 +167,19 @@ fn resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smal
     assert!(result(&mut third).is_ok());
     h.close();
 }
+
+/// An empty chunk is accepted without being queued, so it must not wake the
+/// worker or touch projection state.
+///
+/// `IProcessEvents::output` permits an empty slice, and `stage_output` is public
+/// API. A projection whose scheduler registration has already been released --
+/// the state after cleanup -- would otherwise turn a no-op chunk into a worker
+/// failure, because waking a released handle reports `Worker`.
+#[test]
+fn empty_output_chunk_is_accepted_without_waking_or_failing() {
+    let h = Harness::standard();
+    h.owner.wiring.inject_handle(None);
+    assert_eq!(h.owner.stage_output(b""), OutputAcceptance::Accepted);
+    assert!(h.owner.status().failure.is_none());
+    assert_eq!(h.owner.queue.queued(), 0);
+}

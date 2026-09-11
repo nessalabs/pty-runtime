@@ -25,6 +25,30 @@ use std::{
     time::Duration,
 };
 
+/// What an output chunk should become, decided under the admission lock.
+pub(super) enum OutputAdmission {
+    /// Queue this command.
+    Queue(Command),
+    /// Accept with nothing to queue, as an empty chunk does.
+    Nothing,
+    /// Do not accept, for this reason. No position may advance.
+    Rejected(OutputAcceptance),
+}
+
+/// What admitting an output chunk actually did.
+///
+/// `Queued` and `Accepted` are distinct because only the first has given the
+/// worker something to do. Collapsing them means either a no-op chunk wakes a
+/// worker for nothing, or a real chunk is queued and never woken.
+pub(super) enum OutputOutcome {
+    /// Queued; the caller must wake the worker.
+    Queued,
+    /// Accepted without queueing; the caller must not wake.
+    Accepted,
+    /// Rejected with this reason.
+    Rejected(OutputAcceptance),
+}
+
 /// The outcome of asking for cleanup.
 pub(super) enum CloseRequest {
     /// Cleanup already finished; this is its durable result.
@@ -110,17 +134,22 @@ impl AdmissionQueue {
     /// `accept` runs under the lock and returns the rejection reason itself, so
     /// the precedence between "closed" and "no capacity" is decided against one
     /// consistent view of the state rather than across two.
+    ///
+    /// "Accepted" and "queued" are deliberately distinct outcomes: an empty
+    /// chunk is accepted without being queued, and must not cause the caller to
+    /// wake a worker that has nothing to do.
     pub fn admit_output(
         &self,
-        accept: impl FnOnce(&mut Admission) -> Result<Command, OutputAcceptance>,
-    ) -> OutputAcceptance {
+        accept: impl FnOnce(&mut Admission) -> OutputAdmission,
+    ) -> OutputOutcome {
         let mut state = self.lock();
         match accept(&mut state) {
-            Ok(command) => {
+            OutputAdmission::Queue(command) => {
                 state.queue.push_back(command);
-                OutputAcceptance::Accepted
+                OutputOutcome::Queued
             }
-            Err(rejection) => rejection,
+            OutputAdmission::Nothing => OutputOutcome::Accepted,
+            OutputAdmission::Rejected(rejection) => OutputOutcome::Rejected(rejection),
         }
     }
 
@@ -140,23 +169,26 @@ impl AdmissionQueue {
 
     // ---- draining ----------------------------------------------------------
 
-    /// Whether nothing is queued.
-    pub fn is_idle(&self) -> bool {
-        self.lock().queue.is_empty()
-    }
-
     /// Take the next command unconditionally.
     pub fn take_next(&self) -> Option<Command> {
         self.lock().queue.pop_front()
     }
 
-    /// Take the head only if it is a checkpoint, so a transfer can be served
-    /// straight from a parked source without restoring a native owner first.
-    pub fn take_checkpoint_at_head(&self) -> Option<Command> {
+    /// Whether any work is queued and, if the head is a checkpoint, that command.
+    ///
+    /// Both answers come from one acquisition. Splitting them let a concurrent
+    /// `fail` drain the queue in between, after which the caller would start a
+    /// restore it had decided against.
+    pub fn take_checkpoint_if_any_work(&self) -> Option<Option<Command>> {
         let mut state = self.lock();
-        matches!(state.queue.front(), Some(Command::Checkpoint(..)))
-            .then(|| state.queue.pop_front())
-            .flatten()
+        if state.queue.is_empty() {
+            return None;
+        }
+        Some(
+            matches!(state.queue.front(), Some(Command::Checkpoint(..)))
+                .then(|| state.queue.pop_front())
+                .flatten(),
+        )
     }
 
     /// Take the head only if `allowed` accepts it.
