@@ -1,5 +1,6 @@
 //! Authoritative projection, independent lossless staging and encrypted idle parking.
 mod admission;
+mod blocking;
 mod budgets;
 mod completion;
 mod coordinator;
