@@ -18,9 +18,9 @@ fn config() -> TerminalConfig {
         view_bytes: 1024 * 1024,
     }
 }
-fn descriptor(offset: u64, generation: u64) -> CheckpointDescriptor {
+fn descriptor(offset: u64, generation: ControlGeneration) -> CheckpointDescriptor {
     CheckpointDescriptor {
-        compatibility: GhosttyTerminalFactory.compatibility().into(),
+        compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset,
@@ -150,7 +150,7 @@ fn case(seed: u64, steps: usize, counts: &mut Counts) {
         assert_eq!(a.feed(line.as_bytes()), b.feed(line.as_bytes()));
     }
     let mut offset = 0;
-    let mut generation = 0;
+    let mut generation = ControlGeneration::INITIAL;
     for step in 0..steps {
         let operation = rng.bounded(4);
         if std::env::var_os("PTY_CORPUS_TRACE").is_some() {
@@ -170,7 +170,7 @@ fn case(seed: u64, steps: usize, counts: &mut Counts) {
                 counts.feeds += 1;
             }
             2 => {
-                generation += 1;
+                generation = generation.next().expect("corpus generation cannot exhaust");
                 let size =
                     TerminalSize::new((20 + rng.bounded(101)) as u16, (4 + rng.bounded(37)) as u16)
                         .unwrap();
@@ -253,14 +253,24 @@ mod tests {
             a.feed(format!("seed 1 history {i}\r\n").as_bytes())
                 .unwrap();
         }
-        let cp = a.checkpoint(descriptor(0, 0)).unwrap();
+        let cp = a
+            .checkpoint(descriptor(0, ControlGeneration::from_raw(0)))
+            .unwrap();
         let mut b = GhosttyTerminalFactory.restore(cp, config()).unwrap();
         finish(b.as_mut()).unwrap();
-        equivalent(a.as_mut(), b.as_mut(), descriptor(0, 0));
+        equivalent(
+            a.as_mut(),
+            b.as_mut(),
+            descriptor(0, ControlGeneration::from_raw(0)),
+        );
         let size = TerminalSize::new(89, 38).unwrap();
-        a.resize(size, 1).unwrap();
-        b.resize(size, 1).unwrap();
-        equivalent(a.as_mut(), b.as_mut(), descriptor(0, 1));
+        a.resize(size, ControlGeneration::from_raw(1)).unwrap();
+        b.resize(size, ControlGeneration::from_raw(1)).unwrap();
+        equivalent(
+            a.as_mut(),
+            b.as_mut(),
+            descriptor(0, ControlGeneration::from_raw(1)),
+        );
     }
     #[test]
     fn alternate_wrap_roundtrip_after_width_change() {
@@ -273,8 +283,10 @@ mod tests {
         a.feed(&[b'x'; 53]).unwrap();
         assert!(a.view().unwrap().cursor.pending_wrap);
         let size = TerminalSize::new(100, 15).unwrap();
-        a.resize(size, 1).unwrap();
-        let cp = a.checkpoint(descriptor(0, 1)).unwrap();
+        a.resize(size, ControlGeneration::from_raw(1)).unwrap();
+        let cp = a
+            .checkpoint(descriptor(0, ControlGeneration::from_raw(1)))
+            .unwrap();
         let mut b = GhosttyTerminalFactory
             .restore(cp, TerminalConfig { size, ..c })
             .unwrap();

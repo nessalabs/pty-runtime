@@ -83,6 +83,7 @@ async fn complete(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pty_runtime::terminal::ControlGeneration;
     use pty_runtime::{ProcessError, ProjectionError};
 
     #[tokio::test]
@@ -130,7 +131,7 @@ mod tests {
         let outcome = complete(
             Ok(Box::pin(async {
                 Ok(ResizeOutcome {
-                    generation: 7,
+                    generation: ControlGeneration::from_raw(7),
                     os: Err(ProcessError::Capacity),
                     model: Err(ProjectionError::Process(ProcessError::Capacity)),
                 })
@@ -140,7 +141,7 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(outcome.generation, 7);
+        assert_eq!(outcome.generation, ControlGeneration::from_raw(7));
         assert_eq!(outcome.os, Err(ProcessError::Capacity));
         assert_eq!(
             outcome.model,

@@ -36,8 +36,8 @@ impl ITerminalFactory for Factory {
             history_compression: false,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        "test-native-v1"
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new("test-native-v1")
     }
     fn create(&self, config: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         self.0.alive.fetch_add(1, Ordering::AcqRel);
@@ -45,7 +45,7 @@ impl ITerminalFactory for Factory {
             probe: self.0.clone(),
             bytes: Vec::new(),
             size: config.size,
-            generation: 0,
+            generation: ControlGeneration::INITIAL,
             history: 0,
             skipped: 0,
         }))
@@ -60,7 +60,7 @@ impl ITerminalFactory for Factory {
         }
         self.0.trace.lock().unwrap().push(Trace::Restore(
             checkpoint.descriptor.processed.offset,
-            checkpoint.descriptor.control_generation,
+            checkpoint.descriptor.control_generation.get(),
         ));
         self.0.alive.fetch_add(1, Ordering::AcqRel);
         Ok(Box::new(Terminal {
@@ -77,7 +77,7 @@ struct Terminal {
     probe: Arc<Probe>,
     bytes: Vec<u8>,
     size: TerminalSize,
-    generation: u64,
+    generation: ControlGeneration,
     history: usize,
     skipped: u64,
 }
@@ -116,19 +116,23 @@ impl ITerminal for Terminal {
             Vec::new()
         }))
     }
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError> {
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError> {
         assert!(self.history == 0 || self.probe.live_restore.load(Ordering::Acquire));
         if self.probe.fail_resize.load(Ordering::Acquire) {
             return Err(TerminalError::EngineFailure);
         }
-        assert_eq!(generation, self.generation + 1);
+        assert_eq!(Some(generation), self.generation.next());
         self.generation = generation;
         self.size = size;
         self.probe
             .trace
             .lock()
             .unwrap()
-            .push(Trace::Resize(generation));
+            .push(Trace::Resize(generation.get()));
         Ok(())
     }
     fn view(&mut self) -> Result<TerminalView, TerminalError> {
@@ -185,7 +189,7 @@ impl ITerminal for Terminal {
     ) -> Result<TerminalCheckpoint, TerminalError> {
         self.probe.trace.lock().unwrap().push(Trace::Encode(
             descriptor.processed.offset,
-            descriptor.control_generation,
+            descriptor.control_generation.get(),
         ));
         let barrier = self.probe.encode_barrier.lock().unwrap().take();
         if let Some(barrier) = barrier {
@@ -198,7 +202,10 @@ impl ITerminal for Terminal {
             .wrong_checkpoint_descriptor
             .load(Ordering::Acquire)
         {
-            descriptor.control_generation += 1;
+            descriptor.control_generation = descriptor
+                .control_generation
+                .next()
+                .expect("synthetic descriptor generation cannot exhaust");
         }
         let mut bytes = Vec::with_capacity(
             self.probe

@@ -1,5 +1,6 @@
 use super::support::*;
 use crate::projection::*;
+use pty_runtime_domain::terminal::ControlGeneration;
 use pty_runtime_domain::{SessionLifetime, process::DrainOutcome, terminal::TerminalSize};
 use std::{
     future::Future,
@@ -44,12 +45,15 @@ fn snapshot_boundary_and_independent_byte_control_order_are_exact() {
     let resize = event(&first, cursor);
     assert!(matches!(
         resize.kind(),
-        TransferEventKind::Resize { generation: 1, .. }
+        TransferEventKind::Resize { generation: g, .. } if g == ControlGeneration::from_raw(1)
     ));
     assert_eq!(resize.after().processed, output.after().processed);
     let last = event(&first, resize.after().cursor);
     assert!(matches!(last.kind(), TransferEventKind::Output(b"last")));
-    assert_eq!(last.after().control_generation, 1);
+    assert_eq!(
+        last.after().control_generation,
+        ControlGeneration::from_raw(1)
+    );
     assert!(matches!(
         first.read(last.after().cursor),
         Ok(TransferRead::Pending)
@@ -78,7 +82,10 @@ fn retained_payload_and_control_slots_force_explicit_holes_until_consumers_drop(
         first.read(held.after().cursor),
         Err(TransferError::ResyncRequired { .. })
     ));
-    assert_eq!(h.owner.status().control_generation, 1);
+    assert_eq!(
+        h.owner.status().control_generation,
+        ControlGeneration::from_raw(1)
+    );
     // Final observer drop cannot release the consumer-held record's slot or bytes.
     drop(first);
     assert!(
@@ -195,7 +202,7 @@ fn parked_transfer_precedes_staged_mutation_and_rejected_io_releases_observer_pe
     h.step();
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
     h.owner.stage_output(b"after");
-    h.jobs.one();
+    h.jobs.run_one();
     h.pump();
     let (pin, observer) = result(&mut accepted).unwrap().into_parts();
     assert_eq!(pin.checkpoint().descriptor.processed.offset, 0);

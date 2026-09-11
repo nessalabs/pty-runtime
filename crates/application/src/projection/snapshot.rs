@@ -1,6 +1,6 @@
 use super::{
     PinnedCheckpoint, ProjectionCoordinator, ProjectionError, StateTransfer, budgets::Lease,
-    journal::Journal, observation::Ticket, state::Engine,
+    journal::Journal, observation::Ticket, state::NativeWorkspace,
 };
 use std::sync::Arc;
 
@@ -51,22 +51,22 @@ impl SnapshotRequest {
     }
 }
 impl ProjectionCoordinator {
-    pub(super) fn snapshot(&self, engine: &mut Engine, request: SnapshotRequest) {
+    pub(super) fn snapshot(&self, workspace: &mut NativeWorkspace, request: SnapshotRequest) {
         if request.cancelled() {
             return;
         }
-        let result = Lease::one(
-            self.budgets.checkpoints.clone(),
-            engine.config.checkpoint_bytes,
+        let result = Lease::shared(
+            self.quotas.shared.checkpoints.clone(),
+            workspace.config.checkpoint_bytes,
         )
         .and_then(|lease| {
             let descriptor = self.descriptor();
-            let terminal = engine.terminal.as_mut().ok_or(ProjectionError::Closed)?;
+            let terminal = workspace.terminal.as_mut().ok_or(ProjectionError::Closed)?;
             let checkpoint = self.native_call(|| terminal.checkpoint(descriptor.clone()))?;
             if checkpoint.descriptor != descriptor {
                 return Err(ProjectionError::InvalidConfiguration);
             }
-            if checkpoint.bytes.capacity() > engine.config.checkpoint_bytes {
+            if checkpoint.bytes.capacity() > workspace.config.checkpoint_bytes {
                 return Err(ProjectionError::Capacity);
             }
             Ok(PinnedCheckpoint {
@@ -83,9 +83,7 @@ impl ProjectionCoordinator {
             request.complete(result, &self.journal);
         }
     }
-}
 
-impl ProjectionCoordinator {
     /// Admit a bounded checkpoint plus independent ordered continuation observer.
     /// Cancelling the wait releases provisional observer admission. A parked source
     /// supplies the snapshot without native restoration; staged mutations follow it.
@@ -93,18 +91,14 @@ impl ProjectionCoordinator {
         &self,
     ) -> Result<super::ProjectionOperation<StateTransfer>, ProjectionError> {
         let permit = self.journal.reserve_observer()?;
-        let (ticket, wait) = self.ticket()?;
-        let staging = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        core.queue.push_back(super::state::Event::Checkpoint(
-            SnapshotRequest::Transfer(ticket, permit),
-            staging,
-        ));
-        drop(core);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let staging = self.reserve_staging(0)?;
+        self.admit(|_| {
+            Ok(super::state::Command::Checkpoint(
+                SnapshotRequest::Transfer(ticket, permit),
+                staging,
+            ))
+        })?;
         Ok(wait)
     }
 }

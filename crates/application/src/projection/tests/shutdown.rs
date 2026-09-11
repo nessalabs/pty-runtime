@@ -20,9 +20,9 @@ fn closed_with_uncertain_source(h: &Harness) {
     assert_eq!(h.budgets.unreclaimed_sources(), 1);
     assert!(h.budgets.unreclaimed_reserved_bytes() > 0);
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
-    assert!(h.owner.services.lock().unwrap().is_none());
-    assert!(h.owner.handle.lock().unwrap().is_none());
-    assert!(h.owner.process.lock().unwrap().is_none());
+    assert!(h.owner.wiring.services().is_err());
+    assert!(h.owner.wiring.handle().is_none());
+    assert!(h.owner.wiring.process().is_none());
     let resources = h.budgets.resources();
     assert_eq!(resources.native_reservations.used, 0);
     assert_eq!(resources.checkpoint_buffers.used, 0);

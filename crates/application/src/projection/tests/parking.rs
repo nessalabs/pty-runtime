@@ -1,5 +1,6 @@
 use super::{support::*, terminal::Trace};
 use crate::{process::OutputAcceptance, projection::Residency, scheduling::IScheduledWork};
+use pty_runtime_domain::terminal::ControlGeneration;
 use pty_runtime_domain::terminal::TerminalSize;
 use std::sync::{Arc, Barrier, atomic::Ordering};
 #[test]
@@ -22,7 +23,10 @@ fn idle_park_restore_orders_bytes_resize_history_and_single_authoritative_reply(
         .1
         .clone();
     assert_eq!(stored.descriptor.processed.offset, 2);
-    assert_eq!(stored.descriptor.control_generation, 1);
+    assert_eq!(
+        stored.descriptor.control_generation,
+        ControlGeneration::from_raw(1)
+    );
     assert_eq!(h.owner.stage_output(b"?c"), OutputAcceptance::Accepted);
     h.pump();
     assert_eq!(h.owner.status().processed.offset, 4);
@@ -61,7 +65,7 @@ fn output_during_encode_is_bounded_and_stale_commit_never_releases_live_model() 
     worker.join().unwrap();
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 1);
     assert_eq!(h.jobs.len(), 1);
-    h.jobs.one();
+    h.jobs.run_one();
     h.pump();
     assert_eq!(h.owner.status().residency, Residency::Resident);
     assert_eq!(h.owner.status().processed.offset, 2);
@@ -81,14 +85,14 @@ fn output_during_commit_retains_model_and_cleanup_does_not_block_feed() {
     h.owner.stage_output(b"b");
     h.step();
     assert_eq!(h.owner.status().processed.offset, 2);
-    h.jobs.one();
+    h.jobs.run_one();
     h.step();
     assert_eq!(h.jobs.len(), 1); // stale-source deletion queued
     h.owner.stage_output(b"c");
     h.step();
     assert_eq!(h.owner.status().processed.offset, 3);
     assert_eq!(h.store.entries.lock().unwrap().len(), 1);
-    h.jobs.one();
+    h.jobs.run_one();
     h.pump();
     h.close();
 }
@@ -126,11 +130,11 @@ fn ready_view_captures_its_own_history_and_exact_order_boundary() {
     h.park();
     let mut view = h.owner.view().unwrap();
     h.step();
-    h.jobs.one();
+    h.jobs.run_one();
     h.step();
     let view = result(&mut view).unwrap();
     assert_eq!(view.processed().offset, 3);
-    assert_eq!(view.control_generation(), 0);
+    assert_eq!(view.control_generation(), ControlGeneration::from_raw(0));
     assert_eq!(
         view.restoration_progress(),
         pty_runtime_domain::terminal::RestorationProgress::Usable

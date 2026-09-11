@@ -4,6 +4,44 @@ mod view;
 pub use checkpoint::*;
 pub use view::*;
 
+/// How many ordered resizes the OS PTY and the terminal model have both applied.
+///
+/// This codebase has four unrelated monotonic `u64` counters, and before this
+/// type three of them were spelled `generation`: this one, the parking-operation
+/// counter in [`crate::checkpoint::CheckpointKey`], the capacity-signal
+/// generation, and the journal's transfer `sequence`. Only this one may be
+/// compared against a control position, so only this one is a `ControlGeneration`.
+///
+/// Advancing is deliberately `next()` rather than arithmetic: a control may only
+/// ever move forward by exactly one, and exhaustion is reported rather than
+/// wrapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct ControlGeneration(u64);
+
+impl ControlGeneration {
+    /// A model that has not applied any resize.
+    pub const INITIAL: Self = Self(0);
+
+    /// The only legal successor, or `None` once the counter is exhausted.
+    pub fn next(self) -> Option<Self> {
+        self.0.checked_add(1).map(Self)
+    }
+
+    /// Raw counter, for adapters that must serialize or compare it natively.
+    pub fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Build from a bare counter.
+    ///
+    /// No production path needs this — controls only ever advance through
+    /// [`Self::next`]. It exists so tests in other crates can construct a
+    /// specific generation, which a `#[cfg(test)]` seam here could not reach.
+    pub fn from_raw(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 /// Validated character-cell dimensions shared by process and terminal ports.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TerminalSize {
@@ -88,7 +126,10 @@ impl TerminalConfig {
 /// Stable, redacted terminal failures without native codes or payload data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerminalError {
-    /// Invalid dimensions or allocation policy.
+    /// A supplied value is malformed: invalid dimensions, an allocation policy
+    /// that cannot be satisfied, or an engine identity outside its byte bound.
+    /// Distinct from `IncompatibleCheckpoint`, which is a well-formed identity
+    /// that belongs to a different adapter.
     InvalidConfiguration,
     /// A configured buffer bound was exceeded.
     BudgetExceeded,
@@ -130,3 +171,6 @@ impl std::fmt::Debug for TerminalEffects {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests;

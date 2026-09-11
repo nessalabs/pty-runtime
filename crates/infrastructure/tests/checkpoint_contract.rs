@@ -27,12 +27,12 @@ fn sample(generation: u64) -> (CheckpointKey, TerminalCheckpoint) {
         },
         TerminalCheckpoint {
             descriptor: CheckpointDescriptor {
-                compatibility: "test-engine-v1".into(),
+                compatibility: CompatibilityId::new("test-engine-v1").unwrap(),
                 processed: ReplayCursor {
                     lifetime,
                     offset: 500,
                 },
-                control_generation: 3,
+                control_generation: ControlGeneration::from_raw(3),
             },
             bytes: b"private terminal state".to_vec(),
         },
@@ -153,8 +153,16 @@ fn ciphertext_corruption_truncation_wrong_key_and_metadata_replay_rejected() {
                 changed.processed.lifetime = changed_key.lifetime;
             }
             2 => changed.processed.offset += 1,
-            3 => changed.control_generation += 1,
-            _ => changed.compatibility.push('2'),
+            3 => {
+                changed.control_generation = changed
+                    .control_generation
+                    .next()
+                    .expect("generation advances")
+            }
+            _ => {
+                changed.compatibility =
+                    CompatibilityId::new(&format!("{}2", changed.compatibility.as_str())).unwrap()
+            }
         }
         let forged = ProtectedCheckpoint::new(
             changed_key,

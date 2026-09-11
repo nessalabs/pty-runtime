@@ -27,7 +27,7 @@ fn cancelled_parked_transfer_keeps_inflight_memory_charged_until_close_drains_re
     );
     // The accepted read can still produce plaintext after its consumer cancelled.
     // Closing must drain that ownership, then delete the immutable parked source.
-    assert!(h.jobs.one());
+    assert!(h.jobs.run_one());
     h.pump();
     result(&mut close).unwrap();
     assert_eq!(h.owner.status().residency, Residency::Closed);
@@ -42,5 +42,5 @@ fn cancelled_parked_transfer_keeps_inflight_memory_charged_until_close_drains_re
     assert_eq!(released.stored_slots.used, 0);
     assert_eq!(released.requests.used, 0);
     assert_eq!(released.staging_slots.used, 0);
-    assert!(h.owner.services.lock().unwrap().is_none());
+    assert!(h.owner.wiring.services().is_err());
 }

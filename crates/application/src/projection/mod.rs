@@ -16,8 +16,13 @@ pub use transfer::{
 };
 mod native;
 mod observation;
+mod queue;
+mod reaper;
 mod state;
 mod teardown;
+#[cfg(test)]
+mod tier;
+mod wiring;
 mod worker;
 
 pub use budgets::ProjectionBudgets;

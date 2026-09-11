@@ -1,7 +1,9 @@
 //! Isolated crash fixture and filesystem observations for the public disk adapter.
 use pty_runtime_application::checkpoint::ICheckpointStore;
 use pty_runtime_domain::{
-    ReplayCursor, SessionLifetime, checkpoint::*, terminal::CheckpointDescriptor,
+    ReplayCursor, SessionLifetime,
+    checkpoint::*,
+    terminal::{CheckpointDescriptor, CompatibilityId, ControlGeneration},
 };
 use pty_runtime_infrastructure::checkpoint::FileCheckpointStore;
 use std::{
@@ -20,12 +22,12 @@ pub fn protected(generation: u64) -> ProtectedCheckpoint {
             generation,
         },
         CheckpointDescriptor {
-            compatibility: "cleanup-fixture".into(),
+            compatibility: CompatibilityId::new("cleanup-fixture").unwrap(),
             processed: ReplayCursor {
                 lifetime,
                 offset: 60,
             },
-            control_generation: 0,
+            control_generation: ControlGeneration::from_raw(0),
         },
         vec![generation as u8; 60],
     )

@@ -17,7 +17,7 @@ pub struct TransferBoundary {
     /// Original PTY bytes successfully fed to the authoritative model.
     pub processed: ReplayCursor,
     /// Successful ordered OS/model resize generation.
-    pub control_generation: u64,
+    pub control_generation: crate::terminal::ControlGeneration,
 }
 /// Explicit continuation rejection; no gap is interpreted as an empty event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +48,22 @@ pub struct TransferEnd {
     pub projection_failure: Option<ProjectionError>,
 }
 /// Pure ordering/retention policy; application owns payloads and quota leases.
+///
+/// `sequence` counts successful model mutations, not bytes. A resize advances it
+/// without moving `processed`, which is what lets one cursor address both kinds
+/// of continuation event:
+///
+/// ```text
+///   start                    seq 0   processed 0    ctrl 0
+///   output(processed = 10)   seq 1   processed 10   ctrl 0
+///   resized(generation = 1)  seq 2   processed 10   ctrl 1   ← seq moves, bytes do not
+///   output(processed = 15)   seq 3   processed 15   ctrl 1
+///   seal(drain = Eof)        end = TransferEnd { boundary: seq 3, .. }
+/// ```
+///
+/// A cursor is only readable while it sits in `oldest ..= boundary.cursor`.
+/// Eviction (`discard_before`) raises `oldest`, so an observer that falls behind
+/// gets `ResyncRequired { oldest }` rather than a silently shortened stream.
 pub struct TransferOrder {
     boundary: TransferBoundary,
     oldest: u64,
@@ -68,7 +84,7 @@ impl TransferOrder {
                     lifetime,
                     offset: 0,
                 },
-                control_generation: 0,
+                control_generation: crate::terminal::ControlGeneration::INITIAL,
             },
             oldest: 0,
             end: None,
@@ -93,9 +109,12 @@ impl TransferOrder {
         Ok(self.boundary)
     }
     /// Advance exactly once after a successful ordered OS/model resize.
-    pub fn resized(&mut self, generation: u64) -> Result<TransferBoundary, TransferError> {
+    pub fn resized(
+        &mut self,
+        generation: crate::terminal::ControlGeneration,
+    ) -> Result<TransferBoundary, TransferError> {
         self.require_append()?;
-        if self.boundary.control_generation.checked_add(1) != Some(generation) {
+        if self.boundary.control_generation.next() != Some(generation) {
             return Err(TransferError::Unavailable);
         }
         self.advance()?;

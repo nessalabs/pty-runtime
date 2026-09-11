@@ -21,8 +21,8 @@ impl ITerminalFactory for GhosttyTerminalFactory {
             history_compression: true,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        COMPATIBILITY
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new(COMPATIBILITY)
     }
     fn create(&self, config: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         let config = config.validate()?;
@@ -41,7 +41,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
         Ok(Box::new(GhosttyTerminal {
             raw,
             config,
-            generation: 0,
+            generation: ControlGeneration::INITIAL,
             restoring: None,
             skipped_pages: 0,
             failed: false,
@@ -53,7 +53,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
         config: TerminalConfig,
     ) -> Result<Box<dyn ITerminal>, TerminalError> {
         let config = config.validate()?;
-        if checkpoint.descriptor.compatibility != COMPATIBILITY {
+        if checkpoint.descriptor.compatibility.as_str() != COMPATIBILITY {
             return Err(TerminalError::IncompatibleCheckpoint);
         }
         if checkpoint.bytes.len() > config.checkpoint_bytes {
@@ -97,7 +97,7 @@ impl ITerminalFactory for GhosttyTerminalFactory {
 pub struct GhosttyTerminal {
     raw: NonNull<c_void>,
     config: TerminalConfig,
-    generation: u64,
+    generation: ControlGeneration,
     restoring: Option<TerminalCheckpoint>,
     skipped_pages: u64,
     failed: bool,

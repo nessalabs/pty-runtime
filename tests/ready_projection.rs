@@ -55,7 +55,7 @@ impl ITerminalFactory for Factory {
     fn capabilities(&self) -> TerminalCapabilities {
         GhosttyTerminalFactory.capabilities()
     }
-    fn compatibility(&self) -> &'static str {
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
         GhosttyTerminalFactory.compatibility()
     }
     fn create(&self, c: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
@@ -88,7 +88,7 @@ impl ITerminal for Terminal {
     fn feed(&mut self, b: &[u8]) -> Result<TerminalEffects, TerminalError> {
         self.0.feed(b)
     }
-    fn resize(&mut self, s: TerminalSize, g: u64) -> Result<(), TerminalError> {
+    fn resize(&mut self, s: TerminalSize, g: ControlGeneration) -> Result<(), TerminalError> {
         self.0.resize(s, g)
     }
     fn view(&mut self) -> Result<TerminalView, TerminalError> {

@@ -1,7 +1,8 @@
 //! Replaceable terminal engine boundary. Implementations own native resources.
 use pty_runtime_domain::terminal::{
-    CheckpointDescriptor, RestorationProgress, TerminalCapabilities, TerminalCheckpoint,
-    TerminalConfig, TerminalEffects, TerminalError, TerminalHistory, TerminalSize, TerminalView,
+    CheckpointDescriptor, CompatibilityId, ControlGeneration, RestorationProgress,
+    TerminalCapabilities, TerminalCheckpoint, TerminalConfig, TerminalEffects, TerminalError,
+    TerminalHistory, TerminalSize, TerminalView,
 };
 
 /// Creates exclusive terminal owners; implementations reject unsupported contracts.
@@ -9,7 +10,12 @@ pub trait ITerminalFactory: Send + Sync {
     /// Features guaranteed by terminals made by this factory.
     fn capabilities(&self) -> TerminalCapabilities;
     /// Opaque binary compatibility identity for checkpoint descriptors.
-    fn compatibility(&self) -> &'static str;
+    ///
+    /// Adapters validate their own identity, so a factory cannot introduce an
+    /// empty or unbounded one. Every other method on this port already trades in
+    /// domain types; this one used to hand back a raw string and leave the
+    /// conversion to the application.
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError>;
     /// Validate limits before native allocation; no stub or empty fallback on failure.
     fn create(&self, config: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError>;
     /// Restore usable active state. Consumes and retains bounded bytes until history completes.
@@ -30,7 +36,11 @@ pub trait ITerminal: Send {
     fn feed(&mut self, bytes: &[u8]) -> Result<TerminalEffects, TerminalError>;
     /// Apply one ordered resize, requiring generation exactly one above the previous control.
     /// HistoryIncomplete leaves control unapplied; finish restoration before retrying.
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError>;
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError>;
     /// Copy active cells into domain values with no references to mutable engine memory.
     fn view(&mut self) -> Result<TerminalView, TerminalError>;
     /// Copy retained rows into domain values, oldest first, without moving any

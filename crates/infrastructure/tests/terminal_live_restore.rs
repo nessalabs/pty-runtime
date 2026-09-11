@@ -15,12 +15,12 @@ fn fixture() -> (TerminalConfig, TerminalCheckpoint) {
     terminal.feed(b"\x1b[3").unwrap();
     let checkpoint = terminal
         .checkpoint(CheckpointDescriptor {
-            compatibility: GhosttyTerminalFactory.compatibility().into(),
+            compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
             processed: ReplayCursor {
                 lifetime: SessionLifetime::new(8, 1),
                 offset: 8192,
             },
-            control_generation: 0,
+            control_generation: ControlGeneration::from_raw(0),
         })
         .unwrap();
     (config, checkpoint)
@@ -46,7 +46,10 @@ fn live_resize_and_quota_pressure_report_validated_but_inapplicable_history() {
         terminal.feed(b"1mLIVE\x1b[0m").unwrap();
         if resize {
             terminal
-                .resize(TerminalSize::new(91, 27).unwrap(), 1)
+                .resize(
+                    TerminalSize::new(91, 27).unwrap(),
+                    ControlGeneration::from_raw(1),
+                )
                 .unwrap();
         }
         let first = terminal.restore_history_step().unwrap();
@@ -88,7 +91,10 @@ fn skipped_history_still_requires_valid_finish_and_rejects_future_mutation() {
     checkpoint.bytes.pop(); // READY and history survive; FINISH is incomplete.
     let mut terminal = GhosttyTerminalFactory.restore(checkpoint, config).unwrap();
     terminal
-        .resize(TerminalSize::new(91, 27).unwrap(), 1)
+        .resize(
+            TerminalSize::new(91, 27).unwrap(),
+            ControlGeneration::from_raw(1),
+        )
         .unwrap();
     assert_eq!(
         terminal.restore_history_step().unwrap(),

@@ -94,7 +94,7 @@ fn native_feed_panic_preserves_unprocessed_staging_and_rejects_projection_operat
     assert_eq!(h.owner.status().failure, Some(ProjectionError::Worker));
     assert_eq!(h.owner.status().processed.offset, 0);
     assert_eq!(h.owner.status().published.offset, 9);
-    assert_eq!(h.owner.core.lock().unwrap().queue.len(), 1);
+    assert_eq!(h.owner.queue.queued(), 1);
     assert!(matches!(h.owner.view(), Err(ProjectionError::Worker)));
     h.close();
 }
@@ -166,4 +166,20 @@ fn resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smal
     h.pump();
     assert!(result(&mut third).is_ok());
     h.close();
+}
+
+/// An empty chunk is accepted without being queued, so it must not wake the
+/// worker or touch projection state.
+///
+/// `IProcessEvents::output` permits an empty slice, and `stage_output` is public
+/// API. A projection whose scheduler registration has already been released --
+/// the state after cleanup -- would otherwise turn a no-op chunk into a worker
+/// failure, because waking a released handle reports `Worker`.
+#[test]
+fn empty_output_chunk_is_accepted_without_waking_or_failing() {
+    let h = Harness::standard();
+    h.owner.wiring.inject_handle(None);
+    assert_eq!(h.owner.stage_output(b""), OutputAcceptance::Accepted);
+    assert!(h.owner.status().failure.is_none());
+    assert_eq!(h.owner.queue.queued(), 0);
 }

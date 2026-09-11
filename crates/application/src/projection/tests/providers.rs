@@ -149,7 +149,10 @@ impl ICheckpointProtector for Protector {
         plaintext.reserve(self.opened_capacity.load(Ordering::Acquire));
         let mut descriptor = descriptor.clone();
         if self.wrong_open_descriptor.load(Ordering::Acquire) {
-            descriptor.control_generation += 1;
+            descriptor.control_generation = descriptor
+                .control_generation
+                .next()
+                .expect("synthetic descriptor generation cannot exhaust");
         }
         Ok(TerminalCheckpoint {
             descriptor,

@@ -1,34 +1,25 @@
 use super::{
     PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionError, ProjectionOperation,
     Residency, ResizeOutcome,
-    budgets::{Lease, StagingLease},
+    budgets::StagingLease,
     observation::Ticket,
-    state::Event,
+    queue::{CloseRequest, OutputAdmission, OutputOutcome},
+    state::Command,
 };
 use crate::process::OutputAcceptance;
 use pty_runtime_domain::terminal::TerminalSize;
 use std::sync::{Arc, atomic::Ordering};
 impl ProjectionCoordinator {
-    pub(super) fn staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
+    pub(super) fn reserve_staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
         // Zero-payload controls already hold a bounded request ticket. Output
         // must not consume their admission; both remain in the same FIFO queue.
-        let slots = if bytes == 0 {
-            None
+        let (slots, bytes) = if bytes == 0 {
+            (None, None)
         } else {
-            Some(Lease::pair(
-                self.budgets.staging_slots.clone(),
-                self.local_slots.clone(),
-                1,
-            )?)
-        };
-        let bytes = if bytes == 0 {
-            None
-        } else {
-            Some(Lease::pair(
-                self.budgets.staging_bytes.clone(),
-                self.local_bytes.clone(),
-                bytes,
-            )?)
+            (
+                Some(self.quotas.staging_slot()?),
+                Some(self.quotas.staging_bytes(bytes)?),
+            )
         };
         Ok(StagingLease {
             timing: None,
@@ -37,15 +28,10 @@ impl ProjectionCoordinator {
             signal: self.services()?.capacity,
         })
     }
-    pub(super) fn ticket<T: Send + 'static>(
+    pub(super) fn reserve_request_slot<T: Send + 'static>(
         &self,
     ) -> Result<(Arc<Ticket<T>>, ProjectionOperation<T>), ProjectionError> {
-        let lease = Lease::pair(
-            self.budgets.requests.clone(),
-            self.local_requests.clone(),
-            1,
-        )?;
-        Ok(Ticket::new(Some(lease)))
+        Ok(Ticket::new(Some(self.quotas.request_slot()?)))
     }
     /// Admit an entire reader chunk once. Rejection neither copies nor advances positions.
     /// Replay publication must follow Accepted; evictable replay never backs this queue.
@@ -67,46 +53,51 @@ impl ProjectionCoordinator {
         };
         let generation = services.capacity.generation();
         self.stall_generation.store(generation, Ordering::Release);
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        if matches!(
-            core.policy.status().residency,
-            Residency::Closing | Residency::Closed
-        ) {
-            return OutputAcceptance::Closed;
-        }
-        if core.output_drain.is_some() {
-            return OutputAcceptance::Closed;
-        }
-        if bytes.is_empty() {
-            return OutputAcceptance::Accepted;
-        }
-        if bytes.len() > self.options.terminal.feed_bytes {
-            return OutputAcceptance::Backpressure;
-        }
-        let Ok(mut lease) = self.staging(bytes.len()) else {
-            return OutputAcceptance::Backpressure;
-        };
-        let mut owned = Vec::new();
-        if owned.try_reserve_exact(bytes.len()).is_err() {
-            return OutputAcceptance::Backpressure;
-        }
-        owned.extend_from_slice(bytes);
-        if core
-            .policy
-            .admit_output(bytes.len(), services.clock.now())
-            .is_err()
-        {
-            return OutputAcceptance::Closed;
-        }
-        lease.timing = observed.map(|(diagnostics, started)| {
-            crate::diagnostics::Timing::new(
-                diagnostics,
-                crate::diagnostics::LatencyKind::ProjectedOutput,
-                started,
-            )
+        let admitted = self.queue.admit_output(|admission| {
+            if matches!(
+                admission.residency(),
+                Residency::Closing | Residency::Closed
+            ) {
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
+            }
+            if admission.is_draining() {
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
+            }
+            if bytes.is_empty() {
+                return OutputAdmission::Nothing;
+            }
+            if bytes.len() > self.wiring.options.terminal.feed_bytes {
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
+            }
+            let Ok(mut lease) = self.reserve_staging(bytes.len()) else {
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
+            };
+            let mut owned = Vec::new();
+            if owned.try_reserve_exact(bytes.len()).is_err() {
+                return OutputAdmission::Rejected(OutputAcceptance::Backpressure);
+            }
+            owned.extend_from_slice(bytes);
+            if admission
+                .admit_output_bytes(bytes.len(), services.clock.now())
+                .is_err()
+            {
+                return OutputAdmission::Rejected(OutputAcceptance::Closed);
+            }
+            lease.timing = observed.map(|(diagnostics, started)| {
+                crate::diagnostics::Timing::new(
+                    diagnostics,
+                    crate::diagnostics::LatencyKind::ProjectedOutput,
+                    started,
+                )
+            });
+            OutputAdmission::Queue(Command::Output(owned, lease))
         });
-        core.queue.push_back(Event::Output(owned, lease));
-        drop(core);
+        match admitted {
+            OutputOutcome::Rejected(rejection) => return rejection,
+            // Nothing was queued, so there is nothing for the worker to do.
+            OutputOutcome::Accepted => return OutputAcceptance::Accepted,
+            OutputOutcome::Queued => (),
+        }
         // Accepted staging is never rolled back after ownership transfer, even if
         // scheduler failure is reported. Failure preserves bytes for diagnostics.
         if self.wake().is_err() {
@@ -129,98 +120,91 @@ impl ProjectionCoordinator {
         timing: Option<crate::diagnostics::Timing>,
     ) -> Result<ProjectionOperation<ResizeOutcome>, ProjectionError> {
         let services = self.services()?;
-        let (ticket, wait) = self.ticket()?;
-        let mut lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        if core.output_drain.is_some() {
-            return Err(ProjectionError::Closed);
-        }
-        core.policy.activity(services.clock.now())?;
-        lease.timing = timing;
-        core.queue.push_back(Event::Resize(size, ticket, lease));
-        drop(core);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let mut lease = self.reserve_staging(0)?;
+        self.admit(|admission| {
+            if admission.is_draining() {
+                return Err(ProjectionError::Closed);
+            }
+            admission.record_activity(services.clock.now())?;
+            lease.timing = timing;
+            Ok(Command::Resize(size, ticket, lease))
+        })?;
         Ok(wait)
     }
     /// Queue a bounded copied observation. Restores a parked model; complete history
     /// remains an explicit residency fact rather than being inferred from visible cells.
     pub fn view(&self) -> Result<ProjectionOperation<ProjectedView>, ProjectionError> {
-        let (ticket, wait) = self.ticket()?;
-        let lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        core.queue.push_back(Event::View(ticket, lease));
-        drop(core);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let lease = self.reserve_staging(0)?;
+        self.admit(|_| Ok(Command::View(ticket, lease)))?;
         Ok(wait)
     }
     /// Queue an immutable binary transfer pin at an exact byte/control boundary.
     /// A parked model supplies its saved source without restoring a native owner.
     pub fn checkpoint(&self) -> Result<ProjectionOperation<PinnedCheckpoint>, ProjectionError> {
-        let (ticket, wait) = self.ticket()?;
-        let lease = self.staging(0)?;
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        self.accepting(&core)?;
-        core.queue.push_back(Event::Checkpoint(
-            super::snapshot::SnapshotRequest::Checkpoint(ticket),
-            lease,
-        ));
-        drop(core);
-        if let Err(error) = self.wake() {
-            self.fail(error);
-        }
+        let (ticket, wait) = self.reserve_request_slot()?;
+        let lease = self.reserve_staging(0)?;
+        self.admit(|_| {
+            Ok(Command::Checkpoint(
+                super::snapshot::SnapshotRequest::Checkpoint(ticket),
+                lease,
+            ))
+        })?;
         Ok(wait)
     }
     /// Invalidate pending publication and schedule source cleanup. The runtime retains
     /// this coordinator until the returned wait resolves. If wait admission is full,
     /// closure is still requested and the caller receives Capacity; inspect status.
     pub fn close(&self) -> Result<ProjectionOperation<()>, ProjectionError> {
-        let pair = self.ticket();
-        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-        if core.policy.status().residency == Residency::Closed {
-            let outcome = core.cleanup_failure.map_or(Ok(()), Err);
-            drop(core);
-            if let Ok((ticket, _)) = &pair {
-                ticket.complete(outcome);
+        let pair = self.reserve_request_slot();
+        let waiter = pair.as_ref().ok().map(|(ticket, _)| ticket);
+        match self.queue.request_close(waiter) {
+            CloseRequest::AlreadyClosed(outcome) => {
+                if let Ok((ticket, _)) = &pair {
+                    ticket.complete(outcome);
+                }
             }
-        } else {
-            core.policy.close();
-            core.cleanup_failure = None;
-            core.retry_cleanup = true;
-            if let Ok((ticket, _)) = &pair {
-                core.close_waiters.push(ticket.clone());
-            }
-            let rejected = std::mem::take(&mut core.queue);
-            drop(core);
-            self.journal.close();
-            for event in rejected {
-                event.fail(ProjectionError::Closed);
-            }
-            if let Ok(services) = self.services() {
-                services.capacity.notify();
-            }
-            // An already scheduled worker may finish closure and release its
-            // handle before this wake. Preserve its durable cleanup result;
-            // an unfinished close still reports a genuine scheduler failure.
-            match self.wake() {
-                Err(error) if self.close_outcome().is_none() => return Err(error),
-                _ => (),
+            CloseRequest::Started(rejected) => {
+                self.journal.close();
+                for event in rejected {
+                    event.fail(ProjectionError::Closed);
+                }
+                if let Ok(services) = self.services() {
+                    services.capacity.notify();
+                }
+                // An already scheduled worker may finish closure and release its
+                // handle before this wake. Preserve its durable cleanup result;
+                // an unfinished close still reports a genuine scheduler failure.
+                match self.wake() {
+                    Err(error) if self.close_outcome().is_none() => return Err(error),
+                    _ => (),
+                }
             }
         }
         pair.map(|(_, wait)| wait)
     }
-    pub(super) fn accepting(&self, core: &super::state::Core) -> Result<(), ProjectionError> {
-        let status = core.policy.status();
-        if matches!(status.residency, Residency::Closing | Residency::Closed) {
-            return Err(ProjectionError::Closed);
-        }
-        if let Some(error) = status.failure {
-            return Err(error);
+    /// Admit one command into the ordered queue and wake the worker.
+    ///
+    /// `build` runs under the admission lock, so it can apply any additional
+    /// per-command checks and policy updates atomically with the push. Returning
+    /// an error from it leaves the queue untouched and releases the guard, which
+    /// drops whatever leases the caller had reserved.
+    ///
+    /// The guard is deliberately owned and dropped *here* rather than by the
+    /// caller: `fail` re-acquires the admission lock, so waking while still
+    /// holding it would deadlock. Keeping that ordering inside this one function
+    /// means no call site can get it wrong.
+    ///
+    /// Once the push succeeds the command owns its leases, so a scheduler
+    /// failure fails the projection instead of rolling the admission back.
+    pub(super) fn admit(
+        &self,
+        build: impl FnOnce(&mut super::queue::Admitting<'_>) -> Result<Command, ProjectionError>,
+    ) -> Result<(), ProjectionError> {
+        self.queue.admit(build)?;
+        if let Err(error) = self.wake() {
+            self.fail(error);
         }
         Ok(())
     }

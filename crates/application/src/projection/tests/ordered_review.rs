@@ -64,7 +64,11 @@ impl ITerminal for PausedFeed {
         self.barrier.wait();
         self.inner.feed(bytes)
     }
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError> {
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError> {
         self.inner.resize(size, generation)
     }
     fn view(&mut self) -> Result<TerminalView, TerminalError> {
@@ -93,9 +97,9 @@ fn failed_end_stays_immutable_when_an_inflight_native_feed_returns_success() {
     let boundary = observer.boundary();
     let barrier = Arc::new(Barrier::new(2));
     {
-        let mut engine = h.owner.engine.lock().unwrap();
-        let inner = engine.terminal.take().unwrap();
-        engine.terminal = Some(Box::new(PausedFeed {
+        let mut workspace = h.owner.workspace.lock().unwrap();
+        let inner = workspace.terminal.take().unwrap();
+        workspace.terminal = Some(Box::new(PausedFeed {
             inner,
             barrier: barrier.clone(),
         }));
@@ -150,21 +154,15 @@ fn parked_snapshot_io_does_not_delay_an_existing_observers_end() {
     let mut snapshot = h.owner.begin_transfer().unwrap();
     h.step();
     assert!(matches!(
-        h.owner
-            .engine
-            .lock()
-            .unwrap()
-            .io
-            .as_ref()
-            .map(|io| &io.kind),
-        Some(crate::projection::state::IoKind::Transfer { .. })
+        h.owner.workspace.lock().unwrap().io.as_ref(),
+        Some(crate::projection::state::PendingIo::Transfer { .. })
     ));
     h.owner
         .notify_output_drained(pty_runtime_domain::process::DrainOutcome::Eof);
     // The executor job remains queued: no provider read result exists yet.
     h.step();
     assert!(matches!(observer.read(cursor), Ok(TransferRead::End(_))));
-    assert!(h.jobs.one());
+    assert!(h.jobs.run_one());
     h.pump();
     result(&mut snapshot).unwrap();
     h.close();

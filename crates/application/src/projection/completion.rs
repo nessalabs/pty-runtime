@@ -1,106 +1,88 @@
 use super::{
     PinnedCheckpoint, ProjectionCoordinator, ProjectionError, Residency,
-    state::{CommitOutcome, Engine, IoKind, IoResult, Stored, Unreclaimed},
+    state::{
+        CommitOutcome, CommittedSource, NativeWorkspace, PendingIo, UnreclaimedSource, collect,
+    },
 };
 use pty_runtime_domain::terminal::RestorationProgress;
 impl ProjectionCoordinator {
-    pub(super) fn finish_io(&self, engine: &mut Engine) {
+    /// Apply the result of the one blocking job, if it has finished.
+    ///
+    /// Each arm reads its own typed mailbox, so a result can only ever be
+    /// interpreted as the kind of work that produced it. An empty or poisoned
+    /// mailbox is worker failure and nothing else.
+    pub(super) fn finish_io(&self, workspace: &mut NativeWorkspace) {
         let Ok(services) = self.services() else {
             return;
         };
-        let result = engine.io.as_ref().and_then(|pending| {
-            pending
-                .mailbox
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .take()
-        });
-        let Some(result) = result else { return };
-        let Some(pending) = engine.io.take() else {
+        if !workspace.io.as_ref().is_some_and(PendingIo::is_ready) {
+            return;
+        }
+        let Some(pending) = workspace.io.take() else {
             return;
         };
         let closing = matches!(
             self.status().residency,
             Residency::Closing | Residency::Closed
         );
-        match pending.kind {
-            IoKind::Commit {
+        match pending {
+            PendingIo::Commit {
                 attempt,
                 disk,
                 _memory: _,
+                mailbox,
             } => {
-                let result = match result {
-                    IoResult::Commit(result) => result,
-                    _ => CommitOutcome::Uncertain(ProjectionError::Worker),
-                };
+                // A panicked commit worker may have stored ciphertext before it
+                // died, so it is Uncertain rather than Rejected.
+                let result = collect(&mailbox).unwrap_or_else(CommitOutcome::Uncertain);
                 match result {
                     CommitOutcome::Published(reference) => {
-                        let source = Stored {
+                        let source = CommittedSource {
                             reference,
                             descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: services.terminal.compatibility().into(),
+                                compatibility: self.wiring.compatibility.clone(),
                                 processed: attempt.processed,
                                 control_generation: attempt.control_generation,
                             },
                             _disk: disk,
                         };
-                        let release = {
-                            let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                            let empty = core.queue.is_empty()
-                                && engine.reply.is_none()
-                                && engine.resize.is_none();
-                            core.policy.commit_park(attempt, empty)
-                        };
+                        let engine_idle = workspace.reply.is_none() && workspace.resize.is_none();
+                        let release = self.queue.commit_park(attempt, engine_idle);
                         if release {
                             // Logical release was atomic with the empty/activity check.
                             // Drop native state outside the aggregate lock; new output
                             // observes Parked and requests restoration on the next run.
-                            engine.terminal = None;
-                            engine.resident = None;
-                            engine.source = Some(source);
+                            workspace.terminal = None;
+                            workspace.resident = None;
+                            workspace.source = Some(source);
                         } else {
-                            engine.garbage.push_back((source, 0));
+                            workspace.reaper.retire(source);
                         }
                     }
                     CommitOutcome::Uncertain(error) => {
-                        let entry = Unreclaimed {
-                            _reference: None,
-                            _key: pty_runtime_domain::checkpoint::CheckpointKey {
-                                lifetime: attempt.processed.lifetime,
-                                generation: attempt.generation,
-                            },
-                            _descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
-                                compatibility: services.terminal.compatibility().into(),
-                                processed: attempt.processed,
-                                control_generation: attempt.control_generation,
-                            },
-                            _disk: disk,
-                        };
-                        self.budgets
-                            .unreclaimed
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .push(entry);
-                        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                        core.unreclaimed_failure = Some(error);
-                        core.policy.park_failed(error, services.clock.now());
+                        let entry = UnreclaimedSource::from_uncertain_park(
+                            &self.wiring.compatibility,
+                            attempt,
+                            disk,
+                        );
+                        self.quotas.shared.record_unreclaimed(entry);
+                        self.queue
+                            .park_outcome_uncertain(error, services.clock.now());
                     }
-                    CommitOutcome::Rejected(error) => self
-                        .core
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .policy
-                        .park_failed(error, services.clock.now()),
+                    CommitOutcome::Rejected(error) => {
+                        self.queue.park_failed(error, services.clock.now())
+                    }
                 }
             }
-            IoKind::Restore { resident, memory } => {
-                let checkpoint = match result {
-                    IoResult::Read(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
+            PendingIo::Restore {
+                resident,
+                memory,
+                mailbox,
+            } => {
+                let checkpoint = collect(&mailbox);
                 if !closing {
                     match checkpoint.and_then(|checkpoint| {
-                        self.native_call(|| services.terminal.restore(checkpoint, engine.config))
+                        self.native_call(|| services.terminal.restore(checkpoint, workspace.config))
                     }) {
                         Ok(terminal) => {
                             let progress =
@@ -108,25 +90,23 @@ impl ProjectionCoordinator {
                                     Ok(progress) => progress,
                                     Err(_) => return,
                                 };
-                            engine.terminal = Some(terminal);
-                            engine.resident = Some(resident);
-                            engine.restore_memory = Some(memory.plain);
-                            engine.history_due = false;
-                            self.history_progress(engine, progress);
+                            workspace.terminal = Some(terminal);
+                            workspace.resident = Some(resident);
+                            workspace.restore_memory = Some(memory.plain);
+                            workspace.history_step_owed = false;
+                            self.history_progress(workspace, progress);
                         }
                         Err(error) => self.fail(error),
                     }
                 }
             }
-            IoKind::Transfer {
+            PendingIo::Transfer {
                 request,
                 memory,
                 _staging: _,
+                mailbox,
             } => {
-                let result = match result {
-                    IoResult::Read(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
+                let result = collect(&mailbox);
                 request.complete(
                     if closing {
                         Err(ProjectionError::Closed)
@@ -139,37 +119,31 @@ impl ProjectionCoordinator {
                     &self.journal,
                 );
             }
-            IoKind::Delete { source, attempts } => {
-                let result = match result {
-                    IoResult::Delete(result) => result,
-                    _ => Err(ProjectionError::Worker),
-                };
-                if let Err(error) = result {
-                    engine.garbage.push_front((source, attempts + 1));
-                    if attempts + 1 >= self.options.max_park_attempts {
-                        let mut core = self.core.lock().unwrap_or_else(|e| e.into_inner());
-                        core.cleanup_failure = Some(error);
-                        core.policy.maintenance_failed(error);
+            PendingIo::Delete { attempt, mailbox } => {
+                // A successful delete drops the source here, releasing its disk
+                // reservation. A failure is only durable once retries are spent.
+                if let Err(error) = collect(&mailbox) {
+                    if let Some(error) = workspace.reaper.give_up_or_retry(attempt, error) {
+                        self.queue.maintenance_failed(error);
                     }
                 }
             }
         }
     }
-    pub(super) fn history_progress(&self, engine: &mut Engine, progress: RestorationProgress) {
-        let result = self
-            .core
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .policy
-            .restoration_progress(progress);
+    pub(super) fn history_progress(
+        &self,
+        workspace: &mut NativeWorkspace,
+        progress: RestorationProgress,
+    ) {
+        let result = self.queue.record_restoration_progress(progress);
         if let Err(error) = result {
             self.fail(error);
             return;
         }
         if progress.is_finished() {
-            engine.restore_memory = None;
-            if let Some(source) = engine.source.take() {
-                engine.garbage.push_back((source, 0));
+            workspace.restore_memory = None;
+            if let Some(source) = workspace.source.take() {
+                workspace.reaper.retire(source);
             }
         }
     }

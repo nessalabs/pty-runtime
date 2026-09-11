@@ -17,12 +17,12 @@ fn config() -> TerminalConfig {
 }
 fn descriptor() -> CheckpointDescriptor {
     CheckpointDescriptor {
-        compatibility: GhosttyTerminalFactory.compatibility().into(),
+        compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset: 0,
         },
-        control_generation: 0,
+        control_generation: ControlGeneration::from_raw(0),
     }
 }
 #[test]
@@ -38,13 +38,13 @@ fn rejects_invalid_dimensions_config_and_incompatible_checkpoints() {
     ));
     let mut t = GhosttyTerminalFactory.create(config()).unwrap();
     let mut checkpoint = t.checkpoint(descriptor()).unwrap();
-    checkpoint.descriptor.compatibility = "other-engine".into();
+    checkpoint.descriptor.compatibility = CompatibilityId::new("other-engine").unwrap();
     assert!(matches!(
         GhosttyTerminalFactory.restore(checkpoint, config()),
         Err(TerminalError::IncompatibleCheckpoint)
     ));
     let mut bad_descriptor = descriptor();
-    bad_descriptor.control_generation = 1;
+    bad_descriptor.control_generation = ControlGeneration::from_raw(1);
     assert!(matches!(
         t.checkpoint(bad_descriptor),
         Err(TerminalError::StaleControl)

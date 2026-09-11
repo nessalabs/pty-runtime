@@ -29,9 +29,13 @@ impl ITerminal for GhosttyTerminal {
         replies.truncate(len);
         Ok(TerminalEffects(replies))
     }
-    fn resize(&mut self, size: TerminalSize, generation: u64) -> Result<(), TerminalError> {
+    fn resize(
+        &mut self,
+        size: TerminalSize,
+        generation: ControlGeneration,
+    ) -> Result<(), TerminalError> {
         self.healthy()?;
-        if self.generation.checked_add(1) != Some(generation) {
+        if self.generation.next() != Some(generation) {
             return Err(TerminalError::StaleControl);
         }
         // SAFETY: Validated dimensions and exclusive live owner; callbacks stay in C.
@@ -52,7 +56,7 @@ impl ITerminal for GhosttyTerminal {
         descriptor: CheckpointDescriptor,
     ) -> Result<TerminalCheckpoint, TerminalError> {
         self.healthy()?;
-        if descriptor.compatibility != COMPATIBILITY {
+        if descriptor.compatibility.as_str() != COMPATIBILITY {
             return Err(TerminalError::IncompatibleCheckpoint);
         }
         if descriptor.control_generation != self.generation {

@@ -90,6 +90,11 @@ pub struct ProjectionOptions {
     pub retry_after: Duration,
     /// Maximum failed parking attempts per activity generation.
     pub max_park_attempts: u32,
+    /// Maximum failed deletions of one superseded checkpoint source before its
+    /// storage is treated as unreclaimable. Separate from `max_park_attempts`:
+    /// parking retries encode how hard to try to *create* a source, this one how
+    /// hard to try to *remove* one, and they fail for different reasons.
+    pub max_delete_attempts: u32,
 }
 impl ProjectionOptions {
     /// Default parking is enabled. Input bytes alone do not reset this policy.
@@ -105,6 +110,7 @@ impl ProjectionOptions {
             park_after: Duration::from_secs(60),
             retry_after: Duration::from_secs(5),
             max_park_attempts: 3,
+            max_delete_attempts: 3,
         }
     }
     /// Validate all finite bounds and checked copied-view allocation accounting.
@@ -128,6 +134,8 @@ impl ProjectionOptions {
             || self.retry_after > Duration::from_secs(86400 * 365)
             || self.max_park_attempts == 0
             || self.max_park_attempts > 100
+            || self.max_delete_attempts == 0
+            || self.max_delete_attempts > 100
         {
             return Err(ProjectionError::InvalidConfiguration);
         }

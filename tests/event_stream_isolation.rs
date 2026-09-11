@@ -1,5 +1,6 @@
 //! External sink backpressure and observer cancellation do not own PTY progress.
 #![cfg(feature = "event-stream")]
+use pty_runtime::terminal::ControlGeneration;
 #[path = "support/event_store.rs"]
 mod event_store;
 mod support;
@@ -254,7 +255,7 @@ async fn stalled_sink_does_not_block_parser_input_resize_or_cancel_and_later_rep
             if status.processed.offset>=expected { break; }
             assert!(status.failure.is_none()); tokio::time::sleep(Duration::from_millis(1)).await;
         }
-        let view=session.projected_view().unwrap().await.unwrap(); assert!(view.processed().offset>=expected); assert_eq!(view.control_generation(),1);
+        let view=session.projected_view().unwrap().await.unwrap(); assert!(view.processed().offset>=expected); assert_eq!(view.control_generation(),ControlGeneration::from_raw(1));
         session.cancel().unwrap(); let completion=session.wait().unwrap().await.unwrap(); assert!(completion.status.exit.is_some());
         drop(pending);
         assert_eq!(publisher.acknowledged_byte_cursor().offset,0);

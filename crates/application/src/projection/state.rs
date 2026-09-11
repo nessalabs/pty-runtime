@@ -1,26 +1,35 @@
 use super::{
     budgets::{DiskLease, IoMemory, Lease, StagingLease},
     observation::{ProjectedView, Ticket},
+    reaper::SourceReaper,
     snapshot::SnapshotRequest,
 };
 use crate::{process::ProcessOperation, terminal::ITerminal};
 use pty_runtime_domain::{
     checkpoint::CheckpointRef,
     projection::{ParkAttempt, ProjectionError, ProjectionPolicy, ResizeOutcome},
-    terminal::{CheckpointDescriptor, TerminalCheckpoint, TerminalSize},
+    terminal::{
+        CheckpointDescriptor, CompatibilityId, ControlGeneration, TerminalCheckpoint, TerminalSize,
+    },
 };
 use std::{
     collections::VecDeque,
     sync::{Arc, Mutex},
 };
 
-pub(super) enum Event {
+/// One admitted unit of work waiting in the ordered queue.
+///
+/// These are requests going *in*, not facts coming out — the observable facts a
+/// consumer reads back are `TransferEvent`s produced by the journal after the
+/// corresponding command succeeds. Every variant carries the `StagingLease` that
+/// admitted it, so dropping a command releases its quota exactly once.
+pub(super) enum Command {
     Output(Vec<u8>, StagingLease),
     Resize(TerminalSize, Arc<Ticket<ResizeOutcome>>, StagingLease),
     View(Arc<Ticket<ProjectedView>>, StagingLease),
     Checkpoint(SnapshotRequest, StagingLease),
 }
-impl Event {
+impl Command {
     pub fn fail(self, error: ProjectionError) {
         match self {
             Self::Resize(_, ticket, _) => ticket.complete(Err(error)),
@@ -30,28 +39,104 @@ impl Event {
         }
     }
 }
-pub(super) struct Core {
+/// Everything guarded by the *admission* lock: what has been accepted, and what
+/// the domain policy believes about it.
+///
+/// This is the half callers touch. It is deliberately separate from
+/// [`NativeWorkspace`] so that admitting output, reading status, or requesting
+/// cancellation never has to wait behind a native terminal operation:
+///
+/// ```text
+///   caller ──▶ [admission lock] ──▶ queue ──┐
+///                                           │ worker drains the queue while
+///   worker ──▶ [workspace lock] ──▶ native ─┘ holding the workspace lock
+/// ```
+///
+/// Locks are acquired downward through these tiers and never upward:
+///
+/// ```text
+///   tier 1  workspace            taken only by worker::run, worker::failed and
+///                                teardown::finish_after_shutdown
+///   tier 2  AdmissionQueue       under tier 1, or alone by callers
+///   tier 3  Wiring::{services,   leaves: taken, cloned or moved out of, and
+///           handle, process},    released before anything else runs. Never
+///           ProjectionBudgets::  held across a call to an injected port.
+///           unreclaimed,
+///           ICapacitySignal
+/// ```
+///
+/// Callers only ever take tier 2 and below, so they cannot invert the order
+/// against the worker.
+///
+/// Two things about this are easy to get wrong and are load-bearing:
+///
+/// - `Wiring::wake` clones the handle out and drops its guard *before* calling
+///   `wake()`, because the scheduler may re-enter this projection.
+/// - `StagingLease::drop` notifies the runtime-wide capacity signal, and a lease
+///   is dropped under tier 2 whenever admission rejects a chunk. That is a
+///   global lock taken under a per-session one — permitted by the tier order,
+///   but it means tier 3 genuinely includes runtime-shared locks, not just this
+///   projection's own slots.
+///
+/// Not on this chart, because they are never taken under tier 2: `Journal`,
+/// each `Ticket`, and each in-flight `Mailbox`. The journal and ticket locks
+/// *are* held while running arbitrary caller code (`Waker::wake`), which is why
+/// they take their wakers out of the guard before invoking them.
+pub(super) struct Admission {
     pub policy: ProjectionPolicy,
     pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,
-    pub queue: VecDeque<Event>,
+    pub queue: VecDeque<Command>,
     pub close_waiters: Vec<Arc<Ticket<()>>>,
     pub unreclaimed_failure: Option<ProjectionError>,
     pub cleanup_failure: Option<ProjectionError>,
     pub retry_cleanup: bool,
 }
-pub(super) struct Stored {
+pub(super) struct CommittedSource {
     pub reference: CheckpointRef,
     pub descriptor: CheckpointDescriptor,
     pub _disk: DiskLease,
 }
-pub(super) struct Unreclaimed {
+/// A source we failed to delete, or whose commit outcome was never confirmed.
+///
+/// Every field is read-never: this type exists purely to keep its `DiskLease`
+/// (and the identity that lease was charged against) alive, so the quota stays
+/// charged for storage we can no longer prove we released. Dropping one is the
+/// only thing that releases that charge, which is why the runtime holds these in
+/// a ledger for its whole lifetime rather than discarding them.
+pub(super) struct UnreclaimedSource {
     pub _reference: Option<CheckpointRef>,
     pub _key: pty_runtime_domain::checkpoint::CheckpointKey,
     pub _descriptor: CheckpointDescriptor,
     pub _disk: DiskLease,
 }
-impl From<Stored> for Unreclaimed {
-    fn from(source: Stored) -> Self {
+impl UnreclaimedSource {
+    /// Charge a park whose commit outcome was never confirmed.
+    ///
+    /// No `CheckpointRef` exists because the store never acknowledged one; the
+    /// key and descriptor are rebuilt from the attempt so the reservation stays
+    /// attributable to the storage it may have created.
+    pub fn from_uncertain_park(
+        compatibility: &CompatibilityId,
+        attempt: ParkAttempt,
+        disk: DiskLease,
+    ) -> Self {
+        Self {
+            _reference: None,
+            _key: pty_runtime_domain::checkpoint::CheckpointKey {
+                lifetime: attempt.processed.lifetime,
+                generation: attempt.generation,
+            },
+            _descriptor: CheckpointDescriptor {
+                compatibility: compatibility.clone(),
+                processed: attempt.processed,
+                control_generation: attempt.control_generation,
+            },
+            _disk: disk,
+        }
+    }
+}
+impl From<CommittedSource> for UnreclaimedSource {
+    fn from(source: CommittedSource) -> Self {
         Self {
             _reference: Some(source.reference),
             _key: source.reference.key,
@@ -77,51 +162,87 @@ impl Drop for Reply {
 }
 pub(super) struct Resizing {
     pub size: TerminalSize,
-    pub generation: u64,
+    pub generation: ControlGeneration,
     pub ticket: Arc<Ticket<ResizeOutcome>>,
     pub _staging: StagingLease,
     pub operation: ProcessOperation<Result<(), pty_runtime_domain::process::ProcessError>>,
 }
-pub(super) enum IoKind {
+/// Where a blocking worker publishes the result of exactly one job.
+///
+/// `None` means still running. A panicking job publishes `Err(Worker)` rather
+/// than leaving the slot empty, so a crashed worker can never look like one that
+/// is merely slow.
+pub(super) type Mailbox<T> = Arc<Mutex<Option<Result<T, ProjectionError>>>>;
+
+/// The single blocking job in flight, together with the state its completion
+/// needs and the mailbox it will publish into.
+///
+/// The mailbox payload type is per-variant on purpose: a `Delete` cannot be
+/// handed a checkpoint, and a `Restore` cannot be handed a commit outcome, so
+/// the "wrong result kind" case that used to need a defensive arm in every
+/// completion branch is now unrepresentable.
+pub(super) enum PendingIo {
     Commit {
         attempt: ParkAttempt,
         disk: DiskLease,
         _memory: IoMemory,
+        mailbox: Mailbox<CommitOutcome>,
     },
     Restore {
         resident: Lease,
         memory: IoMemory,
+        mailbox: Mailbox<TerminalCheckpoint>,
     },
     Transfer {
         request: SnapshotRequest,
         memory: IoMemory,
         _staging: StagingLease,
+        mailbox: Mailbox<TerminalCheckpoint>,
     },
     Delete {
-        source: Stored,
-        attempts: u32,
+        attempt: super::reaper::DeleteAttempt,
+        mailbox: Mailbox<()>,
     },
 }
-pub(super) enum IoResult {
-    Failure,
-    Commit(CommitOutcome),
-    Read(Result<TerminalCheckpoint, ProjectionError>),
-    Delete(Result<(), ProjectionError>),
+impl PendingIo {
+    /// Whether the blocking worker has published a result yet.
+    pub fn is_ready(&self) -> bool {
+        fn ready<T>(mailbox: &Mailbox<T>) -> bool {
+            mailbox.lock().unwrap_or_else(|e| e.into_inner()).is_some()
+        }
+        match self {
+            Self::Commit { mailbox, .. } => ready(mailbox),
+            Self::Restore { mailbox, .. } => ready(mailbox),
+            Self::Transfer { mailbox, .. } => ready(mailbox),
+            Self::Delete { mailbox, .. } => ready(mailbox),
+        }
+    }
 }
-pub(super) type IoMailbox = Arc<Mutex<Option<IoResult>>>;
-pub(super) struct PendingIo {
-    pub kind: IoKind,
-    pub mailbox: IoMailbox,
+/// Take a published result, treating an empty or poisoned slot as worker failure.
+pub(super) fn collect<T>(mailbox: &Mailbox<T>) -> Result<T, ProjectionError> {
+    mailbox
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take()
+        .unwrap_or(Err(ProjectionError::Worker))
 }
-pub(super) struct Engine {
+/// Everything guarded by the *workspace* lock: exclusive ownership of the native
+/// terminal and of whatever operation is currently in flight against it.
+///
+/// Only the worker touches this. Holding it means "I am the one driving the
+/// engine right now", which is what lets [`ITerminal`] be a `&mut self` trait
+/// without any interior locking of its own. `terminal` is `None` while the model
+/// is parked or being restored; `io` holds at most one outstanding blocking job.
+pub(super) struct NativeWorkspace {
     pub config: pty_runtime_domain::terminal::TerminalConfig,
-    pub history_due: bool,
+    pub history_step_owed: bool,
     pub terminal: Option<Box<dyn ITerminal>>,
     pub resident: Option<Lease>,
-    pub source: Option<Stored>,
+    pub source: Option<CommittedSource>,
     pub restore_memory: Option<Lease>,
     pub io: Option<PendingIo>,
     pub reply: Option<Reply>,
     pub resize: Option<Resizing>,
-    pub garbage: VecDeque<(Stored, u32)>,
+    /// Superseded sources awaiting bounded deletion, with their retry policy.
+    pub reaper: SourceReaper,
 }

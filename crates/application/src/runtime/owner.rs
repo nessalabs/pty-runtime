@@ -1,6 +1,7 @@
 use super::{
     ISessionRepository, RuntimeError, RuntimeOptions, Session, SessionContext, SessionOptions,
-    context::Events, lifecycle::AdmissionGate, projected::ProjectionRuntime, quota::Quota,
+    context::SessionEventSink, lifecycle::AdmissionGate, projected::ProjectionRuntime,
+    quota::Quota,
 };
 use crate::{process::IProcessBackend, projection::ProjectionServices};
 use pty_runtime_domain::{
@@ -123,7 +124,7 @@ impl Runtime {
                         .map_err(|_| RuntimeError::Internal)? = Some(projection);
                 }
                 Err(error) => {
-                    context.record(|state| {
+                    context.update_and_notify(|state| {
                         state.status.record_admission_failure(error);
                         let _ = state.status.record_drain(DrainOutcome::Eof);
                     });
@@ -132,7 +133,7 @@ impl Runtime {
                 }
             }
         }
-        let events = Arc::new(Events(Arc::downgrade(&context)));
+        let events = Arc::new(SessionEventSink(Arc::downgrade(&context)));
         match self
             .backend
             .spawn(command, options.size, lifetime, options.process, events)
@@ -153,7 +154,7 @@ impl Runtime {
                 Ok(Session { context })
             }
             Err(error) => {
-                context.record(|state| {
+                context.update_and_notify(|state| {
                     state.status.record_failure(error);
                     let _ = state
                         .status

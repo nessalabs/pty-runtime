@@ -74,6 +74,7 @@ fn forget_preserves_delete_and_uncertain_commit_failures_including_repeated_call
         projection.park_after = Duration::from_millis(1);
         projection.retry_after = Duration::from_millis(1);
         projection.max_park_attempts = 1;
+        projection.max_delete_attempts = 1;
         let id = SessionId::new("cleanup".into()).unwrap();
         let session = runtime
             .spawn(

@@ -16,9 +16,13 @@ fn config(cols: u16) -> TerminalConfig {
         view_bytes: 1024 * 1024,
     }
 }
-fn restore(t: &mut dyn ITerminal, c: TerminalConfig, generation: u64) -> Box<dyn ITerminal> {
+fn restore(
+    t: &mut dyn ITerminal,
+    c: TerminalConfig,
+    generation: ControlGeneration,
+) -> Box<dyn ITerminal> {
     let descriptor = CheckpointDescriptor {
-        compatibility: GhosttyTerminalFactory.compatibility().into(),
+        compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
         processed: ReplayCursor {
             lifetime: SessionLifetime::new(1, 1),
             offset: 0,
@@ -55,8 +59,8 @@ fn alternate_pending_wrap_survives_snapshot_after_widening() {
     t.feed(b"\x1b[?1049h").unwrap();
     t.feed(&[b'x'; 53]).unwrap();
     c.size = TerminalSize::new(100, 15).unwrap();
-    t.resize(c.size, 1).unwrap();
-    let mut restored = restore(t.as_mut(), c, 1);
+    t.resize(c.size, ControlGeneration::from_raw(1)).unwrap();
+    let mut restored = restore(t.as_mut(), c, ControlGeneration::from_raw(1));
     same_after(t.as_mut(), restored.as_mut(), b"Z");
 }
 
@@ -67,7 +71,7 @@ fn custom_right_margin_pending_wrap_survives_snapshot() {
     t.feed(b"\x1b[?69h\x1b[1;5sabcde").unwrap();
     assert_eq!(t.view().unwrap().cursor.col, 4);
     assert!(t.view().unwrap().cursor.pending_wrap);
-    let mut restored = restore(t.as_mut(), c, 0);
+    let mut restored = restore(t.as_mut(), c, ControlGeneration::from_raw(0));
     same_after(t.as_mut(), restored.as_mut(), b"Z\x1b[6n");
 }
 
@@ -77,7 +81,7 @@ fn saved_cursor_pending_wrap_at_custom_margin_survives_snapshot() {
     let mut t = GhosttyTerminalFactory.create(c).unwrap();
     t.feed(b"\x1b[?69h\x1b[1;5sabcde\x1b7\x1b[H").unwrap();
     assert!(!t.view().unwrap().cursor.pending_wrap);
-    let mut restored = restore(t.as_mut(), c, 0);
+    let mut restored = restore(t.as_mut(), c, ControlGeneration::from_raw(0));
     same_after(t.as_mut(), restored.as_mut(), b"\x1b8Z\x1b[6n");
 }
 
@@ -87,7 +91,7 @@ fn full_width_pending_wrap_retains_existing_behavior() {
     let mut t = GhosttyTerminalFactory.create(c).unwrap();
     t.feed(b"0123456789").unwrap();
     assert!(t.view().unwrap().cursor.pending_wrap);
-    let mut restored = restore(t.as_mut(), c, 0);
+    let mut restored = restore(t.as_mut(), c, ControlGeneration::from_raw(0));
     same_after(t.as_mut(), restored.as_mut(), b"Z\x1b[6n");
 }
 
@@ -102,9 +106,11 @@ fn nonreflow_pair(alternate: bool) -> (Box<dyn ITerminal>, Box<dyn ITerminal>) {
         })
         .unwrap();
     c.size = TerminalSize::new(59, 12).unwrap();
-    original.resize(c.size, 1).unwrap();
+    original
+        .resize(c.size, ControlGeneration::from_raw(1))
+        .unwrap();
     original.feed(b"\x1b[?7h\x1b[1;59HALT").unwrap();
-    let restored = restore(original.as_mut(), c, 1);
+    let restored = restore(original.as_mut(), c, ControlGeneration::from_raw(1));
     (original, restored)
 }
 
@@ -114,11 +120,17 @@ fn primary_wrapped_rows_survive_restore_before_nonreflow_growth_and_later_reflow
     for terminal in [&mut original, &mut restored] {
         terminal.feed(b"\x1b[?7l").unwrap();
         terminal
-            .resize(TerminalSize::new(88, 12).unwrap(), 2)
+            .resize(
+                TerminalSize::new(88, 12).unwrap(),
+                ControlGeneration::from_raw(2),
+            )
             .unwrap();
         terminal.feed(b"\x1b[?7h").unwrap();
         terminal
-            .resize(TerminalSize::new(40, 12).unwrap(), 3)
+            .resize(
+                TerminalSize::new(40, 12).unwrap(),
+                ControlGeneration::from_raw(3),
+            )
             .unwrap();
     }
     same_after(original.as_mut(), restored.as_mut(), b"Z\x1b[6n");
@@ -138,10 +150,10 @@ unsafe extern "C" {
         written: *mut usize,
     ) -> i32;
 }
-fn full_state(t: &mut dyn ITerminal, generation: u64) -> Vec<u8> {
+fn full_state(t: &mut dyn ITerminal, generation: ControlGeneration) -> Vec<u8> {
     let cp = t
         .checkpoint(CheckpointDescriptor {
-            compatibility: GhosttyTerminalFactory.compatibility().into(),
+            compatibility: GhosttyTerminalFactory.compatibility().unwrap(),
             processed: ReplayCursor {
                 lifetime: SessionLifetime::new(1, 1),
                 offset: 0,
@@ -175,12 +187,15 @@ fn alternate_wrapped_rows_survive_restore_before_nonreflow_growth() {
     let (mut original, mut restored) = nonreflow_pair(true);
     for terminal in [&mut original, &mut restored] {
         terminal
-            .resize(TerminalSize::new(88, 12).unwrap(), 2)
+            .resize(
+                TerminalSize::new(88, 12).unwrap(),
+                ControlGeneration::from_raw(2),
+            )
             .unwrap();
     }
     same_after(original.as_mut(), restored.as_mut(), b"Z\x1b[6n");
-    let left = full_state(original.as_mut(), 2);
-    let right = full_state(restored.as_mut(), 2);
+    let left = full_state(original.as_mut(), ControlGeneration::from_raw(2));
+    let right = full_state(restored.as_mut(), ControlGeneration::from_raw(2));
     assert!(
         left == right,
         "alternate wrapped-row state changed after restore and resize"
@@ -201,10 +216,12 @@ fn wide_cutoff_roundtrip(alternate: bool, glyph: &str) {
     original.feed(glyph.as_bytes()).unwrap();
     assert_eq!(original.view().unwrap().cells[26].width, 2);
     c.size = TerminalSize::new(27, 12).unwrap();
-    original.resize(c.size, 1).unwrap();
+    original
+        .resize(c.size, ControlGeneration::from_raw(1))
+        .unwrap();
     // Checkpoint must be possible immediately after clipping, before input
     // could overwrite and hide an orphaned wide base at the new last column.
-    let mut restored = restore(original.as_mut(), c, 1);
+    let mut restored = restore(original.as_mut(), c, ControlGeneration::from_raw(1));
     for terminal in [&mut original, &mut restored] {
         let view = terminal.view().unwrap();
         assert_eq!(view.cells[26].text, "");
@@ -242,14 +259,20 @@ fn restored_inactive_viewport_pin_does_not_push_live_text_into_history_on_shrink
     for _ in 0..20 {
         original.feed(b"history\r\n").unwrap();
     }
-    let mut restored = restore(original.as_mut(), c, 0);
+    let mut restored = restore(original.as_mut(), c, ControlGeneration::from_raw(0));
     for terminal in [&mut original, &mut restored] {
         terminal
-            .resize(TerminalSize::new(10, 6).unwrap(), 1)
+            .resize(
+                TerminalSize::new(10, 6).unwrap(),
+                ControlGeneration::from_raw(1),
+            )
             .unwrap();
         terminal.feed(b"\x1b[H\x1b[2Jhello").unwrap();
         terminal
-            .resize(TerminalSize::new(10, 2).unwrap(), 2)
+            .resize(
+                TerminalSize::new(10, 2).unwrap(),
+                ControlGeneration::from_raw(2),
+            )
             .unwrap();
     }
     same_after(original.as_mut(), restored.as_mut(), b"Z\x1b[6n");
@@ -258,5 +281,8 @@ fn restored_inactive_viewport_pin_does_not_push_live_text_into_history_on_shrink
     for (cell, text) in view.cells.iter().zip(["h", "e", "l", "l", "o", "Z"]) {
         assert_eq!(cell.text, text);
     }
-    assert!(full_state(original.as_mut(), 2) == full_state(restored.as_mut(), 2));
+    assert!(
+        full_state(original.as_mut(), ControlGeneration::from_raw(2))
+            == full_state(restored.as_mut(), ControlGeneration::from_raw(2))
+    );
 }

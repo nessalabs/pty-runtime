@@ -11,7 +11,7 @@ pub struct ParkAttempt {
     /// Exact processed byte position.
     pub processed: ReplayCursor,
     /// Exact successful ordered-control position.
-    pub control_generation: u64,
+    pub control_generation: crate::terminal::ControlGeneration,
 }
 /// Pure state transitions. Application serializes access and owns external work.
 pub struct ProjectionPolicy {
@@ -39,7 +39,7 @@ impl ProjectionPolicy {
             status: ProjectionStatus {
                 published: cursor,
                 processed: cursor,
-                control_generation: 0,
+                control_generation: crate::terminal::ControlGeneration::INITIAL,
                 residency: Residency::Resident,
                 history: crate::terminal::RestorationProgress::Complete,
                 skipped_history_pages: 0,
@@ -72,12 +72,12 @@ impl ProjectionPolicy {
             .offset
             .checked_add(bytes as u64)
             .ok_or(ProjectionError::Capacity)?;
-        self.activity(now)?;
+        self.record_activity(now)?;
         self.status.published.offset = next;
         Ok(())
     }
     /// Mutations invalidate a parking commit even before native execution starts.
-    pub fn activity(&mut self, now: Duration) -> Result<(), ProjectionError> {
+    pub fn record_activity(&mut self, now: Duration) -> Result<(), ProjectionError> {
         if matches!(
             self.status.residency,
             Residency::Closing | Residency::Closed
@@ -94,7 +94,7 @@ impl ProjectionPolicy {
         Ok(())
     }
     /// Advance only after native feed succeeds; never consume unadmitted bytes.
-    pub fn processed(&mut self, bytes: usize) -> Result<(), ProjectionError> {
+    pub fn record_processed(&mut self, bytes: usize) -> Result<(), ProjectionError> {
         let next = self
             .status
             .processed
@@ -108,8 +108,11 @@ impl ProjectionPolicy {
         Ok(())
     }
     /// Apply exactly the next control generation after both OS and model work succeed.
-    pub fn controlled(&mut self, generation: u64) -> Result<(), ProjectionError> {
-        if self.status.control_generation.checked_add(1) != Some(generation) {
+    pub fn record_control_applied(
+        &mut self,
+        generation: crate::terminal::ControlGeneration,
+    ) -> Result<(), ProjectionError> {
+        if self.status.control_generation.next() != Some(generation) {
             return Err(ProjectionError::InvalidConfiguration);
         }
         self.status.control_generation = generation;
@@ -246,7 +249,7 @@ impl ProjectionPolicy {
         self.status.failure = Some(error);
     }
     /// Cleanup completed after all accepted operations relinquished ownership.
-    pub fn closed(&mut self) {
+    pub fn mark_closed(&mut self) {
         self.status.residency = Residency::Closed;
     }
 }

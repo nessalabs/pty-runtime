@@ -1,4 +1,5 @@
 use super::{TransferCursor, TransferError, TransferOrder};
+use crate::terminal::ControlGeneration;
 use crate::{ReplayCursor, SessionLifetime};
 #[test]
 fn applied_controls_advance_sequence_without_advancing_original_bytes() {
@@ -10,12 +11,12 @@ fn applied_controls_advance_sequence_without_advancing_original_bytes() {
             offset: 7,
         })
         .unwrap();
-    let resize = order.resized(1).unwrap();
-    let second = order.resized(2).unwrap();
+    let resize = order.resized(ControlGeneration::from_raw(1)).unwrap();
+    let second = order.resized(ControlGeneration::from_raw(2)).unwrap();
     assert_eq!(output.processed, second.processed);
     assert_eq!(resize.cursor.sequence, output.cursor.sequence + 1);
     assert_eq!(second.cursor.sequence, resize.cursor.sequence + 1);
-    assert_eq!(second.control_generation, 2);
+    assert_eq!(second.control_generation, ControlGeneration::from_raw(2));
     assert!(
         order
             .output(ReplayCursor {
@@ -24,7 +25,7 @@ fn applied_controls_advance_sequence_without_advancing_original_bytes() {
             })
             .is_err()
     );
-    assert!(order.resized(4).is_err());
+    assert!(order.resized(ControlGeneration::from_raw(4)).is_err());
     assert_eq!(order.boundary(), second);
 }
 #[test]
@@ -32,7 +33,10 @@ fn identity_future_and_evicted_ranges_have_distinct_failures() {
     let lifetime = SessionLifetime::new(4, 2);
     let mut order = TransferOrder::new(lifetime);
     let original = order.boundary().cursor;
-    let next = order.resized(1).unwrap().cursor;
+    let next = order
+        .resized(ControlGeneration::from_raw(1))
+        .unwrap()
+        .cursor;
     order.discard_before(next).unwrap();
     assert_eq!(
         order.validate(original),
@@ -79,7 +83,10 @@ fn terminal_prefix_is_immutable_and_domain_forbids_late_mutations() {
         }),
         Err(TransferError::Closed)
     );
-    assert_eq!(order.resized(1), Err(TransferError::Closed));
+    assert_eq!(
+        order.resized(ControlGeneration::from_raw(1)),
+        Err(TransferError::Closed)
+    );
     order.seal(Some(DrainOutcome::Eof), None).unwrap();
     assert_eq!(order.end(), Some(sealed));
     assert_eq!(order.boundary(), sealed.boundary);
@@ -102,5 +109,8 @@ fn unavailable_transfer_cannot_be_reopened_or_extended() {
     order.invalidate();
     assert!(!order.accepts_events());
     assert_eq!(order.open_boundary(), Err(TransferError::Unavailable));
-    assert_eq!(order.resized(1), Err(TransferError::Unavailable));
+    assert_eq!(
+        order.resized(ControlGeneration::from_raw(1)),
+        Err(TransferError::Unavailable)
+    );
 }

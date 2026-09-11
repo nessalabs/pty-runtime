@@ -25,25 +25,25 @@ impl CheckpointProtector {
     }
 }
 fn metadata(key: CheckpointKey, d: &CheckpointDescriptor) -> Result<Vec<u8>, CheckpointError> {
-    if key.lifetime != d.processed.lifetime
-        || d.compatibility.len() > 4096
-        || d.compatibility.is_empty()
-    {
+    // The identity's non-empty/bounded rule lives in CompatibilityId, so only
+    // the cross-field binding still needs checking here.
+    if key.lifetime != d.processed.lifetime {
         return Err(CheckpointError::InvalidConfiguration);
     }
-    let mut bytes = Vec::with_capacity(64 + d.compatibility.len());
+    let compatibility = d.compatibility.as_str();
+    let mut bytes = Vec::with_capacity(64 + compatibility.len());
     bytes.extend_from_slice(b"pty-checkpoint-xchacha-v1");
     for n in [
         key.lifetime.owner(),
         key.lifetime.sequence(),
         key.generation,
         d.processed.offset,
-        d.control_generation,
-        d.compatibility.len() as u64,
+        d.control_generation.get(),
+        compatibility.len() as u64,
     ] {
         bytes.extend_from_slice(&n.to_le_bytes());
     }
-    bytes.extend_from_slice(d.compatibility.as_bytes());
+    bytes.extend_from_slice(compatibility.as_bytes());
     Ok(bytes)
 }
 impl ICheckpointProtector for CheckpointProtector {

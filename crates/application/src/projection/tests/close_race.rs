@@ -35,15 +35,17 @@ fn finish_between_publication_and_wake(h: &Harness) {
         assert_eq!(owner.status().residency, Residency::Closing);
         for _ in 0..32 {
             owner.run();
-            jobs.one();
+            jobs.run_one();
             if owner.status().residency == Residency::Closed {
-                assert!(owner.handle.lock().unwrap().is_none());
+                assert!(owner.wiring.handle().is_none());
                 return;
             }
         }
         panic!("real cleanup worker did not finish within bounded steps");
     }));
-    h.owner.services.lock().unwrap().as_mut().unwrap().capacity = signal;
+    h.owner
+        .wiring
+        .inject_services(|services| services.capacity = signal);
 }
 fn released(h: &Harness, stored: usize) {
     let r = h.budgets.resources();
@@ -63,8 +65,8 @@ fn released(h: &Harness, stored: usize) {
     assert_eq!(r.stored_slots.used, stored);
     assert_eq!(r.stored_bytes.used, stored * 1064);
     assert_eq!(h.probe.alive.load(Ordering::Acquire), 0);
-    assert!(h.owner.services.lock().unwrap().is_none());
-    assert!(h.owner.handle.lock().unwrap().is_none());
+    assert!(h.owner.wiring.services().is_err());
+    assert!(h.owner.wiring.handle().is_none());
 }
 
 #[test]
@@ -114,11 +116,11 @@ impl IWorkHandle for RejectWake {
 fn unfinished_close_with_missing_or_rejecting_scheduler_still_reports_worker() {
     for missing in [true, false] {
         let h = Harness::standard();
-        *h.owner.handle.lock().unwrap() = if missing {
+        h.owner.wiring.inject_handle(if missing {
             None
         } else {
             Some(Arc::new(RejectWake))
-        };
+        });
         assert!(matches!(h.owner.close(), Err(ProjectionError::Worker)));
         assert_eq!(h.owner.status().residency, Residency::Closing);
         assert_eq!(h.owner.close_outcome(), None);

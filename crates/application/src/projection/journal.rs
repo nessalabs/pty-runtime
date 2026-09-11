@@ -9,7 +9,7 @@ use pty_runtime_domain::{
     projection::{
         ProjectionOptions, TransferBoundary, TransferCursor, TransferError, TransferOrder,
     },
-    terminal::TerminalSize,
+    terminal::{ControlGeneration, TerminalSize},
 };
 use std::{
     collections::BTreeMap,
@@ -19,7 +19,10 @@ use std::{
 
 pub(super) enum RecordKind {
     Output(Vec<u8>),
-    Resize { size: TerminalSize, generation: u64 },
+    Resize {
+        size: TerminalSize,
+        generation: ControlGeneration,
+    },
 }
 pub(super) struct Record {
     pub after: TransferBoundary,
@@ -71,7 +74,7 @@ impl Journal {
         })
     }
     pub fn reserve_observer(&self) -> Result<Lease, ProjectionError> {
-        Lease::pair(self.global_observers.clone(), self.observers.clone(), 1)
+        Lease::shared_and_local(self.global_observers.clone(), self.observers.clone(), 1)
     }
     pub fn open(self: &Arc<Self>, permit: Lease) -> Result<TransferObserver, ProjectionError> {
         let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
@@ -158,7 +161,7 @@ impl Journal {
     pub fn output(&self, bytes: Vec<u8>, processed: ReplayCursor) {
         self.append(RecordKind::Output(bytes), Some(processed));
     }
-    pub fn resized(&self, size: TerminalSize, generation: u64) {
+    pub fn resized(&self, size: TerminalSize, generation: ControlGeneration) {
         self.append(RecordKind::Resize { size, generation }, None);
     }
     fn append(&self, kind: RecordKind, processed: Option<ReplayCursor>) {
@@ -186,11 +189,19 @@ impl Journal {
                         _ => 0,
                     };
                     let leases = loop {
-                        let leases = Lease::pair(self.global_slots.clone(), self.slots.clone(), 1)
-                            .and_then(|slot| {
-                                Lease::pair(self.global_bytes.clone(), self.bytes.clone(), count)
-                                    .map(|bytes| (slot, bytes))
-                            });
+                        let leases = Lease::shared_and_local(
+                            self.global_slots.clone(),
+                            self.slots.clone(),
+                            1,
+                        )
+                        .and_then(|slot| {
+                            Lease::shared_and_local(
+                                self.global_bytes.clone(),
+                                self.bytes.clone(),
+                                count,
+                            )
+                            .map(|bytes| (slot, bytes))
+                        });
                         if leases.is_ok() {
                             break leases;
                         }

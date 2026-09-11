@@ -13,7 +13,8 @@ use pty_runtime_domain::{
     SessionId, SessionLifetime,
     process::{CommandSpec, DrainOutcome, ProcessError, ProcessLimits},
     terminal::{
-        TerminalCapabilities, TerminalCheckpoint, TerminalConfig, TerminalError, TerminalSize,
+        CompatibilityId, TerminalCapabilities, TerminalCheckpoint, TerminalConfig, TerminalError,
+        TerminalSize,
     },
 };
 use std::{
@@ -42,8 +43,8 @@ impl ITerminalFactory for RejectedFactory {
             history_compression: false,
         }
     }
-    fn compatibility(&self) -> &'static str {
-        "rejected-admission-v1"
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new("rejected-admission-v1")
     }
     fn create(&self, _: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
         self.entered.send(()).unwrap();
@@ -239,4 +240,74 @@ fn rejected_projection_admission_settles_published_waiter_and_releases_identity_
         "retry must have a fresh lifetime"
     );
     runtime.shutdown();
+}
+
+/// A factory whose compatibility identity violates the domain's bound.
+///
+/// The port returns `Result<CompatibilityId, _>`, so an adapter validates its own
+/// identity. This proves the coordinator propagates that rejection and refuses
+/// the session rather than proceeding with an unvalidated identity.
+struct BadIdentityFactory(&'static str);
+impl ITerminalFactory for BadIdentityFactory {
+    fn capabilities(&self) -> TerminalCapabilities {
+        TerminalCapabilities {
+            checkpoints: true,
+            incremental_restore: false,
+            mutation_during_restore: false,
+            history_compression: false,
+        }
+    }
+    fn compatibility(&self) -> Result<CompatibilityId, TerminalError> {
+        CompatibilityId::new(self.0)
+    }
+    fn create(&self, _: TerminalConfig) -> Result<Box<dyn ITerminal>, TerminalError> {
+        panic!("admission must be refused before any native state is created")
+    }
+    fn restore(
+        &self,
+        _: TerminalCheckpoint,
+        _: TerminalConfig,
+    ) -> Result<Box<dyn ITerminal>, TerminalError> {
+        unreachable!()
+    }
+}
+
+#[test]
+fn factory_identity_outside_the_domain_bound_is_refused_before_native_creation() {
+    const OVERSIZED: &str = match std::str::from_utf8(&[b'x'; 4097]) {
+        Ok(value) => value,
+        Err(_) => unreachable!(),
+    };
+    for identity in ["", OVERSIZED] {
+        let services = ProjectionServices {
+            terminal: Arc::new(BadIdentityFactory(identity)),
+            clock: Arc::new(Clock::default()),
+            scheduler: Arc::new(Scheduler),
+            blocking: Arc::new(Jobs::default()),
+            capacity: Arc::new(Signal::default()),
+            store: Arc::new(Store::default()),
+            protector: Arc::new(Protector::default()),
+        };
+        let budgets = crate::projection::ProjectionBudgets::new(Default::default()).unwrap();
+        let outcome = crate::projection::ProjectionCoordinator::create(
+            SessionLifetime::new(11, 1),
+            options(),
+            services,
+            budgets,
+            Arc::new(crate::runtime::quota::Quota::new(128)),
+            Arc::new(crate::runtime::quota::Quota::new(8)),
+        );
+        // create() panics in the factory if it ever reaches native creation, so
+        // reaching this assertion also proves the identity is checked first.
+        //
+        // The adapter's own error is preserved rather than flattened into a
+        // generic InvalidConfiguration: an embedder should be able to see that
+        // it was their terminal that refused.
+        assert!(matches!(
+            outcome.err(),
+            Some(ProjectionError::Terminal(
+                TerminalError::InvalidConfiguration
+            ))
+        ));
+    }
 }
