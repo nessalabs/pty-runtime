@@ -167,3 +167,83 @@ fn scheduler_shutdown_fallback_finishes_late_commit_without_retaining_services()
     h.owner.finish_after_shutdown();
     assert_eq!(h.budgets.unreclaimed_sources(), 1);
 }
+
+/// The delete retry bound is the configured one, not a constant.
+///
+/// `max_delete_attempts` was split out of `max_park_attempts` because the two
+/// encode different things: how hard to try to *create* a parked source versus
+/// how hard to try to *remove* one. Nothing pinned the new knob to its effect,
+/// so a future change could quietly ignore it the way the split briefly did.
+#[test]
+fn configured_delete_attempts_bound_the_retries_actually_made() {
+    for attempts in [1u32, 2, 5] {
+        let mut projection = options();
+        projection.max_delete_attempts = attempts;
+        let limits = ProjectionLimits {
+            stored_slots: 1,
+            ..ProjectionLimits::default()
+        };
+        let h = Harness::new(projection, limits);
+        h.park();
+        h.store.fail_delete.store(true, Ordering::Release);
+        let mut closed = h.owner.close().unwrap();
+        h.pump();
+        assert!(matches!(
+            result(&mut closed),
+            Err(ProjectionError::Storage(_))
+        ));
+        assert_eq!(
+            h.store.deletes.load(Ordering::Acquire),
+            attempts as usize,
+            "exactly the configured number of attempts is made"
+        );
+        assert_eq!(h.budgets.unreclaimed_sources(), 1);
+    }
+}
+
+/// A close grants a source that was already given up on one more round.
+///
+/// `SourceReaper::restore_attempts` is only reachable when the retries were
+/// spent *before* the close: during a close, a source whose attempts run out is
+/// surrendered to the ledger on the very next cleanup pass, so there is nothing
+/// left to restore. Here a park is rolled back during normal serving, its stale
+/// source exhausts its deletes while the projection is still live, and only then
+/// does a close ask for cleanup again.
+#[test]
+fn closing_after_giving_up_mid_service_retries_the_abandoned_source() {
+    let mut projection = options();
+    projection.max_delete_attempts = 1;
+    let h = Harness::new(projection, ProjectionLimits::default());
+    h.owner.stage_output(b"a");
+    h.pump();
+
+    // Park, then stage output before the commit lands so release is refused and
+    // the committed source becomes stale rather than authoritative.
+    h.clock.0.store(60, Ordering::Release);
+    h.step();
+    h.owner.stage_output(b"b");
+    h.step();
+    h.store.fail_delete.store(true, Ordering::Release);
+    h.jobs.run_one();
+    h.step();
+
+    // The stale source is deleted while still serving; that delete fails and,
+    // with one attempt configured, is given up on outside any close.
+    h.jobs.run_one();
+    h.pump();
+    assert_eq!(h.store.deletes.load(Ordering::Acquire), 1);
+    assert_eq!(h.owner.status().residency, Residency::Resident);
+
+    // Now close with deletion working again: the abandoned source is retried
+    // rather than surrendered unreclaimed.
+    h.store.fail_delete.store(false, Ordering::Release);
+    let mut closed = h.owner.close().unwrap();
+    h.pump();
+    assert_eq!(
+        h.store.deletes.load(Ordering::Acquire),
+        2,
+        "the source given up on before the close is attempted again"
+    );
+    assert!(result(&mut closed).is_ok());
+    assert_eq!(h.budgets.unreclaimed_sources(), 0);
+}

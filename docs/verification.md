@@ -67,6 +67,22 @@ Two smaller losses of atomicity introduced by the split were also found and
 fixed: `read_back_source` had become two lock acquisitions where one was needed,
 and `bind_process` could bind onto a projection whose cleanup had completed.
 
+Automated reviewers on the pull request then found three more: the command queue
+was being reallocated under the admission lock during cleanup, the encapsulation
+claim in this document was overstated (the admitting closure received `&mut
+Admission`, so callers could still reach `policy` and the drain fact — it now
+receives a narrow `Admitting` view), and a gate test added during this work
+proved nothing because it ran the real workspace and only checked stdout. All
+three are fixed.
+
+Closing the P3s also turned up one thing worth recording: `SourceReaper::restore_attempts`
+is reachable, but not the way it looked. A source given up on *during* a close is
+surrendered to the ledger on the next cleanup pass, so closing twice restores
+nothing. It only matters when the retries were spent while the projection was
+still serving. The first test written for it asserted the wrong scenario and
+failed; the scenario, not the code, was wrong. The test that replaced it is
+mutation-checked.
+
 Answers to the four questions the behavioural review was scoped to:
 
 - **Lock tiers** — the property they depend on (tier 3 never held across a call
@@ -193,23 +209,25 @@ What changed:
   methods rather than types that own their state.
 
 - Still open after the three reviews, all P3:
-  - `SourceReaper::restore_attempts` (the second-close retry round) has no test;
-    reaching it needs a close landing after delete attempts have been burned.
+  - Nothing tests the lock tiers. There is no lock-order assertion and no
+    loom/shuttle model; `close_race.rs` covers one specific interleaving with a
+    real thread and everything else is single-threaded pumping. This is the
+    largest remaining gap.
   - `commit_park`'s engine-idle half is untested — a commit landing with an empty
     queue but an in-flight reply or resize. The review confirmed the read is safe
     (those fields are workspace-owned), but no test pins it.
-  - Nothing tests the lock tiers. There is no lock-order assertion and no
-    loom/shuttle model; `close_race.rs` covers one specific interleaving with a
-    real thread and everything else is single-threaded pumping.
-  - `max_delete_attempts` is only exercised at its default and at 1; its
-    validation bounds (0, >100) have no test.
   - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
     region-coverage hole.
-  - `request_close` and `abandon_close` allocate a `Vec` under the admission
-    lock where the old code returned the `VecDeque` itself.
+  - `Wiring` is a grab-bag: frozen configuration and releasable collaborators
+    have different reasons to change and should not share a type. Its two
+    `#[cfg(test)]` injection seams could also be replaced by configuring the
+    harness before `create` rather than mutating a live projection.
+  - Eight files in `projection/` define no type of their own; they partition one
+    type's method list rather than splitting a responsibility.
   - The blocking-I/O lifecycle and the native engine driving are still
     coordinator methods rather than types owning their state — the same
     treatment `AdmissionQueue` received.
+
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)

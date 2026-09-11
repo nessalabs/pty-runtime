@@ -196,13 +196,9 @@ impl ProjectionCoordinator {
             if failed.is_some() {
                 // Slots were reserved before commit, so this preallocated ledger
                 // cannot grow beyond its independently admitted identity limit.
-                let mut ledger = self
-                    .quotas
+                self.quotas
                     .shared
-                    .unreclaimed
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
-                ledger.extend(workspace.reaper.surrender());
+                    .absorb_unreclaimed(workspace.reaper.surrender());
             } else {
                 return self.start_delete(workspace);
             }

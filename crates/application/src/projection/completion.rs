@@ -65,12 +65,7 @@ impl ProjectionCoordinator {
                             attempt,
                             disk,
                         );
-                        self.quotas
-                            .shared
-                            .unreclaimed
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .push(entry);
+                        self.quotas.shared.record_unreclaimed(entry);
                         self.queue
                             .park_outcome_uncertain(error, services.clock.now());
                     }

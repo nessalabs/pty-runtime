@@ -17,7 +17,10 @@ pub struct ProjectionBudgets {
     pub(super) checkpoints: Arc<Quota>,
     pub(super) stored: Arc<Quota>,
     pub(super) stored_slots: Arc<Quota>,
-    pub(super) unreclaimed: Mutex<Vec<super::state::UnreclaimedSource>>,
+    /// Storage this runtime could not prove it deleted. Private: reached only
+    /// through `record_unreclaimed` / `absorb_unreclaimed`, so no caller has to
+    /// remember that pushing here is what keeps the reservation charged.
+    unreclaimed: Mutex<Vec<super::state::UnreclaimedSource>>,
     pub(super) views: Arc<Quota>,
     pub(super) requests: Arc<Quota>,
 }
@@ -63,6 +66,29 @@ impl ProjectionBudgets {
     }
 }
 impl ProjectionBudgets {
+    /// Charge one source this runtime could not prove it deleted.
+    ///
+    /// Slots were reserved at construction and every entry holds a live slot
+    /// lease, so this cannot grow past its independently admitted limit and
+    /// cannot reallocate.
+    pub(super) fn record_unreclaimed(&self, source: super::state::UnreclaimedSource) {
+        self.unreclaimed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(source);
+    }
+
+    /// Charge every source a reaper has surrendered.
+    pub(super) fn absorb_unreclaimed(
+        &self,
+        sources: impl Iterator<Item = super::state::UnreclaimedSource>,
+    ) {
+        self.unreclaimed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .extend(sources);
+    }
+
     /// Sources whose finite cleanup retries failed. Their bytes and identity slots
     /// remain reserved across forget/new-session admission until this runtime ends.
     pub fn unreclaimed_sources(&self) -> usize {

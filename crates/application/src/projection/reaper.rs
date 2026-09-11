@@ -43,6 +43,9 @@ pub(super) struct SourceReaper {
 }
 
 impl SourceReaper {
+    /// Start with nothing retired. `max_attempts` bounds how many times one
+    /// source's deletion is retried before its storage is treated as
+    /// unreclaimable.
     pub fn new(max_attempts: u32) -> Self {
         Self {
             queue: VecDeque::new(),

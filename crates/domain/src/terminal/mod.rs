@@ -126,7 +126,10 @@ impl TerminalConfig {
 /// Stable, redacted terminal failures without native codes or payload data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerminalError {
-    /// Invalid dimensions or allocation policy.
+    /// A supplied value is malformed: invalid dimensions, an allocation policy
+    /// that cannot be satisfied, or an engine identity outside its byte bound.
+    /// Distinct from `IncompatibleCheckpoint`, which is a well-formed identity
+    /// that belongs to a different adapter.
     InvalidConfiguration,
     /// A configured buffer bound was exceeded.
     BudgetExceeded,

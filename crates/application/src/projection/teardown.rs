@@ -33,20 +33,11 @@ impl ProjectionCoordinator {
                         attempt,
                         disk,
                     );
-                    self.quotas
-                        .shared
-                        .unreclaimed
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .push(source);
+                    self.quotas.shared.record_unreclaimed(source);
                 }
-                PendingIo::Delete { attempt, .. } => self
-                    .quotas
-                    .shared
-                    .unreclaimed
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .push(attempt.source.into()),
+                PendingIo::Delete { attempt, .. } => {
+                    self.quotas.shared.record_unreclaimed(attempt.source.into())
+                }
                 PendingIo::Transfer { request, .. } => {
                     self.contain_panic(|| request.fail(ProjectionError::Worker))
                 }
@@ -57,13 +48,9 @@ impl ProjectionCoordinator {
             workspace.reaper.retire(source);
         }
         {
-            let mut ledger = self
-                .quotas
+            self.quotas
                 .shared
-                .unreclaimed
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
-            ledger.extend(workspace.reaper.surrender());
+                .absorb_unreclaimed(workspace.reaper.surrender());
         }
         self.discard_operations(&mut workspace);
         let terminal = workspace.terminal.take();

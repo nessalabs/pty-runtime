@@ -95,10 +95,10 @@ impl ProjectionCoordinator {
             return Err(ProjectionError::InvalidConfiguration);
         }
         let resident = Lease::shared(budgets.resident.clone(), options.terminal.native_bytes)?;
-        let compatibility = services
-            .terminal
-            .compatibility()
-            .map_err(|_| ProjectionError::InvalidConfiguration)?;
+        // Keep the adapter's own error rather than flattening it: an embedder
+        // whose factory reports a bad identity should see that it was their
+        // terminal that refused, not a generic configuration failure.
+        let compatibility = services.terminal.compatibility()?;
         let terminal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             services.terminal.create(options.terminal)
         }))

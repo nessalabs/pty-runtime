@@ -29,6 +29,8 @@ pub(super) struct Wiring {
 }
 
 impl Wiring {
+    /// Hold the injected boundaries for one projection. The scheduler
+    /// registration and the process are bound later, once they exist.
     pub fn new(
         options: ProjectionOptions,
         compatibility: CompatibilityId,

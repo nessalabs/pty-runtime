@@ -299,9 +299,15 @@ fn factory_identity_outside_the_domain_bound_is_refused_before_native_creation()
         );
         // create() panics in the factory if it ever reaches native creation, so
         // reaching this assertion also proves the identity is checked first.
+        //
+        // The adapter's own error is preserved rather than flattened into a
+        // generic InvalidConfiguration: an embedder should be able to see that
+        // it was their terminal that refused.
         assert!(matches!(
             outcome.err(),
-            Some(ProjectionError::InvalidConfiguration)
+            Some(ProjectionError::Terminal(
+                TerminalError::InvalidConfiguration
+            ))
         ));
     }
 }
