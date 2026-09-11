@@ -13,14 +13,21 @@
 use super::{ProjectionError, ProjectionOptions, ProjectionServices};
 use crate::{process::IProcessSession, scheduling::IWorkHandle};
 use pty_runtime_domain::terminal::CompatibilityId;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
-/// Take a leaf lock, registering its tier in test builds. Nothing may be
-/// acquired while one of these is held.
-fn leaf<T>(slot: &Mutex<T>) -> MutexGuard<'_, T> {
+/// Take a leaf lock, registering its tier for as long as the mutex is held.
+///
+/// The registration travels inside the returned guard rather than living in
+/// this function: a local here would be dropped when `leaf` returns, while the
+/// caller still holds the mutex, so nesting *under* a leaf would go undetected.
+fn leaf<T>(slot: &Mutex<T>) -> super::queue::Guarded<'_, T> {
     #[cfg(test)]
     let _tier = super::tier::enter(super::tier::Tier::Leaf);
-    slot.lock().unwrap_or_else(|e| e.into_inner())
+    super::queue::Guarded::new(
+        slot.lock().unwrap_or_else(|e| e.into_inner()),
+        #[cfg(test)]
+        _tier,
+    )
 }
 
 pub(super) struct Wiring {
@@ -67,12 +74,9 @@ impl Wiring {
 
     /// Request one more worker run. Coalesced by the scheduler.
     pub fn wake(&self) -> Result<(), ProjectionError> {
-        let handle = self
-            .handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-            .ok_or(ProjectionError::Worker)?;
+        // Scoped so the guard, and its tier registration, are released before
+        // the scheduler runs: waking may re-enter this projection.
+        let handle = { leaf(&self.handle).clone() }.ok_or(ProjectionError::Worker)?;
         handle.wake().map_err(|_| ProjectionError::Worker)
     }
 
@@ -99,11 +103,7 @@ impl Wiring {
     /// Undo a bind that raced a completing cleanup, so the slot cannot outlive
     /// the cleanup that was supposed to clear it.
     pub fn unbind_process(&self) {
-        let taken = self
-            .process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let taken = leaf(&self.process).take();
         drop(taken);
     }
 
@@ -138,12 +138,7 @@ impl Wiring {
 impl Wiring {
     /// Swap an injected collaborator mid-life to exercise a provider fault.
     pub fn inject_services(&self, change: impl FnOnce(&mut ProjectionServices)) {
-        if let Some(services) = self
-            .services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .as_mut()
-        {
+        if let Some(services) = leaf(&self.services).as_mut() {
             change(services);
         }
     }

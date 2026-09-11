@@ -26,6 +26,26 @@ fn the_detector_itself_catches_an_inversion() {
     let _inner = tier::enter(Tier::Workspace);
 }
 
+/// A real leaf lock must keep its registration for as long as the mutex is held.
+///
+/// The two tests above call `tier::enter` directly, so they exercise the
+/// detector but not the instrumentation. This one goes through the actual
+/// `leaf` helper: `inject_services` runs its closure while the services mutex is
+/// held, so anything the closure acquires is nested under a leaf and must panic.
+///
+/// An earlier version of `leaf` registered the tier in a local that dropped when
+/// the helper returned, while the caller still held the mutex — nesting under a
+/// leaf went undetected, and no test here would have noticed.
+#[test]
+#[should_panic(expected = "lock order inverted")]
+fn a_real_leaf_lock_holds_its_registration_for_the_whole_hold() {
+    let h = Harness::standard();
+    tier::reset();
+    h.owner.wiring.inject_services(|_| {
+        let _nested = tier::enter(Tier::Leaf);
+    });
+}
+
 /// Two leaves must not nest either — they are leaves precisely because nothing
 /// is acquired while one is held.
 #[test]

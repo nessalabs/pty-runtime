@@ -3,13 +3,21 @@ use crate::{
     scheduling::ICapacitySignal,
 };
 use pty_runtime_domain::projection::{ProjectionError, ProjectionLimits, ProjectionOptions};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
-/// Take a leaf lock, registering its tier in test builds.
-fn leaf<T>(slot: &Mutex<T>) -> MutexGuard<'_, T> {
+/// Take a leaf lock, registering its tier for as long as the mutex is held.
+///
+/// The registration travels inside the returned guard rather than living in
+/// this function: a local here would be dropped when `leaf` returns, while the
+/// caller still holds the mutex, so nesting *under* a leaf would go undetected.
+fn leaf<T>(slot: &Mutex<T>) -> super::queue::Guarded<'_, T> {
     #[cfg(test)]
     let _tier = super::tier::enter(super::tier::Tier::Leaf);
-    slot.lock().unwrap_or_else(|e| e.into_inner())
+    super::queue::Guarded::new(
+        slot.lock().unwrap_or_else(|e| e.into_inner()),
+        #[cfg(test)]
+        _tier,
+    )
 }
 
 /// One runtime's projection reservations, independent of replay and provider quotas.

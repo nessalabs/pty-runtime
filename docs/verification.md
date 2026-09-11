@@ -93,15 +93,26 @@ Answers to the four questions the behavioural review was scoped to:
 - **`SourceReaper` equivalence** — the retry logic is exactly equivalent. Two
   separate defects were found in it (above), neither in the retry arithmetic.
 - **Lock tiers are now tested, not just documented.** Every lock a projection
-  takes goes through a chokepoint that registers its tier, and acquiring at the
-  same or a shallower tier than one already held panics. Seven tests in
+  takes goes through a chokepoint that registers its tier for as long as the
+  mutex is held, and acquiring at the same or a shallower tier than one already
+  held panics. Eight tests in
   `projection/tests/lock_order.rs` drive worker runs, the park/restore/close
   cycle, teardown, and three concurrent threads through it.
 
-  Two of those tests exist to stop the rest being vacuous: they assert the
-  detector *can* fail, by performing an inversion deliberately. The others
-  assert which nestings actually occurred, because "no inversion detected"
-  proves nothing if nothing ever nested.
+  Three of those tests exist to stop the rest being vacuous. Two assert the
+  detector *can* fail by inverting deliberately; the third goes through a real
+  leaf lock rather than calling the tracker directly. The others assert which
+  nestings actually occurred, because "no inversion detected" proves nothing if
+  nothing ever nested.
+
+  The first version of this instrumentation was wrong in two ways an automated
+  reviewer on the pull request caught, and the tests as first written could not
+  have: `leaf` registered the tier in a local that dropped when the helper
+  returned while the caller still held the mutex, so nesting *under* a leaf went
+  undetected; and three wiring sites (`wake`, `unbind_process`,
+  `inject_services`) bypassed the chokepoint entirely, which made the
+  every-lock-is-instrumented claim false. Both are fixed, and the third test
+  above exists so the first defect cannot return silently.
 
   Writing them corrected the chart again. The documented
   admission → leaf nesting is real, but not on the path assumed: a chunk
