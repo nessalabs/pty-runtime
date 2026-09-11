@@ -38,34 +38,48 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 
 ## Clean Code review pass (naming, diagrams, structure)
 
-**Review status: incomplete.** `AGENTS.md` requires three independent specialist
-reviews per loop. Two ran to completion — DDD/dependency-direction and Clean
-Code/SOLID — and their findings drove the work recorded below; every P1 and P2
-they raised is either fixed or listed as open. **The third, adversarial
-behavioural correctness, did not run: it terminated on an API spend limit.**
-Nothing in this pass has had an independent concurrency, resource-bound, cleanup
-or failure-injection review, which is exactly the axis a refactor touching lock
-ownership most needs. The mechanical gate is green and the suite is stable over
-repeated full runs, but neither is a substitute. **This loop is not passed.**
+**Review status: all three specialist reviews completed.** DDD/dependency
+direction, Clean Code/SOLID, and adversarial behavioural correctness each ran
+independently against the full range. Every P1 and P2 they raised is fixed;
+remaining P3s are listed under "What is still open". The behavioural review had
+to be run twice — the first attempt died on an API spend limit — and the second
+run covered the newer `AdmissionQueue` work that did not exist at the first
+attempt.
 
-The specific questions that review was scoped to answer, and which remain
-unanswered: whether the documented lock tiers hold under every interleaving;
-whether `SourceReaper` is exactly equivalent to the pre-refactor retry logic;
-whether the readiness check in `finish_io` has a TOCTOU window against a
-concurrent blocking worker; and whether reordering the residency check in
-`bind_process` opened a race with a concurrent `close()`.
+The reviews were worth running. Between them they rejected one central claim
+(see `ProjectionCoordinator` below), found **one real regression** introduced by
+the refactor, and caught two cases where a fix for an earlier finding
+overcorrected into a new problem:
 
-A Clean Code review of the domain and application core, applied in verified
-steps. **No behaviour changed at any step**: every pre-existing test passes with
-no test removed, and the mechanical gate is green after each commit. Test files
-were touched for identifier and type changes only — no assertion, condition, or
-expected value was altered. Where an assertion had to change shape, the old and
-new forms were shown to compare the same value.
+- `stage_output(b"")` began waking the scheduler and could fail the projection
+  from inside the session-context lock. Reachable through the public API and
+  through any `IProcessEvents` backend that delivers an empty slice; not
+  reachable through the bundled PTY reader, which is why the suite missed it.
+  A regression test now covers it, recorded failing before the fix.
+- `SourceReaper` was made to pre-reserve the *runtime-wide* storage-slot ceiling
+  in *every session* — roughly 512 KB each at default limits, charged against no
+  quota — while fixing an "allocation is unbounded" finding. Reverted to growing
+  on demand.
+- Splitting `max_park_attempts` into a separate `max_delete_attempts` silently
+  disconnected a test's retry knob. The test kept passing while pinning nothing.
 
-One measurement caveat worth recording: the first steps were verified with
-`cargo test --workspace`, which does **not** build the `event-stream` targets.
-The gate always ran the full `--all-features` matrix and stayed green, and
-verification now uses `--all-features` too.
+Two smaller losses of atomicity introduced by the split were also found and
+fixed: `read_back_source` had become two lock acquisitions where one was needed,
+and `bind_process` could bind onto a projection whose cleanup had completed.
+
+Answers to the four questions the behavioural review was scoped to:
+
+- **Lock tiers** — the property they depend on (tier 3 never held across a call
+  to an injected port) is true and was verified exhaustively. The *chart* was
+  wrong: ten mutexes are reachable, not six, and `StagingLease::drop` takes the
+  runtime-wide capacity signal under the per-session admission lock on every
+  rejected chunk. Corrected.
+- **`SourceReaper` equivalence** — the retry logic is exactly equivalent. Two
+  separate defects were found in it (above), neither in the retry arithmetic.
+- **`finish_io` TOCTOU** — no window. `workspace` is `&mut` under the tier-1
+  lock, the blocking job only ever writes the mailbox and never clears it, and a
+  panicking job publishes `Err(Worker)` rather than leaving the slot empty.
+- **`bind_process` race** — yes, one had been opened. Fixed.
 
 ### Naming and diagrams
 
@@ -167,6 +181,29 @@ What changed:
   (`submit_io`/`start_*`/`finish_io`) and the native engine driving
   (`apply_command`/`native_call`/`poll_inflight_operations`) are still coordinator
   methods rather than types that own their state.
+
+- Still open after the three reviews, all P3:
+  - `SourceReaper::restore_attempts` (the second-close retry round) has no test;
+    reaching it needs a close landing after delete attempts have been burned.
+  - `commit_park`'s engine-idle half is untested — a commit landing with an empty
+    queue but an in-flight reply or resize. The review confirmed the read is safe
+    (those fields are workspace-owned), but no test pins it.
+  - Nothing tests the lock tiers. There is no lock-order assertion and no
+    loom/shuttle model; `close_race.rs` covers one specific interleaving with a
+    real thread and everything else is single-threaded pumping.
+  - `max_delete_attempts` is only exercised at its default and at 1; its
+    validation bounds (0, >100) have no test.
+  - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
+    region-coverage hole.
+  - `request_close` and `abandon_close` allocate a `Vec` under the admission
+    lock where the old code returned the `VecDeque` itself.
+  - The blocking-I/O lifecycle and the native engine driving are still
+    coordinator methods rather than types owning their state — the same
+    treatment `AdmissionQueue` received.
+- File size is now a **soft** gate: `scripts/gate.py` reports files over 350
+  nonblank lines and continues, rather than failing. Its inventory now includes
+  `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)
+  and `session.rs` (355) were over the line without the gate noticing.
 
 
 ## Where to look next
