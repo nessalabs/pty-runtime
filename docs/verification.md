@@ -185,8 +185,33 @@ What changed:
   soak) are **not** closed. Short green runs are not a substitute.
 - Not every claimed OS/CPU target has a fresh, complete qualification pass on
   current source.
-- Restoring a parked session still has careful rules around “ready” vs finishing
-  history; that story still needs a clean sign-off against the ADRs.
+- Restoring a parked session has been signed off against ADR 0003. Each clause
+  in "On new output, retain the bytes and restore READY before feeding them into
+  the model in order…" was checked against the code and against what the tests
+  actually prove:
+
+  | ADR clause | Evidence |
+  | --- | --- |
+  | Retain bytes, restore READY, feed in order | `ready_interleaves_live_bytes_and_controls_without_releasing_source_before_finish`, and the real-Ghostty `ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_source` |
+  | Bounded history work between model operations | the `history_step_owed` alternation in `restore_step`, covered by the same tests |
+  | Keep the saved source until restoration finishes | `…without_releasing_source_before_finish` |
+  | Expose history completeness; inapplicable pages visible | `skipped_history_is_visible_and_lifetime_count_survives_the_next_park` |
+  | Never claim full history when only READY completed | `Usable` vs `Resident` residency, same tests |
+  | Unrestorable checkpoint → projection unavailable | `malformed_restore_read_fails_pending_view_but_retains_unprocessed_bytes` |
+  | …**and process ownership and raw I/O preserved** | was **uncovered**; now `an_unrestorable_checkpoint_fails_projection_without_taking_the_session_with_it` |
+
+  The last row was the real gap, and writing it was instructive. The first
+  version asserted that already-buffered replay survived — which it does, but
+  those bytes were published *before* the failure, so the test proved nothing
+  about the claim. It now sends output *after* the projection has failed and
+  requires it to reach an observer, plus input and cancellation still working.
+  Mutation-checked: making a failed projection refuse the reader's output fails
+  the test.
+
+  Worth recording separately: two earlier mutation attempts on this test
+  silently did nothing because the anchor text did not match, and both looked
+  like passes. The mutation was only trustworthy once the edit was asserted to
+  have applied.
 - Memory packing / reclaiming unused native pages after park/restore is not a
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
