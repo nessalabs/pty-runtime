@@ -109,6 +109,34 @@ impl Admitting<'_> {
     }
 }
 
+/// A held lock, paired in test builds with its lock-order registration so the
+/// two are released together.
+pub(super) struct Guarded<'a, T> {
+    inner: MutexGuard<'a, T>,
+    #[cfg(test)]
+    _tier: super::tier::TierGuard,
+}
+impl<'a, T> Guarded<'a, T> {
+    pub(super) fn new(inner: MutexGuard<'a, T>, #[cfg(test)] tier: super::tier::TierGuard) -> Self {
+        Self {
+            inner,
+            #[cfg(test)]
+            _tier: tier,
+        }
+    }
+}
+impl<T> std::ops::Deref for Guarded<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.inner
+    }
+}
+impl<T> std::ops::DerefMut for Guarded<'_, T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.inner
+    }
+}
+
 pub(super) struct AdmissionQueue {
     state: Mutex<Admission>,
 }
@@ -120,8 +148,14 @@ impl AdmissionQueue {
         }
     }
 
-    fn lock(&self) -> MutexGuard<'_, Admission> {
-        self.state.lock().unwrap_or_else(|e| e.into_inner())
+    fn lock(&self) -> Guarded<'_, Admission> {
+        #[cfg(test)]
+        let _tier = super::tier::enter(super::tier::Tier::Admission);
+        Guarded {
+            inner: self.state.lock().unwrap_or_else(|e| e.into_inner()),
+            #[cfg(test)]
+            _tier,
+        }
     }
 
     // ---- reading -----------------------------------------------------------

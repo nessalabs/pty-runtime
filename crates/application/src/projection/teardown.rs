@@ -23,7 +23,7 @@ impl ProjectionCoordinator {
         for event in rejected {
             self.contain_panic(|| event.fail(ProjectionError::Worker));
         }
-        let mut workspace = self.workspace.lock().unwrap_or_else(|e| e.into_inner());
+        let mut workspace = self.lock_workspace();
         self.finish_io(&mut workspace);
         if let Some(pending) = workspace.io.take() {
             match pending {

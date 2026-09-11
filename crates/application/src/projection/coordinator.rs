@@ -189,6 +189,19 @@ impl ProjectionCoordinator {
             }
         }
     }
+    /// Take exclusive ownership of the native workspace.
+    ///
+    /// The outermost lock a projection has: everything else is acquired under
+    /// it, never the reverse.
+    pub(super) fn lock_workspace(&self) -> super::queue::Guarded<'_, NativeWorkspace> {
+        #[cfg(test)]
+        let _tier = super::tier::enter(super::tier::Tier::Workspace);
+        super::queue::Guarded::new(
+            self.workspace.lock().unwrap_or_else(|e| e.into_inner()),
+            #[cfg(test)]
+            _tier,
+        )
+    }
     pub(super) fn services(&self) -> Result<ProjectionServices, ProjectionError> {
         self.wiring.services()
     }

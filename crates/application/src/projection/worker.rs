@@ -34,7 +34,7 @@ impl IScheduledWork for ProjectionCoordinator {
         let Ok(services) = self.services() else {
             return WorkSchedule::Finished;
         };
-        let mut workspace = self.workspace.lock().unwrap_or_else(|e| e.into_inner());
+        let mut workspace = self.lock_workspace();
         self.finish_io(&mut workspace);
         // Residency as observed *before* draining in-flight OS work.
         let residency = self.status().residency;
@@ -63,7 +63,7 @@ impl IScheduledWork for ProjectionCoordinator {
     }
     fn failed(&self) -> WorkSchedule {
         self.fail(ProjectionError::Worker);
-        let mut workspace = self.workspace.lock().unwrap_or_else(|e| e.into_inner());
+        let mut workspace = self.lock_workspace();
         self.discard_operations(&mut workspace);
         match self.status().residency {
             Residency::Closing => WorkSchedule::After(Duration::ZERO),

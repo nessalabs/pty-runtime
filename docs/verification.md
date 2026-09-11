@@ -92,6 +92,23 @@ Answers to the four questions the behavioural review was scoped to:
   rejected chunk. Corrected.
 - **`SourceReaper` equivalence** — the retry logic is exactly equivalent. Two
   separate defects were found in it (above), neither in the retry arithmetic.
+- **Lock tiers are now tested, not just documented.** Every lock a projection
+  takes goes through a chokepoint that registers its tier, and acquiring at the
+  same or a shallower tier than one already held panics. Seven tests in
+  `projection/tests/lock_order.rs` drive worker runs, the park/restore/close
+  cycle, teardown, and three concurrent threads through it.
+
+  Two of those tests exist to stop the rest being vacuous: they assert the
+  detector *can* fail, by performing an inversion deliberately. The others
+  assert which nestings actually occurred, because "no inversion detected"
+  proves nothing if nothing ever nested.
+
+  Writing them corrected the chart again. The documented
+  admission → leaf nesting is real, but not on the path assumed: a chunk
+  rejected before its staging lease exists never reaches a leaf. It happens when
+  an already-reserved lease is dropped *inside* the admitting closure, which
+  notifies the runtime-wide capacity signal while the admission guard is alive.
+  The first test written for it asserted the wrong path and found nothing.
 - **`finish_io` TOCTOU** — no window. `workspace` is `&mut` under the tier-1
   lock, the blocking job only ever writes the mailbox and never clears it, and a
   panicking job publishes `Err(Worker)` rather than leaving the slot empty.
@@ -209,10 +226,6 @@ What changed:
   methods rather than types that own their state.
 
 - Still open after the three reviews, all P3:
-  - Nothing tests the lock tiers. There is no lock-order assertion and no
-    loom/shuttle model; `close_race.rs` covers one specific interleaving with a
-    real thread and everything else is single-threaded pumping. This is the
-    largest remaining gap.
   - `commit_park`'s engine-idle half is untested — a commit landing with an empty
     queue but an in-flight reply or resize. The review confirmed the read is safe
     (those fields are workspace-owned), but no test pins it.

@@ -13,7 +13,15 @@
 use super::{ProjectionError, ProjectionOptions, ProjectionServices};
 use crate::{process::IProcessSession, scheduling::IWorkHandle};
 use pty_runtime_domain::terminal::CompatibilityId;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+/// Take a leaf lock, registering its tier in test builds. Nothing may be
+/// acquired while one of these is held.
+fn leaf<T>(slot: &Mutex<T>) -> MutexGuard<'_, T> {
+    #[cfg(test)]
+    let _tier = super::tier::enter(super::tier::Tier::Leaf);
+    slot.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 pub(super) struct Wiring {
     /// Validated per-session bounds and parking policy.
@@ -49,16 +57,12 @@ impl Wiring {
 
     /// External collaborators, or `Closed` once cleanup has released them.
     pub fn services(&self) -> Result<ProjectionServices, ProjectionError> {
-        self.services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-            .ok_or(ProjectionError::Closed)
+        leaf(&self.services).clone().ok_or(ProjectionError::Closed)
     }
 
     /// Publish the scheduler registration made after construction.
     pub fn attach_handle(&self, handle: Arc<dyn IWorkHandle>) {
-        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
+        *leaf(&self.handle) = Some(handle);
     }
 
     /// Request one more worker run. Coalesced by the scheduler.
@@ -74,10 +78,7 @@ impl Wiring {
 
     /// The registration itself, for waking from a blocking worker thread.
     pub fn handle(&self) -> Option<Arc<dyn IWorkHandle>> {
-        self.handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        leaf(&self.handle).clone()
     }
 
     /// Bind exactly one admitted process; a second binding is rejected.
@@ -87,7 +88,7 @@ impl Wiring {
     /// lock order. The caller instead binds and then re-checks, using
     /// [`Self::unbind_process`] to undo the bind if closure won the race.
     pub fn bind_process(&self, process: Arc<dyn IProcessSession>) -> Result<(), ProjectionError> {
-        let mut slot = self.process.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = leaf(&self.process);
         if slot.is_some() {
             return Err(ProjectionError::InvalidConfiguration);
         }
@@ -108,32 +109,23 @@ impl Wiring {
 
     /// The bound process, if a child has been admitted yet.
     pub fn process(&self) -> Option<Arc<dyn IProcessSession>> {
-        self.process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        leaf(&self.process).clone()
     }
 
     /// Release one collaborator. Cleanup drops these in an order the caller
     /// controls, so they are surrendered individually rather than together.
     pub fn take_process(&self) -> Option<Arc<dyn IProcessSession>> {
-        self.process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take()
+        leaf(&self.process).take()
     }
 
     /// Release the service bundle; every later `services()` reports `Closed`.
     pub fn take_services(&self) -> Option<ProjectionServices> {
-        self.services
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take()
+        leaf(&self.services).take()
     }
 
     /// Release the scheduler registration; every later `wake()` reports `Worker`.
     pub fn take_handle(&self) -> Option<Arc<dyn IWorkHandle>> {
-        self.handle.lock().unwrap_or_else(|e| e.into_inner()).take()
+        leaf(&self.handle).take()
     }
 }
 
@@ -158,6 +150,6 @@ impl Wiring {
 
     /// Install or clear the registration to exercise scheduler loss.
     pub fn inject_handle(&self, handle: Option<Arc<dyn IWorkHandle>>) {
-        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = handle;
+        *leaf(&self.handle) = handle;
     }
 }

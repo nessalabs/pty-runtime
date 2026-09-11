@@ -3,7 +3,14 @@ use crate::{
     scheduling::ICapacitySignal,
 };
 use pty_runtime_domain::projection::{ProjectionError, ProjectionLimits, ProjectionOptions};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+/// Take a leaf lock, registering its tier in test builds.
+fn leaf<T>(slot: &Mutex<T>) -> MutexGuard<'_, T> {
+    #[cfg(test)]
+    let _tier = super::tier::enter(super::tier::Tier::Leaf);
+    slot.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 /// One runtime's projection reservations, independent of replay and provider quotas.
 pub struct ProjectionBudgets {
@@ -72,10 +79,7 @@ impl ProjectionBudgets {
     /// lease, so this cannot grow past its independently admitted limit and
     /// cannot reallocate.
     pub(super) fn record_unreclaimed(&self, source: super::state::UnreclaimedSource) {
-        self.unreclaimed
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push(source);
+        leaf(&self.unreclaimed).push(source);
     }
 
     /// Charge every source a reaper has surrendered.
@@ -83,25 +87,17 @@ impl ProjectionBudgets {
         &self,
         sources: impl Iterator<Item = super::state::UnreclaimedSource>,
     ) {
-        self.unreclaimed
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .extend(sources);
+        leaf(&self.unreclaimed).extend(sources);
     }
 
     /// Sources whose finite cleanup retries failed. Their bytes and identity slots
     /// remain reserved across forget/new-session admission until this runtime ends.
     pub fn unreclaimed_sources(&self) -> usize {
-        self.unreclaimed
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .len()
+        leaf(&self.unreclaimed).len()
     }
     /// Conservative original byte reservations retained for failed deletions.
     pub fn unreclaimed_reserved_bytes(&self) -> usize {
-        self.unreclaimed
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+        leaf(&self.unreclaimed)
             .iter()
             .map(|s| s._disk.bytes.count)
             .sum()
@@ -255,6 +251,10 @@ impl Drop for StagingLease {
     fn drop(&mut self) {
         drop(self.bytes.take());
         drop(self.slots.take());
-        self.signal.notify();
+        {
+            #[cfg(test)]
+            let _tier = super::tier::enter(super::tier::Tier::Leaf);
+            self.signal.notify();
+        }
     }
 }
