@@ -25,8 +25,23 @@ No claimed target has a fresh, complete qualification pass against current
 source. CI covers macOS 15 and Ubuntu 24.04 for the gate; that is not the same
 as a qualification pass.
 
+The support claim has now been narrowed to match the evidence, which closes the
+labelling half of this entry but none of the running half:
+
+| Target | Evidence level | Where the evidence lives |
+| --- | --- | --- |
+| macOS arm64 | Exercised, not qualified | Experiment 0003 (`docs/experiments/data/0003/macos-*.json`), native adapter tests (`scripts/native/README.md`), the coverage run below |
+| Linux x86_64 | Exercised, not qualified | Experiment 0003 (`docs/experiments/data/0003/linux-*.json`) |
+| macOS x86_64 | **Unqualified**, no executed evidence | Nothing |
+| Linux arm64 | **Unqualified**, no executed evidence | Nothing |
+
+The two unqualified targets need hardware or a VM before anything can change;
+neither is reachable from the current GitHub-hosted runner selection.
+
 **Done when:** each claimed target has a dated pass on a known revision, and any
-target without one is either qualified or removed from the claim.
+target without one is either qualified or removed from the claim. The unqualified
+two are currently labelled rather than removed; removing them from the target
+list entirely is a product decision nobody has made.
 
 ## 3. Coverage
 

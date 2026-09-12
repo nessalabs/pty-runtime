@@ -1,9 +1,13 @@
 # Experiment 0003: Concurrent PTYs and native state on macOS and Linux
 
-Executed 2026-09-08. Both platforms passed 49 cases × five repetitions, or
+Executed 2026-09-08. Both hosts passed 49 cases × five repetitions, or
 245 fixture processes each, using the same experiment source. Case order was
 reversed on alternate repetitions. These are standalone transport and native
 fixtures; the production session runtime remains unimplemented.
+
+The two hosts are macOS arm64 and Linux x86_64, which are two of the four
+intended targets. Nothing here was run on macOS x86_64 or Linux arm64, and this
+experiment is evidence for neither.
 
 ## Environments and reproducibility
 

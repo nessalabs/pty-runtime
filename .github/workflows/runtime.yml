@@ -4,6 +4,10 @@ permissions:
   contents: read
 jobs:
   gate:
+    # These images are Linux x86_64 and macOS arm64: two of the four intended
+    # targets. macOS x86_64 and Linux arm64 run nowhere here and are unqualified.
+    # Running the gate is also not a platform qualification pass -- see the
+    # platform table in docs/adr/0004-integration-and-release-qualification.md.
     strategy:
       fail-fast: false
       matrix:
