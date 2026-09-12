@@ -292,14 +292,22 @@ impl AdmissionQueue {
     /// command can slip in between the two.
     ///
     /// Releasing also requires the caller's exclusively-held native state to be
-    /// idle. That is not checked here, because the worker cannot reach a commit
-    /// while it is not: `serve` only reaches `start_park` after
-    /// `poll_inflight_operations` has returned `None`, which needs both the
-    /// reply and the resize slot clear, and only the worker — holding the
-    /// workspace lock — can set either. This used to be an `engine_idle`
-    /// parameter, always passed `true`; an unreachable condition is not defence,
-    /// because nothing can test it. `the_worker_never_parks_while_native_work_is
-    /// _in_flight` checks the ordering it was standing in for.
+    /// idle, and that is **not** checked here. The reason is the activity
+    /// generation, not the worker's ordering: `ProjectionPolicy::commit_park`
+    /// refuses an attempt whose `activity` has moved, and every admission that
+    /// can eventually populate `reply` or `resize` — output and resize alike —
+    /// bumps `activity` before it is queued. A commit that started before such
+    /// an admission is therefore already invalid when it lands.
+    ///
+    /// Do not restate this as "the worker cannot reach a commit while native
+    /// work is outstanding". That is false, and was the wrong reason given when
+    /// the old `engine_idle` parameter was removed: `serve` applies queued
+    /// commands while a commit job is still in flight, so `workspace.resize`
+    /// really can be `Some` by the time `finish_io` lands the commit. What makes
+    /// that safe is the staleness check above. `parking.rs`'s
+    /// `a_resize_admitted_during_a_commit_blocks_the_release` drives exactly
+    /// that interleaving, and deleting the `activity` clause makes it park the
+    /// session out from under a pending resize.
     pub fn commit_park(&self, attempt: ParkAttempt) -> bool {
         let mut state = self.lock();
         let quiet = state.queue.is_empty();

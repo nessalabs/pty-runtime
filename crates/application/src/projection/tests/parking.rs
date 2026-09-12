@@ -185,3 +185,63 @@ fn the_worker_never_parks_while_native_work_is_in_flight() {
     assert_eq!(h.store.commits.load(Ordering::Acquire), 1);
     h.close();
 }
+
+/// A resize admitted while a park commit is in flight must not let that commit
+/// release the live model.
+///
+/// The interleaving is real: `serve` applies queued commands while the commit
+/// job is still outstanding, so `workspace.resize` can be `Some` by the time
+/// `finish_io` lands the commit. Releasing there would drop the terminal out
+/// from under a pending OS resize, and the next poll would report the model
+/// resize as `Closed` and fail the projection even though the child resized
+/// fine.
+#[test]
+fn a_resize_admitted_during_a_commit_blocks_the_release() {
+    let h = Harness::standard();
+    h.process.hold_resize.store(true, Ordering::Release);
+    assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    h.pump();
+
+    // Park becomes due; start the commit but leave the job unfinished.
+    h.clock.0.store(60, Ordering::Release);
+    h.step();
+    assert_eq!(h.jobs.len(), 1, "a commit job should be outstanding");
+    assert_eq!(h.owner.status().residency, Residency::Parking);
+
+    // Admit a resize and let the worker hand it to the child while the commit
+    // is still in flight.
+    let target = TerminalSize::new(4, 3).unwrap();
+    let mut resize = h.owner.resize(target).unwrap();
+    h.step();
+    assert_eq!(
+        h.process.controls.lock().unwrap().len(),
+        1,
+        "the resize should have reached the child"
+    );
+
+    // Now land the commit.
+    assert!(h.jobs.run_one());
+    h.step();
+
+    assert_eq!(
+        h.owner.status().residency,
+        Residency::Resident,
+        "the commit must not park while a resize is outstanding"
+    );
+    assert_eq!(h.owner.status().failure, None);
+    assert_eq!(
+        h.probe.alive.load(Ordering::Acquire),
+        1,
+        "the live model must survive the commit"
+    );
+
+    // The resize then completes against a model that is still there.
+    h.process.hold_resize.store(false, Ordering::Release);
+    h.pump();
+    let outcome = result(&mut resize).unwrap();
+    assert_eq!(outcome.os, Ok(()));
+    assert_eq!(outcome.model, Ok(()), "the model resize must have applied");
+    assert_eq!(h.owner.status().failure, None);
+    drop(resize);
+    h.close();
+}
