@@ -114,14 +114,21 @@ impl InFlight {
     ///
     /// `held` is whatever the completion will need and the caller is giving up —
     /// leases, an attempt, a waiting request — and `own` combines it with the
-    /// mailbox into the variant that will own the job. Submitting is therefore
-    /// the same act as recording: there is no window in which a job is running
-    /// and the slot does not know about it, and no way to get a mailbox without
-    /// filling the slot.
+    /// mailbox into the variant that will own the job. There is no way to obtain
+    /// a mailbox without filling the slot, so a job cannot be left running with
+    /// nothing recording it.
     ///
-    /// A rejected submission leaves the slot untouched and hands `held` straight
-    /// back with the error, so the caller cannot forget that it still owns
-    /// whatever it was about to pass on.
+    /// A rejected submission — a full pool, or a slot that is already occupied —
+    /// leaves the slot untouched and hands `held` straight back with the error,
+    /// so the caller cannot forget that it still owns whatever it was about to
+    /// pass on.
+    ///
+    /// **The two steps are not atomic, and do not need to be.** The executor may
+    /// run the job, fill the mailbox and wake the projection before `self.0` is
+    /// assigned. What makes that safe is the workspace lock: the caller reaches
+    /// this method holding it, and the woken run cannot look at the slot until
+    /// the submitting run has released it. Anything that moved a submission out
+    /// from under that lock would have to make this assignment happen first.
     pub fn submit<T: Send + 'static, H>(
         &mut self,
         executor: &dyn IBlockingExecutor,
@@ -130,10 +137,15 @@ impl InFlight {
         held: H,
         own: impl FnOnce(H, Mailbox<T>) -> PendingIo,
     ) -> Result<(), (H, ProjectionError)> {
-        debug_assert!(
-            self.0.is_none(),
-            "a projection runs one blocking job at a time"
-        );
+        // Checked rather than asserted: a `debug_assert` is absent from release
+        // builds, and overwriting the slot would drop a running job's `PendingIo`
+        // — releasing its leases while the worker still holds them and losing a
+        // commit attempt or a delete checkout. Every caller guards this already;
+        // the point of the check is that the invariant belongs to the type, not
+        // to the discipline of its callers.
+        if self.0.is_some() {
+            return Err((held, ProjectionError::Worker));
+        }
         let mailbox = match blocking::submit(executor, wake, work) {
             Ok(mailbox) => mailbox,
             Err(error) => return Err((held, error)),
