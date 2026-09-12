@@ -419,9 +419,11 @@ Performance qualification and stability qualification must also pass on the
 recorded baseline host; passing unit tests alone is insufficient.
 Assess the gates in ADR 0004. The target matrix includes macOS and Linux on both
 architectures; narrow any initial support claim to targets actually qualified.
-That narrowing has been applied: the claim is currently macOS arm64 and Linux
-x86_64, both exercised rather than qualified, with macOS x86_64 and Linux arm64
-labelled unqualified.
+That narrowing has been applied, and it leaves the claim **empty**: no target is
+qualified under this section, so none is claimed as supported. macOS arm64 and
+Linux x86_64 are the candidates — they are the only targets with any executed
+evidence — while macOS x86_64 and Linux arm64 have none at all. "Exercised" is
+not a support claim, and this ADR offers no category between qualified and not.
 Record configured-but-unrun checks separately from successful evidence. Any
 native build failure must include its concrete tool/dependency error and the
 step it prevents; do not substitute an unimplemented backend.

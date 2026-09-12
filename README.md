@@ -13,10 +13,11 @@ The workspace separates domain, application ports/use cases, infrastructure
 adapters, and the public `pty-runtime` facade. Run `python3 scripts/gate.py` for
 the mandatory mechanical gate. Product behavior lives in `docs/features/`.
 
-Intended platforms are macOS and Linux on arm64 and x86_64, but the support
-claim is narrower than the target list: macOS arm64 and Linux x86_64 have been
-exercised and are not yet qualified, and **macOS x86_64 and Linux arm64 are
-unqualified with no executed evidence**. See the
+Intended platforms are macOS and Linux on arm64 and x86_64. **No platform is
+claimed as supported yet**, because none has completed qualification: macOS arm64
+and Linux x86_64 are the candidates, having been exercised by standalone
+experiment fixtures, and **macOS x86_64 and Linux arm64 have no executed evidence
+at all**. See the
 [platform table](docs/README.md#platform) and
 [ADR 0004](docs/adr/0004-integration-and-release-qualification.md#platform-qualification).
 

@@ -176,11 +176,19 @@ release's support claim. Do not turn planned coverage into a passing result.
 
 ### Narrowed initial support claim
 
-Until the "Still required" column is closed, the initial release claims
-**macOS arm64 and Linux x86_64 only**, and claims them as exercised rather than
-qualified. macOS x86_64 and Linux arm64 remain **unqualified**: they are intended
-targets that no one has run. Documentation may describe them as intended, and
-must not describe them as supported or tested.
+Until the "Still required" column is closed for a target, that target is not
+claimed. No row above is closed, so **the initial release claims no platform as
+supported.**
+
+macOS arm64 and Linux x86_64 are the **release candidates**: the only targets
+with any executed evidence, and the two that qualification should be run on
+first. macOS x86_64 and Linux arm64 are **unqualified with no executed
+evidence** — intended targets that no one has run.
+
+ADR 0001 §8 admits no category between qualified and not, so "exercised" is a
+statement about evidence and never a support claim. Documentation may describe
+any of the four as intended, and must not describe any of them as supported or
+tested until its row here is closed.
 
 ## Implementation milestones and gates
 

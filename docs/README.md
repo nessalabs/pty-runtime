@@ -32,7 +32,8 @@ run is narrower, and no target is qualified:
 | Linux arm64 | **Unqualified** — no executed evidence |
 
 "Exercised" means something ran and was recorded; it is not a release
-qualification pass. The
+qualification pass, and it is never a support claim — **no platform is claimed as
+supported until its row in the ADR 0004 table is closed, and none is.** The
 [ADR 0004 platform table](adr/0004-integration-and-release-qualification.md#platform-qualification)
 is the authority, and [verification.md](verification.md) is the plain-English
 status.
