@@ -1,8 +1,7 @@
 use super::{
     PinnedCheckpoint, ProjectionCoordinator, ProjectionError, Residency,
-    state::{
-        CommitOutcome, CommittedSource, NativeWorkspace, PendingIo, UnreclaimedSource, collect,
-    },
+    inflight::{PendingIo, collect},
+    state::{CommitOutcome, CommittedSource, NativeWorkspace, UnreclaimedSource},
 };
 use pty_runtime_domain::terminal::RestorationProgress;
 impl ProjectionCoordinator {
@@ -15,10 +14,7 @@ impl ProjectionCoordinator {
         let Ok(services) = self.services() else {
             return;
         };
-        if !workspace.io.as_ref().is_some_and(PendingIo::is_ready) {
-            return;
-        }
-        let Some(pending) = workspace.io.take() else {
+        let Some(pending) = workspace.io.take_finished() else {
             return;
         };
         let closing = matches!(
@@ -120,12 +116,8 @@ impl ProjectionCoordinator {
                 );
             }
             PendingIo::Delete { attempt, mailbox } => {
-                // A successful delete drops the source here, releasing its disk
-                // reservation. A failure is only durable once retries are spent.
-                if let Err(error) = collect(&mailbox) {
-                    if let Some(error) = workspace.reaper.give_up_or_retry(attempt, error) {
-                        self.queue.maintenance_failed(error);
-                    }
+                if let Some(error) = workspace.reaper.finish_delete(attempt, collect(&mailbox)) {
+                    self.queue.maintenance_failed(error);
                 }
             }
         }

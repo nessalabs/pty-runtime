@@ -1,21 +1,16 @@
 use super::{
     ProjectionCoordinator, ProjectionError, blocking,
     budgets::{DiskLease, IoMemory, Lease},
+    inflight::PendingIo,
     queue::ParkStart,
-    state::{Command, Mailbox, NativeWorkspace, PendingIo},
+    state::{Command, NativeWorkspace},
 };
 use crate::scheduling::WorkSchedule;
 use pty_runtime_domain::checkpoint::CheckpointKey;
 use std::time::Duration;
+/// How long to wait before retrying work a full pool or a full quota refused.
+const RETRY_SOON: Duration = Duration::from_millis(5);
 impl ProjectionCoordinator {
-    /// Submit one job to the blocking pool against this projection's executor.
-    fn submit_io<T: Send + 'static>(
-        &self,
-        work: impl FnOnce() -> Result<T, ProjectionError> + Send + 'static,
-    ) -> Result<Mailbox<T>, ProjectionError> {
-        let services = self.services()?;
-        blocking::submit(services.blocking.as_ref(), self.wiring.handle(), work)
-    }
     pub(super) fn start_read(
         &self,
         workspace: &mut NativeWorkspace,
@@ -38,7 +33,7 @@ impl ProjectionCoordinator {
                 if let Some(event) = transfer {
                     event.fail(error);
                 }
-                return WorkSchedule::After(Duration::from_millis(5));
+                return WorkSchedule::After(RETRY_SOON);
             }
         };
         let job = blocking::read_job(
@@ -53,19 +48,22 @@ impl ProjectionCoordinator {
         // differ only in what they own on completion and how they report a
         // rejected submission.
         if let Some(Command::Checkpoint(request, staging)) = transfer {
-            match self.submit_io(job) {
-                Ok(mailbox) => {
-                    workspace.io = Some(PendingIo::Transfer {
-                        request,
-                        memory,
-                        _staging: staging,
-                        mailbox,
-                    });
-                    WorkSchedule::Dormant
-                }
-                Err(error) => {
+            match workspace.io.submit(
+                services.blocking.as_ref(),
+                self.wiring.handle(),
+                job,
+                (request, memory, staging),
+                |(request, memory, _staging), mailbox| PendingIo::Transfer {
+                    request,
+                    memory,
+                    _staging,
+                    mailbox,
+                },
+            ) {
+                Ok(()) => WorkSchedule::Dormant,
+                Err(((request, ..), error)) => {
                     request.fail(error);
-                    WorkSchedule::After(Duration::from_millis(5))
+                    WorkSchedule::After(RETRY_SOON)
                 }
             }
         } else {
@@ -74,22 +72,27 @@ impl ProjectionCoordinator {
                 workspace.config.native_bytes,
             ) {
                 Ok(resident) => resident,
-                Err(_) => return WorkSchedule::After(Duration::from_millis(5)),
+                Err(_) => return WorkSchedule::After(RETRY_SOON),
             };
-            match self.submit_io(job) {
-                Ok(mailbox) => {
+            match workspace.io.submit(
+                services.blocking.as_ref(),
+                self.wiring.handle(),
+                job,
+                (resident, memory),
+                |(resident, memory), mailbox| PendingIo::Restore {
+                    resident,
+                    memory,
+                    mailbox,
+                },
+            ) {
+                Ok(()) => {
                     let result = self.queue.begin_restore();
                     if let Err(error) = result {
                         self.fail(error);
                     }
-                    workspace.io = Some(PendingIo::Restore {
-                        resident,
-                        memory,
-                        mailbox,
-                    });
                     WorkSchedule::Dormant
                 }
-                Err(_) => WorkSchedule::After(Duration::from_millis(5)),
+                Err(_) => WorkSchedule::After(RETRY_SOON),
             }
         }
     }
@@ -140,38 +143,22 @@ impl ProjectionCoordinator {
             descriptor,
             self.config.protected_bytes,
         );
-        match self.submit_io(job) {
-            Ok(mailbox) => {
-                workspace.io = Some(PendingIo::Commit {
-                    attempt,
-                    disk,
-                    _memory: memory,
-                    mailbox,
-                })
-            }
-            Err(error) => {
+        match workspace.io.submit(
+            services.blocking.as_ref(),
+            self.wiring.handle(),
+            job,
+            (attempt, disk, memory),
+            |(attempt, disk, _memory), mailbox| PendingIo::Commit {
+                attempt,
+                disk,
+                _memory,
+                mailbox,
+            },
+        ) {
+            Ok(()) => WorkSchedule::Dormant,
+            Err((_, error)) => {
                 self.queue.park_failed(error, services.clock.now());
-                return WorkSchedule::After(self.config.options.retry_after);
-            }
-        }
-        WorkSchedule::Dormant
-    }
-    pub(super) fn start_delete(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
-        let Ok(services) = self.services() else {
-            return WorkSchedule::Finished;
-        };
-        let Some(attempt) = workspace.reaper.check_out() else {
-            return WorkSchedule::Dormant;
-        };
-        let job = blocking::delete_job(services.store.clone(), attempt.source.reference);
-        match self.submit_io(job) {
-            Ok(mailbox) => {
-                workspace.io = Some(PendingIo::Delete { attempt, mailbox });
-                WorkSchedule::Dormant
-            }
-            Err(_) => {
-                workspace.reaper.return_unsubmitted(attempt);
-                WorkSchedule::After(Duration::from_millis(5))
+                WorkSchedule::After(self.config.options.retry_after)
             }
         }
     }

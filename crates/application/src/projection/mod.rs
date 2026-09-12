@@ -4,6 +4,7 @@ mod blocking;
 mod budgets;
 mod completion;
 mod coordinator;
+mod inflight;
 mod io;
 mod journal;
 mod snapshot;

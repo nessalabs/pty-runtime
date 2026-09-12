@@ -161,7 +161,8 @@ What changed:
   result were parallel enums that had to agree by convention, and `finish_io`
   carried a defensive "wrong result kind" arm in every branch. They are now one
   `PendingIo` carrying a `Mailbox<T>` per variant, and all four arms are gone —
-  not merely unreachable.
+  not merely unreachable. Both now live in `inflight.rs` beside the slot they
+  fill.
 - `worker::run` went from ~100 lines and twelve early returns to 31, with the
   phases named (`read_back_source`, `restore_step`, `serve`). Its two `status()`
   reads were kept: the second one exists to catch a failure that
@@ -278,13 +279,20 @@ What changed:
   over injected ports, with ten tests that need neither a coordinator nor a
   workspace.
 
-  The **orchestration lifecycle around them was not**. `start_read`,
-  `start_park`, `start_delete` and `finish_io` remain `ProjectionCoordinator`
+  The **orchestration lifecycle around them** then came out in two pieces and
+  stopped. The in-flight slot and the submission are `InFlight` in
+  `inflight.rs`, which makes submitting and recording one act — a job cannot be
+  running without the slot knowing. The deletion lifecycle is
+  `SourceReaper::start_delete` / `finish_delete`, driven without a coordinator in
+  `tests/reaper.rs`; those tests pin the distinction between a provider that
+  refused (spends an attempt) and a full pool that never asked it (spends none).
+
+  `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
   methods in `io.rs` and `completion.rs`, and they are where the coupling
   actually lives — `finish_io` alone spans five collaborators and ten workspace
-  fields. Calling the lifecycle extracted would erase an unresolved
-  coordinator-responsibility issue, so it stays open; see
-  [`todo/code-cleanups.md`](todo/code-cleanups.md).
+  fields, unchanged by the extractions above, because what came out came out
+  precisely by touching nothing. That was measured and declined rather than
+  deferred; see [`todo/declined.md`](todo/declined.md).
 
   The native engine driving also remains, and was measured and declined rather
   than deferred — see the P3 list below.

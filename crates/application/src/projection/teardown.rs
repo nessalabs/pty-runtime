@@ -1,6 +1,7 @@
 use super::{
     ProjectionCoordinator, ProjectionError, Residency,
-    state::{NativeWorkspace, PendingIo, UnreclaimedSource},
+    inflight::PendingIo,
+    state::{NativeWorkspace, UnreclaimedSource},
 };
 use std::panic::{AssertUnwindSafe, catch_unwind};
 impl ProjectionCoordinator {
@@ -25,7 +26,7 @@ impl ProjectionCoordinator {
         }
         let mut workspace = self.lock_workspace();
         self.finish_io(&mut workspace);
-        if let Some(pending) = workspace.io.take() {
+        if let Some(pending) = workspace.io.abandon() {
             match pending {
                 PendingIo::Commit { attempt, disk, .. } => {
                     let source = UnreclaimedSource::from_uncertain_park(

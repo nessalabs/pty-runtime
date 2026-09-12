@@ -40,9 +40,10 @@ matrix and the separately instrumented guardian helper.
 **This target currently contradicts the code**, and that needs resolving before
 anyone chases a number:
 
-- `collect`'s empty-mailbox fallback in `projection/state.rs` is unreachable by
-  construction — `is_ready()` is checked before `take()`, and a panicking job
-  publishes `Err(Worker)` rather than leaving the slot empty.
+- `collect`'s empty-mailbox fallback in `projection/inflight.rs` is unreachable
+  by construction — `InFlight::take_finished` only yields a job whose mailbox is
+  filled, and a panicking job publishes `Err(Worker)` rather than leaving the
+  slot empty.
 - `commit_park`'s `engine_idle` argument is unreachable-false; an assertion at
   the call site never fired across the whole suite. It is deliberate defence
   against a future path that commits without draining in-flight native work.

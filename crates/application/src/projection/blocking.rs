@@ -12,7 +12,7 @@
 //! written: each has to become a specific outcome, and for commits the
 //! difference between "nothing was stored" and "something may have been" decides
 //! whether a disk reservation can ever be released.
-use super::{ProjectionError, state::CommitOutcome, state::Mailbox};
+use super::{ProjectionError, inflight::Mailbox, state::CommitOutcome};
 use crate::{
     checkpoint::{ICheckpointProtector, ICheckpointStore},
     scheduling::{IBlockingExecutor, IWorkHandle},
