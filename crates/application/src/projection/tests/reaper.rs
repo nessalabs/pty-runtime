@@ -174,3 +174,39 @@ fn a_stuck_oldest_source_blocks_the_newer_one_behind_it() {
     assert_eq!(f.jobs.len(), 0);
     assert_eq!(f.store.deletes.load(Ordering::Acquire), 1);
 }
+
+/// The one-job-at-a-time rule belongs to the slot, not to its callers.
+///
+/// Every caller checks the slot before asking for a deletion, so this path is
+/// not reached in the worker as it stands. It is reachable here because
+/// `InFlight` is a type that can be driven on its own — which is the point of it
+/// being one. Overwriting an occupied slot would drop a running job's
+/// `PendingIo`, releasing leases the blocking worker is still using and losing
+/// whatever its completion was going to settle.
+#[test]
+fn a_second_deletion_is_refused_while_one_is_outstanding() {
+    let mut f = Fixture::new(2);
+    f.retire(1);
+    f.retire(2);
+
+    assert!(matches!(f.start(), WorkSchedule::Dormant));
+    assert!(f.io.busy());
+    assert_eq!(f.jobs.len(), 1);
+
+    let schedule = f.start();
+    assert!(
+        matches!(schedule, WorkSchedule::After(delay) if !delay.is_zero()),
+        "a refused submission should ask to be retried shortly"
+    );
+    assert_eq!(f.jobs.len(), 1, "the second job must not reach the pool");
+    assert!(f.io.busy(), "the outstanding job must still own the slot");
+
+    // The first completes normally, and the second then goes through with its
+    // attempt count untouched by the refusal.
+    assert_eq!(f.settle(), None);
+    assert_eq!(f.store.deletes.load(Ordering::Acquire), 1);
+    assert!(matches!(f.start(), WorkSchedule::Dormant));
+    assert_eq!(f.settle(), None);
+    assert_eq!(f.store.deletes.load(Ordering::Acquire), 2);
+    assert!(!f.reaper.holds_sources());
+}
