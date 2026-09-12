@@ -316,34 +316,33 @@ What changed:
   belongs to one, so a type there would hold a back-reference and nothing else.
   See [`todo/declined.md`](todo/declined.md).
 
-- Still open after the three reviews, all P3:
-  - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
-    untested. `serve` only reaches `start_park` after
-    `poll_inflight_operations` has returned `None`, which requires both the reply
-    and resize slots to be clear, and nothing can set either between
-    `start_park` and the `finish_io` that lands the commit. Probing the whole
-    suite with an assertion at that call site never fired. It is kept as defence
-    against a future path that starts a commit without draining in-flight native
-    work first; that reasoning is now recorded at the parameter.
-  - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
-    region-coverage hole.
-  - The **native engine driving** is still coordinator methods, and on measuring
-    it, moving it does not look like a win. `apply_command` touches five
-    collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four
-    workspace fields; `poll_inflight_operations` touches three and four. Passing
-    that as a context object to an `impl NativeWorkspace` renames `self` rather
-    than splitting a responsibility. Contrast the blocking jobs, which touched
-    **zero** collaborators and so came out cleanly. Recorded as considered and
-    declined rather than outstanding; it would need a different idea, not more
-    of the same one.
+- Left from the three reviews, one item, P3 and not open: the **native engine
+  driving** is still coordinator methods, and on measuring it, moving it does
+  not look like a win. `apply_command` touches five
+  collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four
+  workspace fields; `poll_inflight_operations` touches three and four. Passing
+  that as a context object to an `impl NativeWorkspace` renames `self` rather
+  than splitting a responsibility. Contrast the blocking jobs, which touched
+  **zero** collaborators and so came out cleanly. Recorded as considered and
+  declined rather than outstanding; it would need a different idea, not more
+  of the same one.
 
 - **100% line/function/region coverage** is a stated readiness target in
-  `coding_standards.md` and is **not tracked here**, which is itself a gap in
-  this record. No coverage run has been made against current source; the
-  command is `python3 scripts/coverage.py --output work/coverage/<run-name>`.
-  Two known permanent holes are recorded above (`collect`'s empty-mailbox
-  fallback, `commit_park`'s `engine_idle`), so the target cannot be met as
-  stated without either exercising or removing them.
+  `coding_standards.md`. A run now exists: 93.13% lines, 91.75% functions,
+  91.13% regions across the workspace, and 12.50% lines for the separately
+  instrumented guardian helper. The two permanent holes this record used to
+  name are gone — `collect` no longer exists, and `commit_park`'s `engine_idle`
+  parameter was removed in favour of a test of the ordering it stood for.
+
+  That did not move the total, because they were never the obstacle. The
+  largest single gap, `process/image_materialize.rs`, is **unmeasured rather
+  than untested**: every never-executed function in it is the fork child, which
+  exits via `_exit` and never flushes its counters, while the parent half of the
+  same file records 39 to 61 hits. The guardian helper is the same thing one
+  level up. Branch coverage reports 0/0, which is not a pass. The target needs a
+  decision about measured scope before a number means anything; the numbers, the
+  per-file gap and what is still unreachable are in
+  [`todo/release-blockers.md`](todo/release-blockers.md).
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)
