@@ -178,7 +178,7 @@ fn resident_checkpoint_pin_reserves_plaintext_even_when_protection_bound_is_smal
 #[test]
 fn empty_output_chunk_is_accepted_without_waking_or_failing() {
     let h = Harness::standard();
-    h.owner.wiring.inject_handle(None);
+    h.owner.wiring.take_handle();
     assert_eq!(h.owner.stage_output(b""), OutputAcceptance::Accepted);
     assert!(h.owner.status().failure.is_none());
     assert_eq!(h.owner.queue.queued(), 0);

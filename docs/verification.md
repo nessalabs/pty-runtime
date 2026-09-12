@@ -109,8 +109,8 @@ Answers to the four questions the behavioural review was scoped to:
   reviewer on the pull request caught, and the tests as first written could not
   have: `leaf` registered the tier in a local that dropped when the helper
   returned while the caller still held the mutex, so nesting *under* a leaf went
-  undetected; and three wiring sites (`wake`, `unbind_process`,
-  `inject_services`) bypassed the chokepoint entirely, which made the
+  undetected; and three wiring sites (`wake`, `unbind_process`, and the since
+  removed `inject_services`) bypassed the chokepoint entirely, which made the
   every-lock-is-instrumented claim false. Both are fixed, and the third test
   above exists so the first defect cannot return silently.
 

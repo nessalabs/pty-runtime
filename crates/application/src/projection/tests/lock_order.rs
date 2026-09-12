@@ -12,6 +12,7 @@ use super::support::*;
 use crate::{
     process::OutputAcceptance,
     projection::tier::{self, Tier},
+    projection::wiring,
 };
 use std::sync::{Arc, Barrier};
 
@@ -30,8 +31,8 @@ fn the_detector_itself_catches_an_inversion() {
 ///
 /// The two tests above call `tier::enter` directly, so they exercise the
 /// detector but not the instrumentation. This one goes through the actual
-/// `leaf` helper: `inject_services` runs its closure while the services mutex is
-/// held, so anything the closure acquires is nested under a leaf and must panic.
+/// `leaf` helper: `hold_leaf` runs its closure while a real leaf mutex is held,
+/// so anything the closure acquires is nested under a leaf and must panic.
 ///
 /// An earlier version of `leaf` registered the tier in a local that dropped when
 /// the helper returned, while the caller still held the mutex — nesting under a
@@ -39,9 +40,8 @@ fn the_detector_itself_catches_an_inversion() {
 #[test]
 #[should_panic(expected = "lock order inverted")]
 fn a_real_leaf_lock_holds_its_registration_for_the_whole_hold() {
-    let h = Harness::standard();
     tier::reset();
-    h.owner.wiring.inject_services(|_| {
+    wiring::hold_leaf(|| {
         let _nested = tier::enter(Tier::Leaf);
     });
 }

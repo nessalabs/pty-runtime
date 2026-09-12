@@ -1,8 +1,8 @@
 //! Closing may finish on an already scheduled worker before the caller wakes it.
 use super::support::*;
 use crate::{
-    projection::{ProjectionError, Residency},
-    scheduling::{ICapacitySignal, IScheduledWork, IWorkHandle, SchedulingError},
+    projection::{ProjectionError, ProjectionLimits, Residency},
+    scheduling::{ICapacitySignal, IScheduledWork},
 };
 use pty_runtime_domain::checkpoint::CheckpointError;
 use std::{
@@ -26,10 +26,23 @@ impl ICapacitySignal for CompleteOnNotify {
     }
     fn wait_after(&self, _: u64, _: Instant) {}
 }
-fn finish_between_publication_and_wake(h: &Harness) {
+/// A projection wired to a capacity signal that can run cleanup to completion.
+///
+/// The signal is installed at construction, because a collaborator is only
+/// swappable before `create` sees it. What it *does* is decided later, by
+/// [`finish_between_publication_and_wake`], once there is an owner to drive and
+/// the caller has set up the state the race is meant to catch.
+fn racing_harness() -> (Harness, Arc<CompleteOnNotify>) {
+    let signal = Arc::new(CompleteOnNotify::default());
+    let installed = signal.clone();
+    let h = Harness::with_services(options(), ProjectionLimits::default(), move |services| {
+        services.capacity = installed;
+    });
+    (h, signal)
+}
+fn finish_between_publication_and_wake(h: &Harness, signal: &Arc<CompleteOnNotify>) {
     let weak = Arc::downgrade(&h.owner);
     let jobs = h.jobs.clone();
-    let signal = Arc::new(CompleteOnNotify::default());
     *signal.once.lock().unwrap() = Some(Box::new(move || {
         let owner = weak.upgrade().unwrap();
         assert_eq!(owner.status().residency, Residency::Closing);
@@ -43,9 +56,6 @@ fn finish_between_publication_and_wake(h: &Harness) {
         }
         panic!("real cleanup worker did not finish within bounded steps");
     }));
-    h.owner
-        .wiring
-        .inject_services(|services| services.capacity = signal);
 }
 fn released(h: &Harness, stored: usize) {
     let r = h.budgets.resources();
@@ -71,10 +81,10 @@ fn released(h: &Harness, stored: usize) {
 
 #[test]
 fn completed_cleanup_before_close_wake_returns_success_and_releases_every_budget() {
-    let h = Harness::standard();
+    let (h, signal) = racing_harness();
     h.owner.stage_output(b"retained");
     h.pump();
-    finish_between_publication_and_wake(&h);
+    finish_between_publication_and_wake(&h, &signal);
     let admitted = h.owner.close();
     assert_eq!(h.owner.close_outcome(), Some(Ok(())));
     assert!(admitted.is_ok(), "completed close reported wake failure");
@@ -86,10 +96,10 @@ fn completed_cleanup_before_close_wake_returns_success_and_releases_every_budget
 
 #[test]
 fn completed_failed_cleanup_before_close_wake_preserves_storage_outcome() {
-    let h = Harness::standard();
+    let (h, signal) = racing_harness();
     h.park();
     h.store.fail_delete.store(true, Ordering::Release);
-    finish_between_publication_and_wake(&h);
+    finish_between_publication_and_wake(&h, &signal);
     let admitted = h.owner.close();
     let expected = Err(ProjectionError::Storage(CheckpointError::Unavailable));
     assert_eq!(h.owner.close_outcome(), Some(expected));
@@ -105,22 +115,17 @@ fn completed_failed_cleanup_before_close_wake_preserves_storage_outcome() {
     released(&h, 1);
 }
 
-struct RejectWake;
-impl IWorkHandle for RejectWake {
-    fn wake(&self) -> Result<(), SchedulingError> {
-        Err(SchedulingError::Closed)
-    }
-    fn close(&self) {}
-}
 #[test]
 fn unfinished_close_with_missing_or_rejecting_scheduler_still_reports_worker() {
     for missing in [true, false] {
         let h = Harness::standard();
-        h.owner.wiring.inject_handle(if missing {
-            None
+        if missing {
+            // The state cleanup leaves behind: the registration is gone.
+            h.owner.wiring.take_handle();
         } else {
-            Some(Arc::new(RejectWake))
-        });
+            // Still registered, but the scheduler now refuses every wake.
+            h.scheduler.reject_wake.store(true, Ordering::Release);
+        }
         assert!(matches!(h.owner.close(), Err(ProjectionError::Worker)));
         assert_eq!(h.owner.status().residency, Residency::Closing);
         assert_eq!(h.owner.close_outcome(), None);
