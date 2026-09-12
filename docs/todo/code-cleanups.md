@@ -31,6 +31,36 @@ the test.
 **Done when:** no production type carries a mutation hook, and the lock-order
 leaf test still fails when `leaf`'s registration is scoped wrongly.
 
+## The blocking-I/O orchestration lifecycle
+
+**Where:** `crates/application/src/projection/io.rs` (`start_read`, `start_park`,
+`start_delete`, `submit_io`) and `completion.rs` (`finish_io`,
+`history_progress`).
+
+Only the provider-facing job bodies and the submission primitive were extracted
+to `blocking.rs`. The lifecycle that drives them is still coordinator methods,
+and it is where the coupling lives:
+
+| method | collaborators | workspace fields |
+| --- | --- | --- |
+| `finish_io` | 5 | 10 |
+| `start_read` | 3 | 3 |
+| `start_park` | 3 | 3 |
+| `history_progress` | 1 | 3 |
+| `start_delete` | 0 | 2 |
+| `submit_io` | 1 | 0 |
+| *extracted jobs, for contrast* | **0** | **0** |
+
+`start_delete` is already nearly free of the coordinator — it reads the reaper
+and the in-flight slot and nothing else, so it is the obvious first move.
+`finish_io` is the opposite end and is closer in shape to the native engine
+driving, which was measured and declined; read [`declined.md`](declined.md)
+before attacking it, because the same argument may apply.
+
+**Done when:** the lifecycle is either owned by a type that holds the in-flight
+slot and its dependencies, or recorded here with a measurement explaining why
+not — as was done for the native engine driving.
+
 ## Files that partition a method list rather than a responsibility
 
 **Where:** `crates/application/src/projection/` — `admission.rs`,

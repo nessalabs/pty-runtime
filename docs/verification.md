@@ -272,11 +272,22 @@ What changed:
   (`commit_park`'s atomic emptiness check, `admit_output`'s rejection precedence)
   are now stated in one place.
 
-  The blocking-I/O lifecycle has since been extracted: `read_job`,
+  Partly addressed, and the distinction matters. The provider-facing **job
+  bodies** and the submission primitive were extracted: `read_job`,
   `commit_job`, `delete_job` and `submit` are free functions in `blocking.rs`
   over injected ports, with ten tests that need neither a coordinator nor a
-  workspace. The native engine driving remains coordinator methods, and was
-  measured and declined rather than deferred — see the P3 list below.
+  workspace.
+
+  The **orchestration lifecycle around them was not**. `start_read`,
+  `start_park`, `start_delete` and `finish_io` remain `ProjectionCoordinator`
+  methods in `io.rs` and `completion.rs`, and they are where the coupling
+  actually lives — `finish_io` alone spans five collaborators and ten workspace
+  fields. Calling the lifecycle extracted would erase an unresolved
+  coordinator-responsibility issue, so it stays open; see
+  [`todo/code-cleanups.md`](todo/code-cleanups.md).
+
+  The native engine driving also remains, and was measured and declined rather
+  than deferred — see the P3 list below.
 
 - Still open after the three reviews, all P3:
   - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
