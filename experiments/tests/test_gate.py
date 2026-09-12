@@ -47,6 +47,8 @@ def handoff_evidence(repetitions=5):
     roundtrip = dict(window, samples=10)
     row = {"protocol": 2, "case": "handoff", "model": "shared-2", "ptys": 4, "read_buffer_bytes": 1024,
            "verified": True, "cycles": 1, "probe_ptys": 1, "active_producers": 2, "reader_workers": 2,
+           "duration_ms": 6000, "offered_bytes_per_sec_per_producer": 262144,
+           "window_ms": 200, "probe_ms": 200,
            "base": memory, "cleaned": memory,
            "dedicated": dict(memory, threads=8, descriptors=15, rss_bytes=1600000),
            "resident": dict(memory, threads=3, descriptors=15, rss_bytes=1100000),
@@ -78,6 +80,25 @@ class HandoffGateTests(unittest.TestCase):
         rows[0]["data"][0]["disordered_bytes"] = 1
         with self.assertRaisesRegex(ValueError, "lost, duplicated or reordered"):
             gate.summarize(meta, rows)
+
+    def test_a_row_from_another_workload_is_not_this_case_s_evidence(self):
+        """Only the arguments shaping the thread count used to be compared.
+
+        A stale or mislabelled row measured at a different offered rate,
+        duration, window or PTY count therefore passed validation and entered
+        the comparison as if it answered this case's question. Each of those
+        inputs determines the throughput and latency being reported.
+        """
+        for field, value in (("duration_ms", 5000),
+                             ("offered_bytes_per_sec_per_producer", 131072),
+                             ("window_ms", 300),
+                             ("probe_ms", 300),
+                             ("ptys", 8)):
+            with self.subTest(field=field):
+                meta, rows = handoff_evidence()
+                rows[0]["data"][0][field] = value
+                with self.assertRaises(ValueError):
+                    gate.summarize(meta, rows)
 
     def test_delivered_bytes_must_match_the_producer_ramp(self):
         meta, rows = handoff_evidence()

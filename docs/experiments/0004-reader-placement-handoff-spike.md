@@ -43,6 +43,26 @@ single absolute number here. No baseline was saved from this run; a noisy
 desktop is not a reviewed baseline (see
 [the runner documentation](../../experiments/README.md)).
 
+Two limitations in how that comparison was taken, neither corrected in this run:
+
+- **Placement order is fixed.** Every cycle measures the dedicated placement
+  before the shared one. Interleaving within seconds and repeating three times
+  bounds how far host load can drift between the two, but it does not cancel a
+  bias that runs the same direction every time. A load trend across a cycle
+  would favour whichever side goes first, consistently. Alternating the order
+  between cycles would remove that, and is the obvious change before these
+  numbers are used for anything finer than the order-of-magnitude gap reported
+  here.
+- **Reordering is only detected below the ramp period.** The producers emit a
+  repeating 256-byte ramp and every byte is checked against its absolute
+  offset, so loss, duplication and any shuffle finer than 256 bytes are caught.
+  Whole aligned blocks are byte-identical to each other, so a fault that
+  published them out of order would pass — and chunks are sixteen whole periods
+  wide, which is exactly that case. Read "zero disordered bytes" as *nothing
+  was lost or duplicated*, not as proof that block order held across a handoff.
+  A position-dependent or nonperiodic stream would close this, at the cost of
+  invalidating the results recorded here.
+
 ## What the fixture does
 
 The new `handoff` family builds one population, then measures it twice inside a
@@ -376,7 +396,7 @@ The validator enforces, per handoff record: one reader per live PTY in the
 dedicated placement, a thread ceiling never exceeded at the sampled placements
 (the fixture samples the steady placements, not every instant of a migration,
 so a transient spike between two transitions would not be caught), zero
-disordered bytes, a
+disordered bytes (within the ramp period only — see the limitations above), a
 delivered-byte checksum matching the producer ramp, complete migration samples in
 both directions, a reader-thread-creation count matching the measured wake
 migrations, and both placements probed. Its unit tests include deliberate

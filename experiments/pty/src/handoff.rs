@@ -77,8 +77,19 @@ struct Delivery {
 
 impl Delivery {
     /// Producers emit a continuous 256-byte ramp, so the expected value of every
-    /// absolute offset is known. This detects loss, duplication and reordering
-    /// across a handoff, at the cost of one comparison per byte.
+    /// absolute offset is known. This detects loss, duplication, and reordering
+    /// finer than the ramp period, at the cost of one comparison per byte.
+    ///
+    /// **It does not detect reordering of whole 256-byte-aligned blocks.** The
+    /// stream is periodic, so any two aligned blocks are byte-identical and a
+    /// fault that published them out of order would still match every offset —
+    /// and chunks are 4096 bytes, sixteen whole periods, so a chunk-granular
+    /// swap is exactly that case. Detecting it needs a position-dependent
+    /// stream, a per-block sequence marker or a nonperiodic generator, which
+    /// would change what the producer emits and so invalidate results recorded
+    /// against this one. Read `disordered_bytes == 0` as "nothing was lost or
+    /// duplicated, and nothing was reordered within a period", not as proof
+    /// that block order held.
     fn accept(&self, chunk: &[u8]) {
         let start = self.bytes.load(Ordering::Relaxed);
         let mut sum = 0u64;
@@ -742,6 +753,7 @@ pub fn handoff(
 
     json!({"case":"handoff","ptys":n,"active_producers":active,"cycles":cycles,
         "shared_workers":workers,"window_ms":window_ms,"probe_ms":probe_ms,"probe_ptys":1,
+        "duration_ms":duration_ms,
         "offered_bytes_per_sec_per_producer":rate,
         "base":base,"dedicated":dedicated_memory,"resident":shared_memory,"cleaned":cleaned,
         "peak_threads":peak_threads,"bytes":total,"producers":produced,

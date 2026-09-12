@@ -44,9 +44,22 @@ RAMP_CHECKSUM = 256 * 255 // 2
 def validate_handoff(case, row):
     """Placement movement is only evidence if ownership, byte order and the
     worker ceiling all held while descriptors moved between readers."""
-    active, cycles = int(case["args"][4]), int(case["args"][7])
+    # Every workload argument, not just the two that shape the thread count: a
+    # row measured at a different offered rate, window or duration answers a
+    # different question, and comparing it against this case's numbers would be
+    # comparing two experiments.
+    args = case["args"]
+    ptys, active, duration = int(args[2]), int(args[4]), int(args[5])
+    rate, cycles, window, probe = (int(args[6]), int(args[7]),
+                                   int(args[8]), int(args[9]))
     sessions, probes, workers = row["ptys"], row["probe_ptys"], row["reader_workers"]
     require(row["cycles"] == cycles and probes == 1, "handoff workload differs")
+    require(sessions == ptys, "handoff ran a different PTY count")
+    require(row["duration_ms"] == duration, "handoff ran for a different duration")
+    require(row["offered_bytes_per_sec_per_producer"] == rate,
+            "handoff ran at a different offered rate")
+    require(row["window_ms"] == window and row["probe_ms"] == probe,
+            "handoff measured over a different window")
     require(row["active_producers"] == active and len(row["producers"]) == active,
             "missing independent producers")
     require(row["dedicated"]["threads"] - row["base"]["threads"] == sessions + probes + workers,
