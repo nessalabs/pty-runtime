@@ -10,27 +10,33 @@
 //! deleted stays charged against the runtime's quota for the rest of its life,
 //! which is what the unreclaimed ledger is for.
 use super::{
-    ProjectionError,
+    ProjectionError, blocking,
+    inflight::{InFlight, PendingIo},
     state::{CommittedSource, UnreclaimedSource},
 };
-use std::collections::VecDeque;
+use crate::{
+    checkpoint::ICheckpointStore,
+    scheduling::{IBlockingExecutor, IWorkHandle, WorkSchedule},
+};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 /// One source checked out for a deletion attempt.
 ///
-/// A checkout has four possible dispositions, and only two of them come back
-/// through this type:
+/// A checkout has four possible dispositions:
 ///
 /// ```text
-///   submission rejected  -> return_unsubmitted   (same attempt count, re-queued)
-///   delete failed        -> give_up_or_retry     (count incremented, re-queued)
-///   delete succeeded     -> dropped here         (releases the DiskLease)
+///   submission rejected  -> start_delete   re-queued, same attempt count
+///   delete failed        -> finish_delete  re-queued, count incremented
+///   delete succeeded     -> dropped by finish_delete (releases the DiskLease)
 ///   shutdown mid-flight  -> surrendered to the unreclaimed ledger
 /// ```
 ///
 /// Dropping is therefore legitimate — it *is* the success path — which is why
 /// this is a plain value and not an RAII guard: a guard could not tell a
-/// successful delete from a mistaken drop. The cost is that the two re-queueing
-/// paths are a convention rather than an invariant the compiler holds.
+/// successful delete from a mistaken drop. What keeps the two re-queueing paths
+/// honest is that a checkout never leaves this module: `start_delete` hands it
+/// to the slot or puts it straight back, and `finish_delete` is the only way it
+/// comes out again.
 pub(super) struct DeleteAttempt {
     pub source: CommittedSource,
     pub attempts: u32,
@@ -83,17 +89,63 @@ impl SourceReaper {
     /// A head whose retries are spent is left in place and `None` is returned:
     /// it is not skipped over, because deleting a newer source while an older
     /// one is stuck would reorder the provider's view of this session's storage.
-    pub fn check_out(&mut self) -> Option<DeleteAttempt> {
+    fn check_out(&mut self) -> Option<DeleteAttempt> {
         if self.queue.front()?.attempts >= self.max_attempts {
             return None;
         }
         self.queue.pop_front()
     }
 
-    /// Return a checkout whose attempt was never submitted, leaving its count
-    /// unchanged. A rejected submission is not evidence about the provider.
-    pub fn return_unsubmitted(&mut self, attempt: DeleteAttempt) {
-        self.queue.push_front(attempt);
+    /// Start deleting the next due source, if there is one the pool will take.
+    ///
+    /// The whole submission lives here rather than on the coordinator because
+    /// every part of it is this type's own business: which source is next, what
+    /// a rejected submission means for its attempt count, and that the job's
+    /// completion comes back as a `Delete`. Nothing about the projection's
+    /// queue, quotas or native state is involved.
+    ///
+    /// `Dormant` means there was nothing to start — either the queue is empty or
+    /// its head has spent its retries. A rejected submission is retried shortly
+    /// with the attempt count untouched, because a full pool says nothing about
+    /// the provider.
+    pub fn start_delete(
+        &mut self,
+        io: &mut InFlight,
+        store: Arc<dyn ICheckpointStore>,
+        executor: &dyn IBlockingExecutor,
+        wake: Option<Arc<dyn IWorkHandle>>,
+    ) -> WorkSchedule {
+        let Some(attempt) = self.check_out() else {
+            return WorkSchedule::Dormant;
+        };
+        let job = blocking::delete_job(store, attempt.source.reference);
+        match io.submit(executor, wake, job, attempt, |attempt, mailbox| {
+            PendingIo::Delete { attempt, mailbox }
+        }) {
+            Ok(()) => WorkSchedule::Dormant,
+            Err((attempt, _)) => {
+                // Never submitted, so the count is unchanged: a full pool is not
+                // evidence about the provider.
+                self.queue.push_front(attempt);
+                WorkSchedule::After(Duration::from_millis(5))
+            }
+        }
+    }
+
+    /// Settle a finished deletion.
+    ///
+    /// A success drops the attempt here, which releases the source's disk
+    /// reservation. A failure is returned only once the source's retries are
+    /// spent, which is the point at which it becomes a durable cleanup outcome
+    /// rather than something the next run might still fix.
+    pub fn finish_delete(
+        &mut self,
+        attempt: DeleteAttempt,
+        result: Result<(), ProjectionError>,
+    ) -> Option<ProjectionError> {
+        result
+            .err()
+            .and_then(|error| self.give_up_or_retry(attempt, error))
     }
 
     /// Record a failed deletion.
@@ -101,7 +153,7 @@ impl SourceReaper {
     /// Returns the error only once the source's retries are spent, which is the
     /// point at which the failure becomes a durable cleanup outcome rather than
     /// something the next run might still fix.
-    pub fn give_up_or_retry(
+    fn give_up_or_retry(
         &mut self,
         attempt: DeleteAttempt,
         error: ProjectionError,

@@ -28,6 +28,46 @@ need the behavioural correctness review re-run against it.
 
 **Would need:** a different idea, not more of the same one.
 
+## Moving `start_read`, `start_park` and `finish_io` off the coordinator
+
+**Proposed:** finish what `InFlight` and `SourceReaper` started and take the rest
+of the blocking-I/O lifecycle off `ProjectionCoordinator` too.
+
+**What did move, and why it could:** the in-flight slot and the submission
+primitive became `InFlight` in `inflight.rs`, and the deletion lifecycle —
+check out, submit, put back spent or unspent — became
+`SourceReaper::start_delete` / `finish_delete`. Both came out cleanly because
+neither touches the projection's queue, quotas or native state. The deletion
+lifecycle in particular is now driven without a coordinator at all, in
+`tests/reaper.rs`.
+
+**Measured**, after those moves:
+
+| method | collaborators | workspace fields |
+| --- | --- | --- |
+| `finish_io` | 5 (`queue`, `journal`, `quotas`, `wiring`, `config`) | 10 |
+| `start_read` | 3 (`queue`, `quotas`, `wiring`) | 3 |
+| `start_park` | 3 (`queue`, `quotas`, `wiring`) | 3 |
+| `history_progress` | 1 (`queue`) | 3 |
+| *`InFlight` / `SourceReaper`, for contrast* | **0** | **0** |
+
+The numbers for the three that stayed are unchanged by this work, which is the
+point: what was extractable was extractable *because* it touched nothing, and
+removing it did not loosen what is left.
+
+`start_read` and `start_park` each acquire from two runtime-shared quotas, ask
+domain policy whether the transition is permitted, drive the native engine, and
+submit — in an order where every step can fail and each failure has to put back
+exactly what the step before it took. `finish_io` is the same shape in reverse
+across four job kinds. Handing any of them an `impl IoWorkspace` holding those
+collaborators renames `self`; it does not split a responsibility. This is the
+same conclusion as the native engine driving above, reached the same way.
+
+**Would need:** a different idea, not more of the same one. The most promising
+is narrowing what the two `start_*` methods take from the queue, so the domain
+policy call and the submission stop being interleaved — but that is a change to
+`AdmissionQueue`'s interface, not a move of these methods.
+
 ## Testing `commit_park`'s `engine_idle` argument
 
 **Proposed:** cover the case where a commit lands with an empty queue but an

@@ -125,7 +125,7 @@ impl ProjectionCoordinator {
                 resident: Some(resident),
                 source: None,
                 restore_memory: None,
-                io: None,
+                io: super::inflight::InFlight::default(),
                 reply: None,
                 resize: None,
                 reaper: super::reaper::SourceReaper::new(options.max_delete_attempts),
