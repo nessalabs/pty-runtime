@@ -153,15 +153,42 @@ nonblocking readiness, partial I/O, hangup/EOF handling, reaping, resize,
 cancellation, and cleanup on each target. Exercise the native codec and memory
 reclamation there as well, using that platform's available memory metrics.
 
-| Target | Current executed evidence | Still required |
-| --- | --- | --- |
-| macOS arm64 | 245 repeated PTY/native fixture runs, including 128 active producers (Experiment 0003) | Rust integration, race/stress tests, performance qualification, and soak |
-| macOS x86_64 | None | Native build and executed behavioral/resource qualification |
-| Linux arm64 | None | Native build and executed behavioral/resource qualification |
-| Linux x86_64 | 245 repeated PTY/native fixture runs, including 128 active producers (Experiment 0003) | Rust integration, race/stress tests, performance qualification, and soak |
+| Target | Status | Current executed evidence | Still required |
+| --- | --- | --- | --- |
+| macOS arm64 | Partially exercised; not qualified | 245 repeated PTY/native fixture runs, including 128 active producers (Experiment 0003, executed 2026-09-08, `docs/experiments/data/0003/macos-metadata.json`: Apple M5, Mac17,3, Darwin 25.6.0). Native adapter tests, 11 native tests on 2026-09-08 (`scripts/native/README.md`). Coverage measurement on macOS 15 / aarch64 (`docs/todo/release-blockers.md`) | Rust integration, race/stress tests, performance qualification, and soak |
+| macOS x86_64 | **Unqualified — no executed evidence** | None. No run on this target is recorded anywhere in the tree, and no workflow selects a macOS x86_64 runner. The pinned `x86_64-macos` Zig archive in `experiments/dependencies.json` is a download pin, not a build or a run | Native build and executed behavioral/resource qualification |
+| Linux arm64 | **Unqualified — no executed evidence** | None. No run on this target is recorded anywhere in the tree, and no workflow selects a Linux arm64 runner. The pinned `aarch64-linux` Zig archive in `experiments/dependencies.json` is a download pin, not a build or a run | Native build and executed behavioral/resource qualification |
+| Linux x86_64 | Partially exercised; not qualified | 245 repeated PTY/native fixture runs, including 128 active producers (Experiment 0003, executed 2026-09-08, `docs/experiments/data/0003/linux-metadata.json`: Xeon Skylake VM, Linux 6.8.0-117, glibc 2.39) | Rust integration, race/stress tests, performance qualification, and soak |
+
+Experiment 0003 is a standalone transport and native fixture suite, not the
+session runtime. No target in this table has a complete qualification pass under
+this ADR on current source.
+
+CI is configuration, not evidence. `.github/workflows/runtime.yml` and
+`.github/workflows/experiments.yml` select the `ubuntu-24.04` and `macos-15`
+GitHub-hosted images, which are Linux x86_64 and macOS arm64; neither workflow
+selects a macOS x86_64 or a Linux arm64 runner. Per-run CI results are not
+retained in this repository, and running the gate on a platform is not a
+qualification pass for that platform.
 
 If a target cannot be exercised, label it unqualified and narrow the initial
 release's support claim. Do not turn planned coverage into a passing result.
+
+### Narrowed initial support claim
+
+Until the "Still required" column is closed for a target, that target is not
+claimed. No row above is closed, so **the initial release claims no platform as
+supported.**
+
+macOS arm64 and Linux x86_64 are the **release candidates**: the only targets
+with any executed evidence, and the two that qualification should be run on
+first. macOS x86_64 and Linux arm64 are **unqualified with no executed
+evidence** — intended targets that no one has run.
+
+ADR 0001 §8 admits no category between qualified and not, so "exercised" is a
+statement about evidence and never a support claim. Documentation may describe
+any of the four as intended, and must not describe any of them as supported or
+tested until its row here is closed.
 
 ## Implementation milestones and gates
 

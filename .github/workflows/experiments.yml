@@ -20,6 +20,9 @@ permissions:
 
 jobs:
   experiments:
+    # Linux x86_64 and macOS arm64 only. No macOS x86_64 or Linux arm64 runner is
+    # selected, and a configured runner is not executed platform coverage -- see
+    # the platform table in docs/adr/0004-integration-and-release-qualification.md.
     strategy:
       fail-fast: false
       matrix:

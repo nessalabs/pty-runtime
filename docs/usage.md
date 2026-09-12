@@ -100,8 +100,16 @@ background jobs are the cleanup scope; session escape and unbounded hostile
 forking are outside that guarantee. Platform process/descriptor limits still
 apply. Guardian costs are measured via process fixtures and the load harness;
 see [`features/guardian-helper-image.md`](features/guardian-helper-image.md).
-and remaining failure/distribution qualification. macOS/Linux arm64 and x86_64
-are targets; only explicitly recorded runs establish tested coverage.
+Failure and distribution qualification remain open.
+
+macOS and Linux on arm64 and x86_64 are intended targets, but only explicitly
+recorded runs establish tested coverage, and the recorded runs are narrower.
+macOS arm64 and Linux x86_64 have been exercised by standalone experiment
+fixtures and are not qualified. **macOS x86_64 and Linux arm64 are unqualified:
+nothing has been run on them.** Do not embed on those two targets expecting
+verified behavior. The
+[ADR 0004 platform table](adr/0004-integration-and-release-qualification.md#platform-qualification)
+records the evidence per target.
 
 ## Optional event-stream forwarding
 

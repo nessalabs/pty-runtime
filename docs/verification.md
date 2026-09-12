@@ -184,8 +184,23 @@ What changed:
 
 - Full release load goals (large session counts, strict latency budgets, long
   soak) are **not** closed. Short green runs are not a substitute.
-- Not every claimed OS/CPU target has a fresh, complete qualification pass on
-  current source.
+- **No OS/CPU target has a qualification pass**, and two have never been run at
+  all. This used to read "not every claimed target has a fresh, complete pass",
+  which suggests staleness; the truth is stronger.
+
+  | Target | Evidence |
+  | --- | --- |
+  | macOS arm64 | Exercised — Experiment 0003 (2026-09-08), native adapter tests, a coverage run. Not qualified |
+  | Linux x86_64 | Exercised — Experiment 0003 (2026-09-08). Not qualified |
+  | macOS x86_64 | **None.** No run is recorded anywhere and no workflow selects such a runner |
+  | Linux arm64 | **None.** Same |
+
+  Experiment 0003 is a standalone transport and native fixture suite, not the
+  session runtime, so it is evidence *about a platform* and not a qualification
+  of this library on it. Because ADR 0001 §8 narrows the support claim to targets
+  actually qualified, the claim is currently empty: macOS arm64 and Linux x86_64
+  are candidates, not supported platforms. Everything else recorded in this file
+  was measured on macOS arm64 unless it says otherwise.
 - Restoring a parked session has been signed off against ADR 0003. Each clause
   in "On new output, retain the bytes and restore READY before feeding them into
   the model in order…" was checked against the code and against what the tests
