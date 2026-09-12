@@ -2,13 +2,11 @@
 mod admission;
 mod blocking;
 mod budgets;
-mod completion;
 mod coordinator;
 mod inflight;
 mod io;
 mod journal;
 mod snapshot;
-mod stream_end;
 mod transfer;
 pub use pty_runtime_domain::projection::{
     TransferBoundary, TransferCursor, TransferEnd, TransferError,

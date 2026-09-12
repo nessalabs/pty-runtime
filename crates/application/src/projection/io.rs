@@ -1,12 +1,31 @@
+//! The blocking-I/O lifecycle: starting one job and applying its result.
+//!
+//! The jobs themselves are in [`super::blocking`], the slot they land in is
+//! [`super::inflight::InFlight`], and the deletion cycle belongs to
+//! [`super::reaper::SourceReaper`]. What is left here is the part that could not
+//! be given a type of its own: starting a read or a park, and applying whatever
+//! comes back.
+//!
+//! These stayed `ProjectionCoordinator` methods deliberately, not by omission.
+//! Each one acquires from two runtime-shared quotas, asks domain policy whether
+//! the transition is permitted, drives the native engine and submits — in an
+//! order where every step can fail and each failure has to put back exactly what
+//! the step before it took. `finish_io` is that shape in reverse across four job
+//! kinds. The measurement, and why a context object would only rename `self`,
+//! are recorded in `docs/todo/declined.md`.
+//!
+//! Start and finish live in one file because they are one responsibility: every
+//! `PendingIo` variant constructed below is destructured again in `finish_io`,
+//! and the two halves have to agree about what each variant owns.
 use super::{
-    ProjectionCoordinator, ProjectionError, blocking,
+    PinnedCheckpoint, ProjectionCoordinator, ProjectionError, Residency, blocking,
     budgets::{DiskLease, IoMemory, Lease},
-    inflight::PendingIo,
+    inflight::{PendingIo, collect},
     queue::ParkStart,
-    state::{Command, NativeWorkspace},
+    state::{Command, CommitOutcome, CommittedSource, NativeWorkspace, UnreclaimedSource},
 };
 use crate::scheduling::WorkSchedule;
-use pty_runtime_domain::checkpoint::CheckpointKey;
+use pty_runtime_domain::{checkpoint::CheckpointKey, terminal::RestorationProgress};
 use std::time::Duration;
 /// How long to wait before retrying work a full pool or a full quota refused.
 const RETRY_SOON: Duration = Duration::from_millis(5);
@@ -159,6 +178,141 @@ impl ProjectionCoordinator {
             Err((_, error)) => {
                 self.queue.park_failed(error, services.clock.now());
                 WorkSchedule::After(self.config.options.retry_after)
+            }
+        }
+    }
+
+    /// Apply the result of the one blocking job, if it has finished.
+    ///
+    /// Each arm reads its own typed mailbox, so a result can only ever be
+    /// interpreted as the kind of work that produced it. An empty or poisoned
+    /// mailbox is worker failure and nothing else.
+    pub(super) fn finish_io(&self, workspace: &mut NativeWorkspace) {
+        let Ok(services) = self.services() else {
+            return;
+        };
+        let Some(pending) = workspace.io.take_finished() else {
+            return;
+        };
+        let closing = matches!(
+            self.status().residency,
+            Residency::Closing | Residency::Closed
+        );
+        match pending {
+            PendingIo::Commit {
+                attempt,
+                disk,
+                _memory: _,
+                mailbox,
+            } => {
+                // A panicked commit worker may have stored ciphertext before it
+                // died, so it is Uncertain rather than Rejected.
+                let result = collect(&mailbox).unwrap_or_else(CommitOutcome::Uncertain);
+                match result {
+                    CommitOutcome::Published(reference) => {
+                        let source = CommittedSource {
+                            reference,
+                            descriptor: pty_runtime_domain::terminal::CheckpointDescriptor {
+                                compatibility: self.config.compatibility.clone(),
+                                processed: attempt.processed,
+                                control_generation: attempt.control_generation,
+                            },
+                            _disk: disk,
+                        };
+                        let engine_idle = workspace.reply.is_none() && workspace.resize.is_none();
+                        let release = self.queue.commit_park(attempt, engine_idle);
+                        if release {
+                            // Logical release was atomic with the empty/activity check.
+                            // Drop native state outside the aggregate lock; new output
+                            // observes Parked and requests restoration on the next run.
+                            workspace.terminal = None;
+                            workspace.resident = None;
+                            workspace.source = Some(source);
+                        } else {
+                            workspace.reaper.retire(source);
+                        }
+                    }
+                    CommitOutcome::Uncertain(error) => {
+                        let entry = UnreclaimedSource::from_uncertain_park(
+                            &self.config.compatibility,
+                            attempt,
+                            disk,
+                        );
+                        self.quotas.shared.record_unreclaimed(entry);
+                        self.queue
+                            .park_outcome_uncertain(error, services.clock.now());
+                    }
+                    CommitOutcome::Rejected(error) => {
+                        self.queue.park_failed(error, services.clock.now())
+                    }
+                }
+            }
+            PendingIo::Restore {
+                resident,
+                memory,
+                mailbox,
+            } => {
+                let checkpoint = collect(&mailbox);
+                if !closing {
+                    match checkpoint.and_then(|checkpoint| {
+                        self.native_call(|| services.terminal.restore(checkpoint, workspace.config))
+                    }) {
+                        Ok(terminal) => {
+                            let progress =
+                                match self.native_call(|| Ok(terminal.restoration_progress())) {
+                                    Ok(progress) => progress,
+                                    Err(_) => return,
+                                };
+                            workspace.terminal = Some(terminal);
+                            workspace.resident = Some(resident);
+                            workspace.restore_memory = Some(memory.plain);
+                            workspace.history_step_owed = false;
+                            self.history_progress(workspace, progress);
+                        }
+                        Err(error) => self.fail(error),
+                    }
+                }
+            }
+            PendingIo::Transfer {
+                request,
+                memory,
+                _staging: _,
+                mailbox,
+            } => {
+                let result = collect(&mailbox);
+                request.complete(
+                    if closing {
+                        Err(ProjectionError::Closed)
+                    } else {
+                        result.map(|checkpoint| PinnedCheckpoint {
+                            checkpoint,
+                            _lease: memory.plain,
+                        })
+                    },
+                    &self.journal,
+                );
+            }
+            PendingIo::Delete { attempt, mailbox } => {
+                if let Some(error) = workspace.reaper.finish_delete(attempt, collect(&mailbox)) {
+                    self.queue.maintenance_failed(error);
+                }
+            }
+        }
+    }
+    pub(super) fn history_progress(
+        &self,
+        workspace: &mut NativeWorkspace,
+        progress: RestorationProgress,
+    ) {
+        let result = self.queue.record_restoration_progress(progress);
+        if let Err(error) = result {
+            self.fail(error);
+            return;
+        }
+        if progress.is_finished() {
+            workspace.restore_memory = None;
+            if let Some(source) = workspace.source.take() {
+                workspace.reaper.retire(source);
             }
         }
     }

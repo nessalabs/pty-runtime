@@ -288,7 +288,7 @@ What changed:
   refused (spends an attempt) and a full pool that never asked it (spends none).
 
   `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
-  methods in `io.rs` and `completion.rs`, and they are where the coupling
+  methods in `io.rs`, and they are where the coupling
   actually lives — `finish_io` alone spans five collaborators and ten workspace
   fields, unchanged by the extractions above, because what came out came out
   precisely by touching nothing. That was measured and declined rather than
@@ -296,6 +296,16 @@ What changed:
 
   The native engine driving also remains, and was measured and declined rather
   than deferred — see the P3 list below.
+
+  The file layout that review complained about is settled. `stream_end.rs` held
+  two unrelated methods and is gone: the reader-facing `notify_output_drained`
+  sits with the rest of admission, and the worker step that acts on it sits with
+  the worker. `completion.rs` merged into `io.rs`, because the two held the start
+  and finish halves of one lifecycle and every `PendingIo` variant built in one
+  was destructured in the other. `admission.rs` and `teardown.rs` still own no
+  type, and were measured and left: every piece of state they touch already
+  belongs to one, so a type there would hold a back-reference and nothing else.
+  See [`todo/declined.md`](todo/declined.md).
 
 - Still open after the three reviews, all P3:
   - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
