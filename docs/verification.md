@@ -292,10 +292,13 @@ What changed:
   flight. It does not, but the reason recorded at the time was wrong. `serve`
   *does* apply queued commands while a commit job is outstanding, so
   `workspace.resize` really can be `Some` when the commit lands; what refuses the
-  release is the attempt's `activity` generation, which every admission bumps
-  before queueing. `a_resize_admitted_during_a_commit_blocks_the_release` drives
-  that interleaving, and deleting the `activity` clause parks the session out
-  from under a pending resize.
+  release is the attempt's `activity` generation, which every admission *that
+  can populate those slots* — output and resize — bumps before queueing. Views
+  and checkpoints do not bump it and do not need to: they populate neither slot,
+  and `commit_park`'s queue-emptiness check already covers a command still
+  waiting. `a_resize_admitted_during_a_commit_blocks_the_release` drives that
+  interleaving, and deleting the `activity` clause parks the session out from
+  under a pending resize.
 
   `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
   methods in `io.rs`, and they are where the coupling
