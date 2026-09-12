@@ -43,11 +43,22 @@ impl ICapacitySignal for Signal {
         }
     }
 }
+/// Registers real handles, and can be told to start rejecting wakes.
+///
+/// The flag is shared with every handle this scheduler hands out, so a test
+/// flips it *after* construction: `create` wakes the projection once itself and
+/// fails outright if that wake is rejected, so a handle that rejects from the
+/// start would never produce a live projection to test.
 #[derive(Default)]
-pub struct Scheduler;
-struct Handle;
+pub struct Scheduler {
+    pub reject_wake: Arc<AtomicBool>,
+}
+struct Handle(Arc<AtomicBool>);
 impl IWorkHandle for Handle {
     fn wake(&self) -> Result<(), SchedulingError> {
+        if self.0.load(Ordering::Acquire) {
+            return Err(SchedulingError::Closed);
+        }
         Ok(())
     }
     fn close(&self) {}
@@ -57,7 +68,7 @@ impl IWorkScheduler for Scheduler {
         &self,
         _: Weak<dyn IScheduledWork>,
     ) -> Result<Arc<dyn IWorkHandle>, SchedulingError> {
-        Ok(Arc::new(Handle))
+        Ok(Arc::new(Handle(self.reject_wake.clone())))
     }
     fn shutdown(&self) {}
 }
@@ -144,30 +155,59 @@ pub struct Harness {
     pub protector: Arc<Protector>,
     pub probe: Arc<Probe>,
     pub process: Arc<Process>,
+    pub scheduler: Arc<Scheduler>,
 }
 impl Harness {
     pub fn new(options: ProjectionOptions, limits: ProjectionLimits) -> Self {
-        Self::with_protector(options, limits, Arc::new(Protector::default()))
+        Self::build(options, limits, Arc::new(Protector::default()), |_| {})
     }
+    /// Build with a protector the caller configures, for the flags [`Protector`]
+    /// exposes. `protector` stays concrete so tests can keep reading those flags
+    /// off [`Harness::protector`]; to *replace* or wrap the protector with some
+    /// other implementation, use [`Harness::with_services`].
     pub fn with_protector(
         options: ProjectionOptions,
         limits: ProjectionLimits,
         protector: Arc<Protector>,
+    ) -> Self {
+        Self::build(options, limits, protector, |_| {})
+    }
+    /// Build with the service bundle adjusted *before* `create` sees it.
+    ///
+    /// This is how a fault is injected into a collaborator: the projection is
+    /// constructed already wired to the double, so no production type needs a
+    /// hook for swapping one afterwards. The closure can wrap what is already
+    /// there — `services.protector` at that point is the harness's own
+    /// [`Protector`], reachable as the trait object.
+    pub fn with_services(
+        options: ProjectionOptions,
+        limits: ProjectionLimits,
+        adjust: impl FnOnce(&mut ProjectionServices),
+    ) -> Self {
+        Self::build(options, limits, Arc::new(Protector::default()), adjust)
+    }
+    fn build(
+        options: ProjectionOptions,
+        limits: ProjectionLimits,
+        protector: Arc<Protector>,
+        adjust: impl FnOnce(&mut ProjectionServices),
     ) -> Self {
         let clock = Arc::new(Clock::default());
         let jobs = Arc::new(Jobs::default());
         let store = Arc::new(Store::default());
         let probe = Arc::new(Probe::default());
         let process = Arc::new(Process::default());
-        let services = ProjectionServices {
+        let scheduler = Arc::new(Scheduler::default());
+        let mut services = ProjectionServices {
             terminal: Arc::new(Factory(probe.clone())),
             clock: clock.clone(),
-            scheduler: Arc::new(Scheduler),
+            scheduler: scheduler.clone(),
             blocking: jobs.clone(),
             capacity: Arc::new(Signal::default()),
             store: store.clone(),
             protector: protector.clone(),
         };
+        adjust(&mut services);
         let budgets = ProjectionBudgets::new(limits).unwrap();
         let owner = ProjectionCoordinator::create(
             SessionLifetime::new(9, 1),
@@ -189,6 +229,7 @@ impl Harness {
             protector,
             probe,
             process,
+            scheduler,
         }
     }
     pub fn standard() -> Self {

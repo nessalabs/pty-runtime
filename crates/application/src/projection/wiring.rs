@@ -131,22 +131,17 @@ impl Wiring {
     }
 }
 
-/// Failure-injection seams used only by this crate's tests.
+/// Run `under` while a real leaf mutex is held, for the lock-order tests.
 ///
-/// Production code never replaces a collaborator after construction. Cleanup
-/// evidence needs no seam: `services()` reports `Closed` and `handle()` /
-/// `process()` report `None` once released.
+/// Leaves are leaves precisely because production acquires nothing while one is
+/// held, so no production path can demonstrate the span of a leaf's tier
+/// registration — the holder has to be synthetic. It still goes through the
+/// real [`leaf`] helper, which is the thing under test: with the registration
+/// living in a local inside `leaf`, it would be dropped before `under` runs and
+/// a nesting under a leaf would go unnoticed.
 #[cfg(test)]
-impl Wiring {
-    /// Swap an injected collaborator mid-life to exercise a provider fault.
-    pub fn inject_services(&self, change: impl FnOnce(&mut ProjectionServices)) {
-        if let Some(services) = leaf(&self.services).as_mut() {
-            change(services);
-        }
-    }
-
-    /// Install or clear the registration to exercise scheduler loss.
-    pub fn inject_handle(&self, handle: Option<Arc<dyn IWorkHandle>>) {
-        *leaf(&self.handle) = handle;
-    }
+pub(super) fn hold_leaf(under: impl FnOnce()) {
+    static SLOT: Mutex<()> = Mutex::new(());
+    let _held = leaf(&SLOT);
+    under();
 }

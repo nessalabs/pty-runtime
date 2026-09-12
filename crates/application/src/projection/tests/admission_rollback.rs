@@ -152,7 +152,7 @@ fn rejected_projection_admission_settles_published_waiter_and_releases_identity_
             release: Mutex::new(released),
         }),
         clock: Arc::new(Clock::default()),
-        scheduler: Arc::new(Scheduler),
+        scheduler: Arc::new(Scheduler::default()),
         blocking: Arc::new(Jobs::default()),
         capacity: Arc::new(Signal::default()),
         store: Arc::new(Store::default()),
@@ -282,7 +282,7 @@ fn factory_identity_outside_the_domain_bound_is_refused_before_native_creation()
         let services = ProjectionServices {
             terminal: Arc::new(BadIdentityFactory(identity)),
             clock: Arc::new(Clock::default()),
-            scheduler: Arc::new(Scheduler),
+            scheduler: Arc::new(Scheduler::default()),
             blocking: Arc::new(Jobs::default()),
             capacity: Arc::new(Signal::default()),
             store: Arc::new(Store::default()),

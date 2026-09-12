@@ -3,7 +3,7 @@ use super::support::*;
 use crate::{
     checkpoint::ICheckpointProtector,
     process::OutputAcceptance,
-    projection::{ProjectionError, Residency},
+    projection::{ProjectionError, ProjectionLimits, Residency},
 };
 use pty_runtime_domain::{checkpoint::*, terminal::*};
 use std::sync::{
@@ -22,7 +22,7 @@ enum ProtectFault {
     Oversized,
 }
 struct FaultProtector {
-    inner: Arc<Protector>,
+    inner: Arc<dyn ICheckpointProtector>,
     fault: Mutex<ProtectFault>,
     calls: AtomicUsize,
 }
@@ -68,16 +68,24 @@ impl ICheckpointProtector for FaultProtector {
         self.inner.open(key, descriptor, checkpoint)
     }
 }
-fn observed_protector(h: &Harness, fault: ProtectFault) -> Arc<FaultProtector> {
-    let protector = Arc::new(FaultProtector {
-        inner: h.protector.clone(),
-        fault: Mutex::new(fault),
-        calls: AtomicUsize::new(0),
+/// A projection whose protector is the harness's own, wrapped so that one
+/// protect call can be made dishonest.
+///
+/// The wrapper goes in before `create`, which is the only point a collaborator
+/// can be chosen: `protect` is not reached until the first park, so wrapping
+/// early changes nothing the tests below observe.
+fn observed_protector(fault: ProtectFault) -> (Harness, Arc<FaultProtector>) {
+    let mut observed = None;
+    let h = Harness::with_services(options(), ProjectionLimits::default(), |services| {
+        let protector = Arc::new(FaultProtector {
+            inner: services.protector.clone(),
+            fault: Mutex::new(fault),
+            calls: AtomicUsize::new(0),
+        });
+        services.protector = protector.clone();
+        observed = Some(protector);
     });
-    h.owner
-        .wiring
-        .inject_services(|services| services.protector = protector.clone());
-    protector
+    (h, observed.expect("with_services applies its adjustment"))
 }
 fn retained_after_rejection(h: &Harness, expected: ProjectionError) {
     let status = h.owner.status();
@@ -122,8 +130,7 @@ fn retry_preserves_saved_bytes(h: &Harness) {
 #[test]
 fn parking_rejects_wrong_descriptor_or_excess_capacity_before_protection() {
     for wrong_descriptor in [true, false] {
-        let h = Harness::standard();
-        let protector = observed_protector(&h, ProtectFault::None);
+        let (h, protector) = observed_protector(ProtectFault::None);
         assert_eq!(h.owner.stage_output(b"before"), OutputAcceptance::Accepted);
         h.pump();
         h.probe
@@ -161,8 +168,7 @@ fn failed_or_malformed_protection_never_publishes_and_allows_a_valid_retry() {
         ProtectFault::Empty,
         ProtectFault::Oversized,
     ] {
-        let h = Harness::standard();
-        let protector = observed_protector(&h, fault);
+        let (h, protector) = observed_protector(fault);
         assert_eq!(h.owner.stage_output(b"before"), OutputAcceptance::Accepted);
         h.pump();
         h.clock.0.store(60, Ordering::Release);
