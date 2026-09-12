@@ -287,6 +287,16 @@ What changed:
   `tests/reaper.rs`; those tests pin the distinction between a provider that
   refused (spends an attempt) and a full pool that never asked it (spends none).
 
+  A review of the merged result asked whether removing `commit_park`'s
+  `engine_idle` argument let a commit release the model while a resize was in
+  flight. It does not, but the reason recorded at the time was wrong. `serve`
+  *does* apply queued commands while a commit job is outstanding, so
+  `workspace.resize` really can be `Some` when the commit lands; what refuses the
+  release is the attempt's `activity` generation, which every admission bumps
+  before queueing. `a_resize_admitted_during_a_commit_blocks_the_release` drives
+  that interleaving, and deleting the `activity` clause parks the session out
+  from under a pending resize.
+
   `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
   methods in `io.rs`, and they are where the coupling
   actually lives — `finish_io` alone spans five collaborators and ten workspace
