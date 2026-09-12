@@ -272,10 +272,11 @@ What changed:
   (`commit_park`'s atomic emptiness check, `admit_output`'s rejection precedence)
   are now stated in one place.
 
-  Still worth doing, and not yet done: the blocking-I/O lifecycle
-  (`submit_io`/`start_*`/`finish_io`) and the native engine driving
-  (`apply_command`/`native_call`/`poll_inflight_operations`) are still coordinator
-  methods rather than types that own their state.
+  The blocking-I/O lifecycle has since been extracted: `read_job`,
+  `commit_job`, `delete_job` and `submit` are free functions in `blocking.rs`
+  over injected ports, with ten tests that need neither a coordinator nor a
+  workspace. The native engine driving remains coordinator methods, and was
+  measured and declined rather than deferred — see the P3 list below.
 
 - Still open after the three reviews, all P3:
   - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
@@ -304,6 +305,13 @@ What changed:
     declined rather than outstanding; it would need a different idea, not more
     of the same one.
 
+- **100% line/function/region coverage** is a stated readiness target in
+  `coding_standards.md` and is **not tracked here**, which is itself a gap in
+  this record. No coverage run has been made against current source; the
+  command is `python3 scripts/coverage.py --output work/coverage/<run-name>`.
+  Two known permanent holes are recorded above (`collect`'s empty-mailbox
+  fallback, `commit_park`'s `engine_idle`), so the target cannot be met as
+  stated without either exercising or removing them.
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)
