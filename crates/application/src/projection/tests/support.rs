@@ -163,6 +163,9 @@ pub struct Harness {
     pub probe: Arc<Probe>,
     pub process: Arc<Process>,
     pub scheduler: Arc<Scheduler>,
+    /// The runtime-wide input byte quota this projection writes replies against,
+    /// so a test can exhaust it from the outside as a busy sibling would.
+    pub input_bytes: Arc<Quota>,
 }
 impl Harness {
     pub fn new(options: ProjectionOptions, limits: ProjectionLimits) -> Self {
@@ -225,12 +228,13 @@ impl Harness {
         };
         adjust(&mut services);
         let budgets = ProjectionBudgets::new(limits).unwrap();
+        let input_bytes = Arc::new(Quota::new(128));
         let owner = ProjectionCoordinator::create(
             SessionLifetime::new(9, 1),
             options,
             services.clone(),
             budgets.clone(),
-            Arc::new(Quota::new(128)),
+            input_bytes.clone(),
             Arc::new(Quota::new(8)),
         )
         .unwrap();
@@ -246,6 +250,7 @@ impl Harness {
             probe,
             process,
             scheduler,
+            input_bytes,
         }
     }
     pub fn standard() -> Self {

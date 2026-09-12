@@ -25,6 +25,9 @@ pub struct Probe {
     pub fail_history: AtomicBool,
     pub wrong_checkpoint_descriptor: AtomicBool,
     pub checkpoint_capacity: AtomicUsize,
+    /// Bytes of generated reply a `?` produces, so a test can exceed the
+    /// configured `reply_bytes` bound. Zero means the default single byte.
+    pub reply_size: AtomicUsize,
 }
 pub struct Factory(pub Arc<Probe>);
 impl ITerminalFactory for Factory {
@@ -111,7 +114,10 @@ impl ITerminal for Terminal {
             .push(Trace::Feed(bytes.to_vec()));
         self.bytes.extend_from_slice(bytes);
         Ok(TerminalEffects(if bytes.contains(&b'?') {
-            b"R".to_vec()
+            match self.probe.reply_size.load(Ordering::Acquire) {
+                0 => b"R".to_vec(),
+                size => vec![b'R'; size],
+            }
         } else {
             Vec::new()
         }))
