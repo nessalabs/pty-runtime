@@ -36,6 +36,143 @@ Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 - Mechanical gate and a large set of fixtures exist and are the usual proof of
   “this change still works.”
 
+## Release gates G1 and G2 (ADR 0004)
+
+Until now nothing in this repository said whether either gate had passed. The
+strings "G1" and "G2" appeared only in the ADRs that define them. This section
+is the record, clause by clause.
+
+**Verdict: G2 passes on macOS arm64 at this revision. G1 does not pass.** Six of
+G1's seven behaviours are individually proven against real children, but the
+gate's own qualifier — "pass **concurrent pressure tests**" — is not met at the
+scale ADR 0004 states, and two of the six rest on weaker evidence than their
+test names suggest.
+
+Audited at `d714e01`, macOS 26.6 / Darwin 25.6.0 arm64, rustc 1.98.1, Zig 0.16.0,
+Ghostty pinned at `82232ecde55405559dec29c5466cb9e39938cb41`.
+`python3 scripts/gate.py` passed on that revision with a clean tree.
+**No clause below has been executed on Linux, or on any x86_64 host.** A passing
+gate is not a passing release gate — it is the floor these verdicts stand on.
+
+### G1: Process and bytes
+
+> Real PTY spawn, ordered input/output, bounded replay, independent observers,
+> cancel/drain, and cleanup pass concurrent pressure tests
+
+| Clause | Verdict | Evidence | Why that verdict |
+| --- | --- | --- | --- |
+| Real PTY spawn | proven | `tests/raw_child_contract.rs::explicit_environment_literal_args_canonical_cwd_and_ordered_resize_reach_real_child`; `crates/infrastructure/tests/process_contract.rs::controlling_terminal_echo_off_ordered_input_and_real_exit` | The **child itself** asserts `isatty` on all three descriptors, that `/dev/tty` opens, its exact cwd, literal argv, exact environment, and that `stty size` reports the configured 25×81; a wrong answer exits 91–93. Real fixture binary, no double. |
+| Ordered input/output | proven | `tests/raw_runtime.rs::raw_suffix_gap_completion_and_completed_id_are_stable`; `tests/raw_child_contract.rs::merged_stdout_stderr_preserves_binary_bytes_through_public_observer`; `process_contract::controlling_terminal_echo_off_ordered_input_and_real_exit` | Output is checked by value at absolute offsets against a deterministic `i % 251` sequence; merged stdout/stderr keeps exact order with bytes 0/128/255; two separate writes reassemble in the child as one ordered string. |
+| Bounded replay | **proven, mutation-checked** | `raw_suffix_gap_completion_and_completed_id_are_stable`; `tests/runtime_diagnostics.rs::aggregate_gauges_follow_completed_handles_and_exact_replay_gaps` | 31-byte retention over 10,000 produced bytes yields an exact `Gap{0, 9969}` then exactly the last 31 bytes by value. The diagnostics test pins retained bytes at 16 across two 8-byte sessions and gap bytes at exactly 1008. |
+| Independent observers | **partly proven** | `tests/projected_runtime.rs::real_query_reply_is_sent_once_with_multiple_observers`; `tests/ordered_transfer_runtime.rs::two_parked_snapshot_consumers_replay_original_bytes_and_resizes_to_identical_final_models`; `tests/event_stream_isolation.rs::panicking_publisher_waker_does_not_suppress_another_observer_or_pty_output`; `aggregate_gauges_…` | Independence is real: two observers read one live PTY, two transfer observers hold independent cursors to identical final models, and a panicking observer waker does not suppress its neighbour. **What is missing** is ADR 0004's named case — a fast and a stalled observer *on the same session*, where the slow one takes an exact cursor gap and the fast one is unaffected. `tests/event_stream_isolation.rs::stalled_sink_does_not_block_parser_input_resize_or_cancel_and_later_reports_gap` covers a stalled observer, but it is the only observer there. |
+| Cancel / drain | **proven, mutation-checked** | `process_contract::cancellation_bypasses_full_input_and_escalates_once`; `process_contract::descendant_endpoint_has_bounded_drain_separate_from_exit`; `tests/raw_completion.rs::signal_death_and_descendant_drain_never_become_fabricated_success` | A child that traps `TERM` with a saturated input queue and 100 coalesced cancels dies by `SIGKILL` inside 2 s, with partial writes and their errors still visible. Drain is reported separately from exit: `Code(23)` + `Truncated` with a live descendant holding the endpoint, `Signal(15)` + `Eof` for a signalled child. See the escalation finding below — the behaviour is proven, its owner is not. |
+| Cleanup | **partly proven** | `tests/process_handle_resources.rs::completed_old_handles_do_not_keep_process_wake_descriptors`; `crates/infrastructure/tests/process_handle_teardown.rs::retained_closed_handles_release_all_wake_descriptors`; `aggregate_gauges_…`; `projected_runtime::detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes` | Descriptor counts return to the pre-test baseline across 16 real sessions; observer, replay and input quotas all return to 0; the checkpoint arena is left empty. But `process_contract::failed_spawn_releases_admission_and_drop_reaps_child`, the test whose name carries the reaping claim, **asserts something that cannot fail** — see below. ADR 0004 also asks for worker and live-allocation counts against baseline and for allocator-retained footprint reported separately from leaked live objects; neither is asserted anywhere. |
+| …“pass **concurrent pressure** tests” | **unproven** | `crates/infrastructure/tests/process_pressure.rs::simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live`; `tests/runtime_performance.rs::projected_real_pty_producers` | The largest executed concurrency is **16** real producers: 16 × 128 KiB raw, and 16 × 4 MiB projected. ADR 0004 asks for 64 resident sessions with 16 producers at a **combined 10 MiB/s** as the *controlled reference*, then 128 independent producers and 128-session mixed populations as *primary* scenarios, extending to 500 where the host permits. None of that has been run against the runtime. |
+
+Everything ADR 0004's "Concurrent output and pressure" section asks for beyond
+raw session count is also unexercised: no offered-rate sweep (producers write
+unthrottled, so the rate is not a controlled variable), no one-dominant-producer
+case, no fast/stalled observer mix, no after-all-observers-detach case, no
+latency distributions, and no fairness target or explicit overload outcome. The
+one projected multi-session test reports a write-release skew and a startup
+time, which is not a latency distribution.
+
+Two scope notes that a reader will otherwise get wrong:
+
+- `projected_real_pty_producers` is `#[ignore]`d, so a plain `cargo test` never
+  runs it. It runs only through `scripts/performance.py`, which the gate does
+  invoke. That script records its own scope honestly: *"one 4 MiB/session trial
+  at 1 and 16 sessions; not full G4 repeats or soak."* The gate run alongside
+  this audit executed it: 1 session validated 4,194,326 bytes at 74.2 MiB/s, and
+  16 sessions validated 67,109,222 bytes at 105.0 MiB/s, with descriptors
+  returning 137 → 5 and descendants 48 → 0. One trial each, no repetitions, and
+  a single session count above one — a data point, not a capacity result.
+- Experiment 0003's 128-producer numbers are **not** evidence for this clause.
+  That document says so itself: *"These are standalone transport and native
+  fixtures; the production session runtime remains unimplemented."* `AGENTS.md`
+  forbids turning an experiment fixture into a claim about runtime behaviour.
+
+### G2: Native projection
+
+> Pinned Rust FFI build; ordered parsing, replies, resize, binary checkpoints,
+> READY/history restoration, and reference-state comparisons pass
+
+| Clause | Verdict | Evidence | Why that verdict |
+| --- | --- | --- | --- |
+| Pinned Rust FFI build | proven | `scripts/native/verify_source.py`, `scripts/native/build.rs`, `scripts/native/bootstrap.py`, `scripts/native/tests/run_allocator_contract.py`, `run_boundary_contract.py` | The archive SHA-256, the commit, the patch SHA-256 and per-file pre/post hashes for all eight patched Zig files are pinned and re-verified on **every build** (`build.rs` calls the verifier with `--built`, and asserts the static library exists). Zig 0.16.0 is pinned; every Rust dependency that touches the boundary is `=`-pinned. Pinning is proven; this says nothing about *where* the pinned build has been executed. |
+| Ordered parsing | proven | `crates/infrastructure/tests/terminal_state_contract.rs::checkpoints_preserve_parser_continuation_and_uninterrupted_state`; `ordered_transfer_runtime::two_parked_snapshot_consumers_…`; `crates/infrastructure/tests/terminal_contract.rs::incremental_text_styles_modes_cursor_and_ordered_resize` | Six split-sequence cases (unfinished UTF-8, split SGR, split OSC, split DCS, alternate-screen straddle) are carried across a checkpoint boundary and compared to an uninterrupted reference. `ordered_transfer_runtime` splits `\xf0\x9f` across a **park** boundary on a real PTY. `runtime_performance` requires `processed.offset` to equal the produced byte count exactly. |
+| Replies | **proven, mutation-checked** | `projected_runtime::real_query_reply_is_sent_once_with_multiple_observers`; `ordered_transfer_runtime::two_parked_snapshot_consumers_…`; `terminal_state_contract::checkpoints_preserve_parser_continuation_and_uninterrupted_state` | The real child asserts it receives exactly `\x1b[1;4R` and that the next four bytes it reads are the user's `done` — so a *duplicate* reply makes the child exit non-zero, and the test asserts exit code 0. Replicated observers generate their own reply and discard it (`generated_replies == 1` each) while the single authoritative reply reaches the PTY. |
+| Resize | **proven, mutation-checked** | `projected_runtime::detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes`; `ordered_transfer_runtime::…`; `raw_child_contract::explicit_environment_…`; `terminal_contract::incremental_text_styles_modes_cursor_and_ordered_resize` | OS and model halves are reported separately and both must be `Ok`; the reference model is resized at the same control generation and the views must match. The real child's own `stty size` confirms the OS half. Out-of-order generations are refused as `StaleControl` at the native boundary. |
+| Binary checkpoints | proven | `terminal_state_contract::checkpoints_preserve_parser_continuation_and_uninterrupted_state`; `tests/ready_projection.rs::ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_source`; `crates/infrastructure/tests/terminal_bounds.rs::corrupted_and_truncated_snapshots_never_complete_successfully`; `terminal_cursor_roundtrip.rs` (nine pending-wrap / margin / reflow cases) | A restored-then-recheckpointed model is compared **byte for byte** with the original (`bytes == original`), over three repeated round trips. `ready_projection` compares canonical form through an independent C oracle (`rt_verify_format`) rather than trusting the producer's own formatting. |
+| READY / history restoration | proven | `ready_projection::ready_applies_exact_64_byte_suffix_before_history_and_retains_encrypted_source`; `projected_runtime::detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes`; `terminal_state_contract::ready_accepts_live_output_while_preserving_one_hundred_thousand_history_lines`; `crates/infrastructure/tests/terminal_live_restore.rs` (three tests) | READY is reported separately from history completeness (`Usable` then `Complete`), the exact 64-byte suffix lands before history work, and the encrypted source survives until history is validated. **Caveat worth keeping:** the test that gates READY uses a **mock process backend** and injects bytes through `events.output()` — real Ghostty, real AEAD, real disk, no PTY. The real-child park/restore path is proven separately in `projected_runtime`, without the gate. |
+| Reference-state comparisons | proven | `projected_runtime::detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes`; `terminal_state_contract::checkpoints_preserve_parser_continuation_and_uninterrupted_state` (via `same_semantics`); `ordered_transfer_runtime::…`; `ready_projection::…` | An independent `GhosttyTerminalFactory.create()` reference is fed the same bytes and the same ordered controls, and the projected view must equal it — checked at three points across park, restore and resize on a real PTY. `same_semantics` goes further and compares the **full formatted state** through the independent C oracle. Not run under the pressure workload; see the G1 concurrency row. |
+
+### Mutation checks
+
+Five subjects, seven runs. Every edit was confirmed applied with `git diff
+--stat` before its test was run — an unapplied edit looks exactly like a pass —
+and every edit was reverted afterwards, with `git status` confirming a clean
+tree before this record was committed. Four of the seven runs did **not** fail,
+and those are the useful ones.
+
+| # | What was broken | Test run | Result |
+| --- | --- | --- | --- |
+| 1 | `domain/replay.rs`: `append_with_limit` retention limit forced to `usize::MAX`, so nothing is ever evicted | `raw_suffix_gap_completion_and_completed_id_are_stable` | **FAILED** — no `Gap` was produced. Bounded replay is genuinely pinned. |
+| 2a | `infrastructure/process/lifecycle.rs`: removed the owner-side `guardian.request(Kind::Kill)` escalation | `cancellation_bypasses_full_input_and_escalates_once` | **passed** — see the escalation finding. |
+| 2b | `helpers/guardian/src/cancellation.rs`: removed the guardian-side grace escalation instead | same test | **passed** |
+| 2c | both of the above removed together | same test | **FAILED** — 5 s timeout, child still alive, `exit=None`. Escalation as a whole is pinned. |
+| 3 | `application/projection/native.rs`: the generated reply is never handed to the writer (`if false && !effects.0.is_empty()`) | `real_query_reply_is_sent_once_with_multiple_observers` | **FAILED** — 10 s fixture deadline; the child blocked forever waiting for its DSR answer. |
+| 4 | `application/projection/native.rs`: the native model resize is skipped but still reported `Ok` | `detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes` | **FAILED** at the reference comparison — projected view still 80×24 against a reference at 100×30. The reference comparison is load-bearing, not decorative. |
+| 5 | `infrastructure/process/lifecycle.rs`: removed `guardian.cleanup()` from `Drop for OwnedProcess`; then also removed the guardian's owner-death workload kill | `failed_spawn_releases_admission_and_drop_reaps_child` | **passed both times** — and a temporary probe showed the workload was genuinely gone (`ESRCH`) each time. See the two findings below. |
+
+### What the mutation checks found
+
+**1. `failed_spawn_releases_admission_and_drop_reaps_child` asserts something
+that cannot fail.** Its closing assertion is
+`waitpid(pid, WNOHANG) == -1` with `errno == ECHILD`, and its comment says *"the
+adapter must already have reaped it."* But `pid` here is
+`guardian.id()` — the **workload** pid, which the guardian helper forks, so it is
+a grandchild of the test process and was never waitable by it. `ECHILD` is the
+answer for any pid that is not the caller's child, alive or dead. Demonstrated
+directly: `waitpid(1, WNOHANG)` from a scratch program returns `-1` with
+`errno == ECHILD` while pid 1 is obviously running. The assertion therefore
+holds whether the child was reaped, is still running, or was orphaned — exactly
+the shape of failure [`todo/README.md`](todo/README.md) warns about. The workload *is* really
+killed (a temporary `kill(pid, 0)` probe returned `ESRCH`), but nothing in the
+test asserts that. **Recorded, not fixed.**
+
+**2. Cancellation escalation and owner-drop cleanup are each implemented more
+than once, and no test attributes either to a component.** Escalation to
+`SIGKILL` after the grace period is issued both by the owner
+(`lifecycle.rs::control`) and independently by the guardian helper's own grace
+timer (`cancellation.rs::tick`). Removing either alone leaves
+`cancellation_bypasses_full_input_and_escalates_once` green; only removing both
+fails it. Cleanup is layered at least three deep — with both the owner's
+`guardian.cleanup()` and the guardian's owner-death sweep removed, the workload
+still died. Redundancy is defensible design for process teardown. What is
+missing is that a regression in any single layer is invisible, and the two
+escalation paths feed different diagnostics counters
+(`CancellationEscalations` vs `AcknowledgedWorkloadEscalations`), so "escalate
+**once**" is not pinned by any assertion either. **Recorded, not fixed.**
+
+### Other gaps found while auditing
+
+- **The proof ledger does not exist.** ADRs [0001](adr/0001-pty-runtime.md),
+  [0003](adr/0003-session-parking-and-state-transfer.md) and
+  [0004](adr/0004-integration-and-release-qualification.md) all link
+  `docs/verification/requirements.md` as the authority that *"distinguishes
+  executed implementation tests from standalone experiments and unrun release
+  requirements."* There is no such file and no such directory. That absence is
+  most of the reason the gate status was unrecorded in the first place.
+- **No Linux and no x86_64 execution.** Everything above ran on macOS arm64.
+  ADR 0004 is explicit that a macOS run, a cross-build or a CI configuration
+  does not establish Linux behaviour.
+- **Projection unit tests cannot carry a G2 clause on their own.** Everything
+  under `crates/application/src/projection/tests/` runs against doubles — fake
+  terminal, fake process, fake store, fake protector, fake scheduler. Per
+  `AGENTS.md` those verify orchestration only. Each G2 clause above is cited to
+  a real-Ghostty test; the unit tests are supporting, not load-bearing.
+
 ## Clean Code review pass (naming, diagrams, structure)
 
 **Review status: all three specialist reviews completed.** DDD/dependency
@@ -182,6 +319,13 @@ What changed:
 
 ## What is still open
 
+- **G1 is not signed off.** Its process/byte behaviours are proven individually
+  against real children, but "pass concurrent pressure tests" is not met at
+  ADR 0004's scale — 16 producers executed against 64/128/500 asked for. G2 is
+  signed off on macOS arm64 only. Both verdicts, clause by clause, are in
+  [Release gates G1 and G2](#release-gates-g1-and-g2-adr-0004) above, along with
+  three defects that audit turned up: an assertion that cannot fail, duplicated
+  escalation/cleanup paths that no test attributes, and a missing proof ledger.
 - Full release load goals (large session counts, strict latency budgets, long
   soak) are **not** closed. Short green runs are not a substitute.
 - Not every claimed OS/CPU target has a fresh, complete qualification pass on
