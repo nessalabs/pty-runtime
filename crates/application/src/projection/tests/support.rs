@@ -145,8 +145,15 @@ pub fn options() -> ProjectionOptions {
         feed_bytes: 16,
     })
 }
+/// One projection wired to doubles, with the doubles kept to hand.
+///
+/// Every field below `services` is a double this harness built and installed. If
+/// a test used [`Harness::with_services`] to *replace* one rather than wrap it,
+/// the matching field here still refers to the original and no longer describes
+/// what the projection is using; `services` always does.
 pub struct Harness {
     pub owner: Arc<ProjectionCoordinator>,
+    /// The bundle `create` actually received, adjustments included.
     pub services: ProjectionServices,
     pub budgets: Arc<ProjectionBudgets>,
     pub clock: Arc<Clock>,
@@ -179,6 +186,15 @@ impl Harness {
     /// hook for swapping one afterwards. The closure can wrap what is already
     /// there — `services.protector` at that point is the harness's own
     /// [`Protector`], reachable as the trait object.
+    ///
+    /// **Wrap rather than replace outright, or keep your own handle.** The
+    /// concrete fields on [`Harness`] are the doubles this function *built*, and
+    /// they are not updated to follow the closure. Replacing `services.blocking`
+    /// or `services.clock` and then driving the projection through
+    /// [`Harness::pump`] or [`Harness::park`] would run the harness's original
+    /// double, which the projection is no longer wired to — `pump` would spin
+    /// against an executor holding no jobs and fail its bounded-step assertion.
+    /// [`Harness::services`] is always the bundle the projection actually got.
     pub fn with_services(
         options: ProjectionOptions,
         limits: ProjectionLimits,
