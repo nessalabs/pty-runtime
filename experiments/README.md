@@ -1,6 +1,10 @@
 # Repeatable PTY and native terminal experiments
 
-These are standalone experiment fixtures for macOS and Linux on arm64/x86_64.
+These are standalone experiment fixtures written for macOS and Linux on
+arm64/x86_64. They have only ever been executed on macOS arm64 and Linux x86_64
+(see [Experiment 0003](../docs/experiments/0003-cross-platform-concurrent-workloads.md));
+macOS x86_64 and Linux arm64 are unqualified, with no recorded run. Building for
+a target is not the same as having measured it.
 They are separate from the proposed Rust session library. Linux uses epoll;
 macOS uses kqueue. Both support one, two, or four shared readiness workers and
 dedicated readers. Native fixtures exercise the pinned, real Ghostty C API.

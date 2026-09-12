@@ -21,5 +21,18 @@ daemons, and recovering live processes after owner restart are out of scope.
 
 ## Platform
 
-Targets: macOS and Linux, arm64 and x86_64. See [verification.md](verification.md)
-for what has actually been checked.
+Intended targets are macOS and Linux on arm64 and x86_64. What has actually been
+run is narrower, and no target is qualified:
+
+| Target | Evidence level |
+| --- | --- |
+| macOS arm64 | Exercised — standalone experiment fixtures and native adapter tests have run here. Not qualified |
+| Linux x86_64 | Exercised — standalone experiment fixtures have run here. Not qualified |
+| macOS x86_64 | **Unqualified** — no executed evidence |
+| Linux arm64 | **Unqualified** — no executed evidence |
+
+"Exercised" means something ran and was recorded; it is not a release
+qualification pass. The
+[ADR 0004 platform table](adr/0004-integration-and-release-qualification.md#platform-qualification)
+is the authority, and [verification.md](verification.md) is the plain-English
+status.
