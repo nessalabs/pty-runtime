@@ -198,20 +198,36 @@ What changed:
   | Expose history completeness; inapplicable pages visible | `skipped_history_is_visible_and_lifetime_count_survives_the_next_park` |
   | Never claim full history when only READY completed | `Usable` vs `Resident` residency, same tests |
   | Unrestorable checkpoint → projection unavailable | `malformed_restore_read_fails_pending_view_but_retains_unprocessed_bytes` |
-  | …**and process ownership and raw I/O preserved** | was **uncovered**; now `an_unrestorable_checkpoint_fails_projection_without_taking_the_session_with_it` |
+  | …**and process ownership and raw I/O preserved** | `an_unrestorable_checkpoint_leaves_a_real_child_fully_usable` — real `UnixProcessBackend`, real child, real Ghostty, real AEAD and real disk; only the store is substituted so a parked session can be made unrestorable |
 
-  The last row was the real gap, and writing it was instructive. The first
-  version asserted that already-buffered replay survived — which it does, but
-  those bytes were published *before* the failure, so the test proved nothing
-  about the claim. It now sends output *after* the projection has failed and
-  requires it to reach an observer, plus input and cancellation still working.
-  Mutation-checked: making a failed projection refuse the reader's output fails
-  the test.
+  The last row was the real gap and took three attempts to cover honestly.
 
-  Worth recording separately: two earlier mutation attempts on this test
-  silently did nothing because the anchor text did not match, and both looked
-  like passes. The mutation was only trustworthy once the edit was asserted to
-  have applied.
+  The first version asserted that already-buffered replay survived — which it
+  does, but those bytes were published *before* the failure, so it proved nothing
+  about the claim. The second sent output *after* the failure and required it to
+  reach an observer, which was better but still ran against a **mock** process:
+  a dummy `IProcessSession` returns a constant pid and succeeds at everything by
+  construction, so it would pass whether or not the real child survived. Both
+  automated reviewers on PR #3 caught that independently, and `AGENTS.md` is
+  explicit that mocks verify orchestration only.
+
+  The clause is now closed by
+  `tests/projection_failure_preserves_session.rs`, which runs a real
+  `UnixProcessBackend` and a real child and substitutes only the checkpoint
+  store. It asserts the same Unix pid is still owned, that input written after
+  the failure reaches the child and its echo comes back through the PTY reader,
+  that projected observation is refused while raw observation is not, and that
+  cancellation still reaps the child. Mutation-checked: cancelling the child on
+  projection failure fails the test — which the mock version could not detect.
+
+  The earlier mock-based test remains in `tests/ready_projection.rs` and is
+  accurate about what it covers: the orchestration half, that a failed
+  projection keeps admitting the reader's output.
+
+  Worth recording separately: two mutation attempts during this work silently
+  did nothing because the anchor text did not match, and both looked like
+  passes. A mutation check is only evidence once the edit is asserted to have
+  applied.
 - Memory packing / reclaiming unused native pages after park/restore is not a
   finished production story.
 - Shipping packaging extras (notices, examples, docs completeness) still follow
