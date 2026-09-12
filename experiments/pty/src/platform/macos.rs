@@ -14,6 +14,52 @@ pub struct Readiness {
 }
 
 impl Readiness {
+    /// An empty reactor whose membership changes while the worker runs. Used only
+    /// by the handoff fixture; the fixed-placement cases keep using `new`.
+    pub fn with_capacity(capacity: usize) -> io::Result<Self> {
+        let raw = unsafe { libc::kqueue() };
+        if raw < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let fd = unsafe { OwnedFd::from_raw_fd(raw) };
+        assert_eq!(
+            unsafe { libc::fcntl(raw, libc::F_SETFD, libc::FD_CLOEXEC) },
+            0
+        );
+        Ok(Self {
+            fd,
+            events: (0..capacity.max(1)).map(|_| unsafe { zeroed() }).collect(),
+            indices: Vec::with_capacity(capacity.max(1)),
+        })
+    }
+
+    /// Register one endpoint under `index`. Registration is an ownership change,
+    /// so the caller must have stopped every previous reader of that descriptor.
+    pub fn add(&self, endpoint: &OwnedFd, index: usize) -> io::Result<()> {
+        let change = libc::kevent {
+            ident: endpoint.as_raw_fd() as usize,
+            filter: libc::EVFILT_READ,
+            flags: libc::EV_ADD | libc::EV_ENABLE,
+            fflags: 0,
+            data: 0,
+            udata: index as *mut _,
+        };
+        if unsafe {
+            libc::kevent(
+                self.fd.as_raw_fd(),
+                &change,
+                1,
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null(),
+            )
+        } < 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+
     pub fn new(endpoints: &[OwnedFd]) -> io::Result<Self> {
         let raw = unsafe { libc::kqueue() };
         if raw < 0 {

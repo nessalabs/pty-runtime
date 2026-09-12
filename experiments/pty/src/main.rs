@@ -1,4 +1,5 @@
 //! Reproducible measurement fixtures, deliberately separate from the future runtime.
+mod handoff;
 mod platform;
 
 use serde_json::{json, Value};
@@ -52,7 +53,7 @@ unsafe impl GlobalAlloc for Counting {
 #[global_allocator]
 static ALLOC: Counting = Counting;
 
-fn monotonic_ns() -> u64 {
+pub(crate) fn monotonic_ns() -> u64 {
     let mut t = unsafe { zeroed() };
     assert_eq!(
         unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut t) },
@@ -60,19 +61,19 @@ fn monotonic_ns() -> u64 {
     );
     t.tv_sec as u64 * 1_000_000_000 + t.tv_nsec as u64
 }
-fn sleep_until(target: u64) {
+pub(crate) fn sleep_until(target: u64) {
     let now = monotonic_ns();
     if target > now {
         thread::sleep(Duration::from_nanos(target - now));
     }
 }
-fn cpu_us(who: i32) -> u64 {
+pub(crate) fn cpu_us(who: i32) -> u64 {
     let mut r: libc::rusage = unsafe { zeroed() };
     assert_eq!(unsafe { libc::getrusage(who, &mut r) }, 0);
     ((r.ru_utime.tv_sec + r.ru_stime.tv_sec) as u64) * 1_000_000
         + (r.ru_utime.tv_usec + r.ru_stime.tv_usec) as u64
 }
-fn sample() -> Value {
+pub(crate) fn sample() -> Value {
     // Capture live requested bytes before constructing the measurement JSON.
     let heap = LIVE.load(Ordering::Relaxed);
     let mut v = platform::memory();
@@ -81,7 +82,7 @@ fn sample() -> Value {
     v["descriptors"] = json!(platform::descriptor_count());
     v
 }
-fn cleanup_sample(base: &Value) -> Value {
+pub(crate) fn cleanup_sample(base: &Value) -> Value {
     let start = Instant::now();
     loop {
         let mut value = sample();
@@ -92,14 +93,14 @@ fn cleanup_sample(base: &Value) -> Value {
         thread::sleep(Duration::from_millis(10));
     }
 }
-fn clean_check(base: &Value, cleaned: &Value) {
+pub(crate) fn clean_check(base: &Value, cleaned: &Value) {
     assert_eq!(
         base["descriptors"], cleaned["descriptors"],
         "descriptor cleanup"
     );
     assert_eq!(base["threads"], cleaned["threads"], "reader cleanup");
 }
-fn nonblock(fd: &OwnedFd) {
+pub(crate) fn nonblock(fd: &OwnedFd) {
     let flags = unsafe { libc::fcntl(fd.as_raw_fd(), libc::F_GETFL) };
     assert!(flags >= 0);
     assert_eq!(
@@ -107,7 +108,7 @@ fn nonblock(fd: &OwnedFd) {
         0
     );
 }
-fn pair() -> (OwnedFd, OwnedFd) {
+pub(crate) fn pair() -> (OwnedFd, OwnedFd) {
     unsafe {
         let (mut host, mut child) = (-1, -1);
         assert_eq!(
@@ -132,7 +133,7 @@ fn pair() -> (OwnedFd, OwnedFd) {
         (OwnedFd::from_raw_fd(host), OwnedFd::from_raw_fd(child))
     }
 }
-fn read_fd(fd: &OwnedFd, b: &mut [u8]) -> io::Result<usize> {
+pub(crate) fn read_fd(fd: &OwnedFd, b: &mut [u8]) -> io::Result<usize> {
     let n = unsafe { libc::read(fd.as_raw_fd(), b.as_mut_ptr().cast(), b.len()) };
     if n < 0 {
         Err(io::Error::last_os_error())
@@ -140,7 +141,7 @@ fn read_fd(fd: &OwnedFd, b: &mut [u8]) -> io::Result<usize> {
         Ok(n as usize)
     }
 }
-fn write_all_fd(fd: i32, mut b: &[u8]) {
+pub(crate) fn write_all_fd(fd: i32, mut b: &[u8]) {
     while !b.is_empty() {
         let n = unsafe { libc::write(fd, b.as_ptr().cast(), b.len()) };
         if n < 0 {
@@ -341,7 +342,7 @@ impl Readers {
     }
 }
 
-fn reader_workers(model: &str, n: usize) -> usize {
+pub(crate) fn reader_workers(model: &str, n: usize) -> usize {
     if model == "dedicated" {
         return n;
     }
@@ -358,7 +359,7 @@ fn reader_workers(model: &str, n: usize) -> usize {
     workers.min(n)
 }
 
-fn quantiles(v: &mut [f64]) -> Value {
+pub(crate) fn quantiles(v: &mut [f64]) -> Value {
     assert!(!v.is_empty());
     v.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let q = |p: f64| v[((v.len() as f64 * p).ceil() as usize).saturating_sub(1)];
@@ -426,7 +427,7 @@ fn serial(model: &str, n: usize, read_bytes: usize, mib: usize) -> Value {
         "sequential_handshake":latency,"base":base,"resident":resident,"cleaned":cleaned,"verified":true})
 }
 
-struct ManagedChild(Child);
+pub(crate) struct ManagedChild(pub(crate) Child);
 impl Drop for ManagedChild {
     fn drop(&mut self) {
         let _ = self.0.kill();
@@ -606,6 +607,10 @@ fn main() {
         echo();
         return;
     }
+    if args[1] == "__ramp" {
+        handoff::ramp(args[2].parse().unwrap(), args[3].parse().unwrap());
+        return;
+    }
     let model = &args[2];
     let n = args[3].parse().unwrap();
     let read_bytes = args[4].parse().unwrap();
@@ -619,6 +624,17 @@ fn main() {
             args[5].parse().unwrap(),
             args[6].parse().unwrap(),
             args[7].parse().unwrap(),
+        ),
+        "handoff" => handoff::handoff(
+            model,
+            n,
+            read_bytes,
+            args[5].parse().unwrap(),
+            args[6].parse().unwrap(),
+            args[7].parse().unwrap(),
+            args[8].parse().unwrap(),
+            args[9].parse().unwrap(),
+            args[10].parse().unwrap(),
         ),
         _ => panic!("unknown experiment"),
     };
