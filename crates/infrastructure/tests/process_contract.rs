@@ -88,7 +88,7 @@ fn cancellation_bypasses_full_input_and_escalates_once() {
             ),
             size(),
             SessionLifetime::new(1, 4),
-            limits,
+            limits.clone(),
             events.clone(),
         )
         .unwrap();
@@ -102,10 +102,27 @@ fn cancellation_bypasses_full_input_and_escalates_once() {
     }
     let started = Instant::now();
     events.wait(|s| s.exit.is_some() && s.drain.is_some());
-    assert!(started.elapsed() < Duration::from_secs(2));
+    let elapsed = started.elapsed();
+    assert!(elapsed < Duration::from_secs(2));
     assert_eq!(
         events.state.lock().unwrap().exit,
         Some(ExitStatus::Signal(libc::SIGKILL))
+    );
+    // The owner's deadline is what ended this child, not the guardian's backstop.
+    //
+    // Both triggers request the same kill, so the only thing separating them is
+    // when they fire: the owner at `terminate_grace`, the guardian at
+    // `guardian_grace`. While those were the same value neither could be
+    // attributed and either could be deleted with this test still green.
+    let backstop = limits.guardian_grace();
+    assert!(
+        backstop > limits.terminate_grace,
+        "the deadlines must be staged for this assertion to mean anything"
+    );
+    assert!(
+        elapsed < backstop,
+        "escalation at {elapsed:?} reached the guardian backstop at {backstop:?}, \
+         so the owner's own deadline did not fire"
     );
     let one = wait(first);
     let two = wait(second);
