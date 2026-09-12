@@ -1,0 +1,369 @@
+{
+  "binary_sha256": {
+    "pty": "2024e96b7b288d376272a5f23b3b581c8e5929db78320951d7f2f2205992d06b"
+  },
+  "cases": [
+    {
+      "args": [
+        "idle",
+        "shared-4",
+        "1",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n1-shared-4",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "dedicated",
+        "1",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n1-dedicated",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "shared-4",
+        "16",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n16-shared-4",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "dedicated",
+        "16",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n16-dedicated",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "shared-4",
+        "64",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n64-shared-4",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "dedicated",
+        "64",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n64-dedicated",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "shared-4",
+        "128",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n128-shared-4",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "dedicated",
+        "128",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n128-dedicated",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "shared-4",
+        "256",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n256-shared-4",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "idle",
+        "dedicated",
+        "256",
+        "1024",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-idle-n256-dedicated",
+      "kind": "pty-idle"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "16",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n16-a0-rate0-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "64",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n64-a0-rate0-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "128",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a0-rate0-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "256",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n256-a0-rate0-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared",
+        "128",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a0-rate0-shared",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-2",
+        "128",
+        "1024",
+        "0",
+        "0",
+        "0",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a0-rate0-shared-2",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "128",
+        "1024",
+        "16",
+        "20000",
+        "262144",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a16-rate262144-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "128",
+        "1024",
+        "16",
+        "20000",
+        "1048576",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a16-rate1048576-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "128",
+        "1024",
+        "16",
+        "20000",
+        "4194304",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a16-rate4194304-shared-4",
+      "kind": "pty-handoff"
+    },
+    {
+      "args": [
+        "handoff",
+        "shared-4",
+        "128",
+        "1024",
+        "16",
+        "20000",
+        "16777216",
+        "3",
+        "1000",
+        "1000"
+      ],
+      "binary": "pty",
+      "id": "pty-handoff-n128-a16-rate16777216-shared-4",
+      "kind": "pty-handoff"
+    }
+  ],
+  "comparison_environment": {
+    "architecture": "arm64",
+    "container_limits": {},
+    "cpu_model": "Apple M5",
+    "kernel": "25.6.0",
+    "libc": [
+      "",
+      ""
+    ],
+    "logical_cpus": 10,
+    "machine_model": "Mac17,3",
+    "page_size": 16384,
+    "ram_bytes": 25769803776,
+    "system": "Darwin",
+    "toolchains": {
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8"
+    }
+  },
+  "dependencies": {
+    "ghostty": {
+      "revision": "82232ecde55405559dec29c5466cb9e39938cb41",
+      "sha256": "820d84e8cbc4be0ca26b9a1b71cfdc5befdc814c414bef7b0dbcf51069668c68",
+      "url": "https://codeload.github.com/ghostty-org/ghostty/tar.gz/82232ecde55405559dec29c5466cb9e39938cb41"
+    },
+    "zig": {
+      "archives": {
+        "aarch64-linux": "ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17",
+        "aarch64-macos": "b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489",
+        "x86_64-linux": "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00",
+        "x86_64-macos": "0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7"
+      },
+      "version": "0.16.0"
+    }
+  },
+  "descriptor_limit": [
+    1048576,
+    9223372036854775807
+  ],
+  "load_average_at_start": [
+    7.4052734375,
+    6.59765625,
+    4.79638671875
+  ],
+  "minimum_baseline_repetitions": 5,
+  "profile": "handoff",
+  "repetitions": 5,
+  "schema": 2,
+  "source_files": {
+    "experiments/dependencies.json": "3e57d393e42be1cf05637a5e4b0325b0065e576e64dfe1cb41e04b910e44d2cb",
+    "experiments/gate.py": "5a60c53b0a776114284f2facc7050a3af7230d545fb31aa6e051ccb116225a4e",
+    "experiments/native/codec-timing.c": "6f190a1bbee1ce40d7e1715e6c91089b4ac7d2a1ae08a45f63b95febfb27b2eb",
+    "experiments/native/native-memory.c": "afa02a70c7d2ba566b8fb4f3381b85ac15c2c91e09d89cf005b6a6826027321b",
+    "experiments/native/packed-pages-test.c": "787064d9a966e73629a182b7c6e0a8187f93afee6e2262dec2e549d6c3680561",
+    "experiments/native/packed-pages.h": "194ced7087df2e73c6cf8fb77de996ae4184bbd6558b73df08b441e12ce3d779",
+    "experiments/native/platform.h": "46a72d2cf2fba3bf12cd777aee59608568813d38508183fcff73cdcd45f42c52",
+    "experiments/native/verify-roundtrip.c": "a938d52d1e1eb1576003de07fe24181d9ba7bb117a30490f1751424a1ee0ac55",
+    "experiments/profiles.json": "1bbd8aadc30d42bda131d6eaf1752c8a36d3934f6223a6366ecece1edf59bb24",
+    "experiments/pty/Cargo.lock": "d952917f27f06e6034c04380cd11b54404f4d2bf658f8eaf62aebe30862d0833",
+    "experiments/pty/Cargo.toml": "3459d521a10560c3391e70cee2c2fcc39b4140fdc81d6cc2cdbd8cbcbe3e84d4",
+    "experiments/pty/src/handoff.rs": "a4fce62c4637ec4ba3fc8139f69d827f3c38438d9789e4548d15e9dbae069fe3",
+    "experiments/pty/src/main.rs": "4c1c6e65def491012b7727b82bb0ccbff2cb6b7f2c9f7dc6a058e81b1b1c0464",
+    "experiments/pty/src/platform/linux.rs": "f4e6465b3015566eda17ac15913e2adf395d1d778f50215c65506f9c07a448d2",
+    "experiments/pty/src/platform/macos.rs": "33f88836754e0cab7fba9e037a1cfb9f0ffb184323d9a899340808a2c30f57b9",
+    "experiments/pty/src/platform/mod.rs": "02aa4f5732313e977dd58def43c13032bb382e1b02947251bc87042d17fe4506",
+    "experiments/run.py": "9f18db907d26e21332e6fdd91db4b04b291ee9dd367373a5cd315daa2eb093f6",
+    "experiments/tests/test_gate.py": "3ed2638938def0156e76f07117565cccfcbd500ae02b0aaed4398699acf09e46",
+    "experiments/tests/test_native_build.py": "f7c85a0270ee46cdae0c14701a08dd3c9e1491ca4751333b0d103f516994f5f6",
+    "experiments/tests/test_native_lifecycle_gate.py": "48f912180f7921fa2f51f94543fe752bb81b2410bac09fbcbdcfe23c36f26251"
+  },
+  "source_sha256": "962c930918c7c73057d104706d7c7b6ceb32c2a472a6675d395375edd0ac0555",
+  "started_at": "2026-09-12T18:04:32.579211+00:00",
+  "suite": "pty"
+}

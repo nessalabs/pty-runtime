@@ -201,6 +201,15 @@ def cases_for(config, suite):
             for model in config["models"]:
                 add(f"pty-concurrent-n{n}-a{active}-rate{rate}-{model}", "pty-concurrent", "pty",
                     ["concurrent", model, n, b, active, case["duration_ms"], rate])
+        # Each handoff case names its own shared placement target, because the
+        # measurement compares dedicated readers against that target in one
+        # process rather than crossing a model list.
+        for case in config.get("handoff", []):
+            n, active, rate = case["ptys"], case["active"], case["rate_per_producer"]
+            model = case["model"]
+            add(f"pty-handoff-n{n}-a{active}-rate{rate}-{model}", "pty-handoff", "pty",
+                ["handoff", model, n, b, active, case["duration_ms"], rate,
+                 case["cycles"], case["window_ms"], case["probe_ms"]])
     if suite in ("all", "native"):
         for n in config["native_counts"]:
             for varied in config["native_varied"]:

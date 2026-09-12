@@ -13,6 +13,41 @@ pub struct Readiness {
 }
 
 impl Readiness {
+    /// An empty reactor whose membership changes while the worker runs. Used only
+    /// by the handoff fixture; the fixed-placement cases keep using `new`.
+    pub fn with_capacity(capacity: usize) -> io::Result<Self> {
+        let raw = unsafe { libc::epoll_create1(libc::EPOLL_CLOEXEC) };
+        if raw < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(Self {
+            fd: unsafe { OwnedFd::from_raw_fd(raw) },
+            events: vec![libc::epoll_event { events: 0, u64: 0 }; capacity.max(1)],
+            indices: Vec::with_capacity(capacity.max(1)),
+        })
+    }
+
+    /// Register one endpoint under `index`. Registration is an ownership change,
+    /// so the caller must have stopped every previous reader of that descriptor.
+    pub fn add(&self, endpoint: &OwnedFd, index: usize) -> io::Result<()> {
+        let mut event = libc::epoll_event {
+            events: (libc::EPOLLIN | libc::EPOLLHUP | libc::EPOLLERR) as u32,
+            u64: index as u64,
+        };
+        if unsafe {
+            libc::epoll_ctl(
+                self.fd.as_raw_fd(),
+                libc::EPOLL_CTL_ADD,
+                endpoint.as_raw_fd(),
+                &mut event,
+            )
+        } < 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+
     pub fn new(endpoints: &[OwnedFd]) -> io::Result<Self> {
         let raw = unsafe { libc::epoll_create1(libc::EPOLL_CLOEXEC) };
         if raw < 0 {

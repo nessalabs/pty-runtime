@@ -182,6 +182,22 @@ What changed:
 
 ## What is still open
 
+- Bounded dynamic reader handoff is **still not implemented**, and this is
+  deliberate. It now has a measured price rather than an assumed one:
+  [Experiment 0004](experiments/0004-reader-placement-handoff-spike.md) ran a
+  standalone fixture on one macOS arm64 host that moves live descriptors between
+  dedicated readers and bounded shared workers and measures both placements in
+  the same process. A dedicated reader costs about 15.8 KiB resident and 256 KiB
+  of reserved stack per live PTY; moving a quiet session costs about 50 µs, but
+  moving one *back* onto a dedicated reader while the machine is saturated has a
+  p99 of 9–11 ms. Alongside it, the existing release-load harness measured the
+  **real** library at 24.8 KiB of owner RSS and exactly one thread per idle raw
+  session, and 0.247 % of one core for 128 idle raw sessions — well inside the
+  ADR 0002 idle-CPU target, with almost none of it spent by readers. Nothing in
+  that fixture is runtime behaviour, and the ADR 0003 reader-handoff
+  requirements for concurrent input, cancel and exit during a transfer are
+  **not** met by it. The evidence points away from implementing handoff at the
+  populations this runtime targets.
 - Full release load goals (large session counts, strict latency budgets, long
   soak) are **not** closed. Short green runs are not a substitute.
 - Not every claimed OS/CPU target has a fresh, complete qualification pass on

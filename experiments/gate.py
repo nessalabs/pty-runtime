@@ -38,6 +38,42 @@ def validate_memory(row):
     require(all(row[key] is None for key in unavailable), "incompatible OS memory counters")
 
 
+RAMP_CHECKSUM = 256 * 255 // 2
+
+
+def validate_handoff(case, row):
+    """Placement movement is only evidence if ownership, byte order and the
+    worker ceiling all held while descriptors moved between readers."""
+    active, cycles = int(case["args"][4]), int(case["args"][7])
+    sessions, probes, workers = row["ptys"], row["probe_ptys"], row["reader_workers"]
+    require(row["cycles"] == cycles and probes == 1, "handoff workload differs")
+    require(row["active_producers"] == active and len(row["producers"]) == active,
+            "missing independent producers")
+    require(row["dedicated"]["threads"] - row["base"]["threads"] == sessions + probes + workers,
+            "dedicated placement did not run one reader per live PTY")
+    require(row["peak_threads"] <= row["base"]["threads"] + sessions + probes + workers,
+            "placement exceeded its bounded worker count")
+    require(row["disordered_bytes"] == 0, "handoff lost, duplicated or reordered bytes")
+    require(row["bytes"] == sum(p["bytes"] for p in row["producers"]), "producer totals differ")
+    require(all(p["bytes"] > 0 for p in row["producers"]), "a producer made no progress")
+    require(row["bytes"] % 256 == 0 and row["checksum"] == row["bytes"] // 256 * RAMP_CHECKSUM,
+            "delivered bytes do not match the producer ramp")
+    for direction in ("to_shared", "to_dedicated"):
+        measured = sum(row[f"{direction}_{group}_us"]["samples"] for group in ("active", "quiet")
+                       if row[f"{direction}_{group}_us"] is not None)
+        require(measured == cycles * sessions, f"missing {direction} migrations")
+    require(row["reader_threads_created"] == cycles * (sessions + probes),
+            "reader threads created differ from the measured wake migrations")
+    require(row["probe_roundtrips"] == row["dedicated_roundtrip"]["samples"] + row["shared_roundtrip"]["samples"],
+            "probe round trips and delivered probe bytes disagree")
+    require(row["dedicated_roundtrip"]["samples"] > 0 and row["shared_roundtrip"]["samples"] > 0,
+            "a placement was never probed")
+    if active:
+        for placement in ("dedicated", "shared"):
+            require(number(row[placement + "_mib_per_sec"], "throughput") > 0,
+                    f"{placement} placement delivered nothing")
+
+
 def validate_record(case, data):
     require(isinstance(data, list) and data, f"empty output: {case['id']}")
     kind = case["kind"]
@@ -49,13 +85,16 @@ def validate_record(case, data):
         require(row.get("model") == case["args"][1], "reader model mismatch")
         require(row.get("ptys") == int(case["args"][2]), "PTY count mismatch")
         require(row.get("read_buffer_bytes") == int(case["args"][3]), "buffer mismatch")
-        for stage in ("base", "resident", "cleaned"):
+        stages = ("base", "resident", "cleaned") + (("dedicated",) if kind == "pty-handoff" else ())
+        for stage in stages:
             validate_memory(row[stage])
         require(row["resident"]["threads"] - row["base"]["threads"] == row["reader_workers"],
                 "actual worker count differs from configured readers")
         for field in ("descriptors", "threads"):
             require(row["base"][field] == row["cleaned"][field], f"unreleased {field}")
-        if kind != "pty-idle":
+        if kind == "pty-handoff":
+            validate_handoff(case, row)
+        elif kind != "pty-idle":
             require(number(row["bytes"], "bytes") > 0, "empty transfer")
             require(number(row["aggregate_mib_per_sec"], "throughput") > 0, "invalid throughput")
         if kind == "pty-serial":
@@ -124,16 +163,36 @@ def metrics(case, data):
             out[key] = {"value": number(value, key), "direction": direction, "absolute_tolerance": floor}
 
     kind = case["kind"]
+    memory_keys = ("rss_bytes", "pss_bytes", "private_bytes", "charged_footprint_bytes", "live_heap_bytes")
     if kind.startswith("pty-"):
         r = data[0]
         if kind == "pty-idle":
             add("idle_cpu_percent", r["idle_cpu_percent"], floor=0.05)
+        elif kind == "pty-handoff":
+            # Transition cost, then the two steady placements the transition
+            # moves between. `added_*` below is the shared placement; the
+            # dedicated placement is reported under `dedicated_added_*`.
+            for direction in ("to_shared", "to_dedicated"):
+                for group in ("active", "quiet"):
+                    window = r[f"{direction}_{group}_us"]
+                    if window is not None:
+                        add(f"{direction}_{group}_p50_us", window["p50_us"], floor=1.0)
+                        add(f"{direction}_{group}_p99_us", window["p99_us"], floor=1.0)
+            for placement in ("dedicated", "shared"):
+                add(f"{placement}_roundtrip_p99_us", r[f"{placement}_roundtrip"]["p99_us"], floor=1.0)
+                add(f"{placement}_cpu_percent", r[f"{placement}_cpu_percent"], floor=0.05)
+                if int(case["args"][4]):
+                    add(f"{placement}_mib_per_sec", r[f"{placement}_mib_per_sec"], "higher")
+            for key in memory_keys:
+                if r["dedicated"].get(key) is not None:
+                    add("dedicated_added_" + key, max(0, r["dedicated"][key] - r["base"][key]),
+                        floor=1024 if key == "live_heap_bytes" else 65536)
         else:
             add("aggregate_mib_per_sec", r["aggregate_mib_per_sec"], "higher")
             add("owner_cpu_ms_per_mib", r["owner_cpu_ms_per_mib"])
             latency = r["sequential_handshake" if kind == "pty-serial" else "under_load_roundtrip"]
             add("roundtrip_p99_us", latency["p99_us"], floor=1.0)
-        for key in ("rss_bytes", "pss_bytes", "private_bytes", "charged_footprint_bytes", "live_heap_bytes"):
+        for key in memory_keys:
             if r["resident"].get(key) is not None:
                 add("added_" + key, max(0, r["resident"][key] - r["base"][key]),
                     floor=1024 if key == "live_heap_bytes" else 65536)

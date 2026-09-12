@@ -26,7 +26,12 @@ From the package root:
 ```sh
 python3 experiments/run.py run --profile smoke --output work/smoke
 python3 experiments/run.py run --profile qualification --output work/qualification
+python3 experiments/run.py run --profile handoff --suite pty --output work/handoff
 ```
+
+The `handoff` profile is a transport-only placement study and is meant for
+`--suite pty`; it carries token native settings so that `--suite all` still
+parses, not because those native cases are part of the study.
 
 Use `--suite pty` or `--suite native` to run one family. `--cache PATH` changes
 the build cache location; `--jobs N` bounds build parallelism; `--timeout SECONDS`
@@ -47,6 +52,7 @@ workloads, integration tests, or soak qualification.
 | Serial feeder | One producer writes 4 KiB chunks across endpoint pairs | Aggregate transport through a serialized feeder; retained for comparison with Experiment 0001 |
 | Concurrent producers | Separate child processes, coordinated start, one output-producing child per active PTY | Aggregate throughput and per-producer progress with independently active endpoints |
 | Under-load round trip | One extra PTY with an echo child while producers run | Host input → child read/write → host read/notification latency during output; not runtime cancellation or resize latency |
+| Reader handoff | One population measured twice in one process: first with a dedicated reader per PTY, then with the same descriptors moved onto bounded shared workers and back, repeatedly | Cost of each steady placement and of the transition between them. A fixture measurement of a placement policy the library does not implement |
 | Native lifecycle | Filled models, optional resident compression, checkpoint files, model release, READY, full restoration, cleanup | Native CPU, storage bytes, state preservation, and platform-specific memory reclamation |
 | Native codec | Five warm-ups and 30 in-memory samples per process | Encode, READY, and full-decode timing, separate from disk wake latency |
 | Native correctness | UTF-8/VT continuation, binary round trips, repeated restore, resize, replies, corruption | Deterministic C API checks; not full conformance, fuzzing, or concurrent Rust integration |
@@ -60,11 +66,27 @@ includes completion and final drain. Child CPU is recorded separately; reported
 owner memory excludes child-process memory and kernel PTY allocations.
 
 Readers use 1 KiB buffers and a 64 KiB fairness budget per readiness event.
-Dedicated readers request 64 KiB stacks. Shared worker count is bounded and fixed
-within each fixture; there is no dynamic reader handoff. Byte counts/checksums
-are asserted. Cleanup permits up to one second for OS thread-count reporting to
-settle after joined readers, records that delay, and still fails if counts do
-not return to baseline.
+Dedicated readers request 64 KiB stacks. In the idle, serial and concurrent
+families the shared worker count is bounded and fixed for the whole fixture.
+Byte counts/checksums are asserted. Cleanup permits up to one second for OS
+thread-count reporting to settle after joined readers, records that delay, and
+still fails if counts do not return to baseline.
+
+The handoff family is the one fixture that moves a descriptor between readers
+while it is live, and it exists only to price that move. It is not a library
+capability and it is not a proposed design: the runtime keeps one dedicated
+reader per live PTY for the whole life of a session. The fixture stops a blocked
+reader with a `SIGURG` handler installed without `SA_RESTART`, retries the signal
+until the reader acknowledges, and only then switches the descriptor to
+non-blocking and hands it to a shared worker, which drains whatever arrived in
+the gap. A per-session ownership flag rejects readiness events for descriptors a
+worker no longer owns. Producers write a continuous 256-byte ramp, so every
+delivered byte's expected value is known and loss, duplication or reordering
+across a transition is detected rather than assumed absent; that check costs one
+comparison per byte. An echo probe PTY migrates with the population, so its
+round trip reports the latency of whichever placement is current. The handoff
+profile runs this family; see
+[Experiment 0004](../docs/experiments/0004-reader-placement-handoff-spike.md).
 
 The native mapping allocator is an experimental comparison with a 4 KiB
 allocation threshold and actual OS page rounding. It is not the production pool
