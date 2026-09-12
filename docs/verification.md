@@ -322,6 +322,7 @@ What changed:
 
 | Want | Go here |
 | --- | --- |
+| What is still to do | [`todo/`](todo/README.md) |
 | How to embed | [`usage.md`](usage.md) |
 | Behavior by area | [`features/`](features/) |
 | Why we chose this | [`adr/`](adr/) |
