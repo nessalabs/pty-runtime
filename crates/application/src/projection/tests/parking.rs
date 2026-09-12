@@ -146,3 +146,42 @@ fn ready_view_captures_its_own_history_and_exact_order_boundary() {
     assert_eq!(view.view().cells[0].text, "old");
     h.close();
 }
+
+/// The worker must not start a park while native control work is still in
+/// flight, because `commit_park` releases the live model on the assumption that
+/// nothing is using it.
+///
+/// This replaces an `engine_idle` parameter on `commit_park` that was always
+/// passed `true`. A condition the worker cannot produce is not defence — nothing
+/// can test it, and a coverage gate cannot tell it from dead code. What actually
+/// protects the release is the ordering asserted here: `serve` is reached only
+/// after `poll_inflight_operations` returns `None`, so a pending resize keeps the
+/// park from ever starting, however long the park has been due.
+#[test]
+fn the_worker_never_parks_while_native_work_is_in_flight() {
+    let h = Harness::standard();
+    h.process.hold_resize.store(true, Ordering::Release);
+    assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    let mut resize = h.owner.resize(TerminalSize::new(3, 1).unwrap()).unwrap();
+
+    // Well past the park deadline, with the resize still outstanding.
+    h.clock.0.store(600, Ordering::Release);
+    h.pump();
+    assert!(matches!(poll(&mut resize), std::task::Poll::Pending));
+    assert_eq!(
+        h.owner.status().residency,
+        Residency::Resident,
+        "a park started while a resize was in flight"
+    );
+    assert_eq!(h.store.commits.load(Ordering::Acquire), 0);
+    assert_eq!(h.jobs.len(), 0, "no commit job should have been submitted");
+    assert_eq!(h.probe.alive.load(Ordering::Acquire), 1);
+
+    // Once it settles, the overdue park runs immediately.
+    h.process.hold_resize.store(false, Ordering::Release);
+    h.pump();
+    assert!(result(&mut resize).unwrap().model.is_ok());
+    assert_eq!(h.owner.status().residency, Residency::Parked);
+    assert_eq!(h.store.commits.load(Ordering::Acquire), 1);
+    h.close();
+}

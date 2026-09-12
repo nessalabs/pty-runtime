@@ -15,7 +15,7 @@ use super::support::{Jobs, Store};
 use crate::projection::{
     ProjectionBudgets, ProjectionError,
     budgets::DiskLease,
-    inflight::{InFlight, PendingIo, collect},
+    inflight::{FinishedIo, InFlight},
     reaper::SourceReaper,
     state::CommittedSource,
 };
@@ -81,10 +81,10 @@ impl Fixture {
     /// Run the submitted job and settle it, as the worker would.
     fn settle(&mut self) -> Option<ProjectionError> {
         assert!(self.jobs.run_one(), "no job was submitted");
-        let Some(PendingIo::Delete { attempt, mailbox }) = self.io.take_finished() else {
+        let Some(FinishedIo::Delete { attempt, result }) = self.io.take_finished() else {
             panic!("a finished delete should be waiting in the slot");
         };
-        self.reaper.finish_delete(attempt, collect(&mailbox))
+        self.reaper.finish_delete(attempt, result)
     }
 }
 

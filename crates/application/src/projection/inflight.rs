@@ -27,13 +27,13 @@ use std::sync::{Arc, Mutex};
 /// is merely slow.
 pub(super) type Mailbox<T> = Arc<Mutex<Option<Result<T, ProjectionError>>>>;
 
-/// Take a published result, treating an empty or poisoned slot as worker failure.
-pub(super) fn collect<T>(mailbox: &Mailbox<T>) -> Result<T, ProjectionError> {
-    mailbox
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .take()
-        .unwrap_or(Err(ProjectionError::Worker))
+/// Take what the worker published, or `None` while it is still running.
+///
+/// A poisoned mutex is recovered rather than reported: the job publishes its
+/// result as the last thing it does, so a panic that poisoned this lock happened
+/// either before there was anything to lose or after the result was stored.
+fn published<T>(mailbox: &Mailbox<T>) -> Option<Result<T, ProjectionError>> {
+    mailbox.lock().unwrap_or_else(|e| e.into_inner()).take()
 }
 
 /// The single blocking job in flight, together with the state its completion
@@ -66,19 +66,35 @@ pub(super) enum PendingIo {
         mailbox: Mailbox<()>,
     },
 }
-impl PendingIo {
-    /// Whether the blocking worker has published a result yet.
-    fn is_ready(&self) -> bool {
-        fn ready<T>(mailbox: &Mailbox<T>) -> bool {
-            mailbox.lock().unwrap_or_else(|e| e.into_inner()).is_some()
-        }
-        match self {
-            Self::Commit { mailbox, .. } => ready(mailbox),
-            Self::Restore { mailbox, .. } => ready(mailbox),
-            Self::Transfer { mailbox, .. } => ready(mailbox),
-            Self::Delete { mailbox, .. } => ready(mailbox),
-        }
-    }
+/// A job whose worker has published, carrying the result in place of the mailbox.
+///
+/// This exists so that "is it finished?" and "what did it say?" are one step.
+/// While they were two, the second had to cope with an empty mailbox the first
+/// had already ruled out — a branch that could not be reached, and so could not
+/// be tested. Here the emptiness is the `None` that means "still running", which
+/// is a real answer the worker gets on most runs.
+pub(super) enum FinishedIo {
+    Commit {
+        attempt: ParkAttempt,
+        disk: DiskLease,
+        _memory: IoMemory,
+        result: Result<CommitOutcome, ProjectionError>,
+    },
+    Restore {
+        resident: Lease,
+        memory: IoMemory,
+        result: Result<TerminalCheckpoint, ProjectionError>,
+    },
+    Transfer {
+        request: SnapshotRequest,
+        memory: IoMemory,
+        _staging: StagingLease,
+        result: Result<TerminalCheckpoint, ProjectionError>,
+    },
+    Delete {
+        attempt: super::reaper::DeleteAttempt,
+        result: Result<(), ProjectionError>,
+    },
 }
 
 /// At most one outstanding blocking job.
@@ -92,16 +108,85 @@ impl InFlight {
         self.0.is_some()
     }
 
-    /// Take the job only if its worker has published a result.
+    /// Take the job, with its result, only if its worker has published one.
     ///
-    /// Leaving an unfinished job in place is the point: the slot is what stops a
-    /// second job being started, and a job is not finished until its mailbox is
-    /// filled — which a panicking worker also does.
-    pub fn take_finished(&mut self) -> Option<PendingIo> {
-        if !self.0.as_ref().is_some_and(PendingIo::is_ready) {
-            return None;
+    /// An unfinished job goes straight back: the slot is what stops a second job
+    /// being started, and a job is not finished until its mailbox is filled —
+    /// which a panicking worker also does, publishing `Err(Worker)` rather than
+    /// leaving the slot empty.
+    pub fn take_finished(&mut self) -> Option<FinishedIo> {
+        match self.0.take()? {
+            PendingIo::Commit {
+                attempt,
+                disk,
+                _memory,
+                mailbox,
+            } => match published(&mailbox) {
+                Some(result) => Some(FinishedIo::Commit {
+                    attempt,
+                    disk,
+                    _memory,
+                    result,
+                }),
+                None => {
+                    self.0 = Some(PendingIo::Commit {
+                        attempt,
+                        disk,
+                        _memory,
+                        mailbox,
+                    });
+                    None
+                }
+            },
+            PendingIo::Restore {
+                resident,
+                memory,
+                mailbox,
+            } => match published(&mailbox) {
+                Some(result) => Some(FinishedIo::Restore {
+                    resident,
+                    memory,
+                    result,
+                }),
+                None => {
+                    self.0 = Some(PendingIo::Restore {
+                        resident,
+                        memory,
+                        mailbox,
+                    });
+                    None
+                }
+            },
+            PendingIo::Transfer {
+                request,
+                memory,
+                _staging,
+                mailbox,
+            } => match published(&mailbox) {
+                Some(result) => Some(FinishedIo::Transfer {
+                    request,
+                    memory,
+                    _staging,
+                    result,
+                }),
+                None => {
+                    self.0 = Some(PendingIo::Transfer {
+                        request,
+                        memory,
+                        _staging,
+                        mailbox,
+                    });
+                    None
+                }
+            },
+            PendingIo::Delete { attempt, mailbox } => match published(&mailbox) {
+                Some(result) => Some(FinishedIo::Delete { attempt, result }),
+                None => {
+                    self.0 = Some(PendingIo::Delete { attempt, mailbox });
+                    None
+                }
+            },
         }
-        self.0.take()
     }
 
     /// Abandon whatever is outstanding, finished or not. Only shutdown does

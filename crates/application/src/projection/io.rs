@@ -20,7 +20,7 @@
 use super::{
     PinnedCheckpoint, ProjectionCoordinator, ProjectionError, Residency, blocking,
     budgets::{DiskLease, IoMemory, Lease},
-    inflight::{PendingIo, collect},
+    inflight::{FinishedIo, PendingIo},
     queue::ParkStart,
     state::{Command, CommitOutcome, CommittedSource, NativeWorkspace, UnreclaimedSource},
 };
@@ -199,16 +199,15 @@ impl ProjectionCoordinator {
             Residency::Closing | Residency::Closed
         );
         match pending {
-            PendingIo::Commit {
+            FinishedIo::Commit {
                 attempt,
                 disk,
                 _memory: _,
-                mailbox,
+                result,
             } => {
                 // A panicked commit worker may have stored ciphertext before it
                 // died, so it is Uncertain rather than Rejected.
-                let result = collect(&mailbox).unwrap_or_else(CommitOutcome::Uncertain);
-                match result {
+                match result.unwrap_or_else(CommitOutcome::Uncertain) {
                     CommitOutcome::Published(reference) => {
                         let source = CommittedSource {
                             reference,
@@ -219,8 +218,7 @@ impl ProjectionCoordinator {
                             },
                             _disk: disk,
                         };
-                        let engine_idle = workspace.reply.is_none() && workspace.resize.is_none();
-                        let release = self.queue.commit_park(attempt, engine_idle);
+                        let release = self.queue.commit_park(attempt);
                         if release {
                             // Logical release was atomic with the empty/activity check.
                             // Drop native state outside the aggregate lock; new output
@@ -247,12 +245,11 @@ impl ProjectionCoordinator {
                     }
                 }
             }
-            PendingIo::Restore {
+            FinishedIo::Restore {
                 resident,
                 memory,
-                mailbox,
+                result: checkpoint,
             } => {
-                let checkpoint = collect(&mailbox);
                 if !closing {
                     match checkpoint.and_then(|checkpoint| {
                         self.native_call(|| services.terminal.restore(checkpoint, workspace.config))
@@ -273,13 +270,12 @@ impl ProjectionCoordinator {
                     }
                 }
             }
-            PendingIo::Transfer {
+            FinishedIo::Transfer {
                 request,
                 memory,
                 _staging: _,
-                mailbox,
+                result,
             } => {
-                let result = collect(&mailbox);
                 request.complete(
                     if closing {
                         Err(ProjectionError::Closed)
@@ -292,8 +288,8 @@ impl ProjectionCoordinator {
                     &self.journal,
                 );
             }
-            PendingIo::Delete { attempt, mailbox } => {
-                if let Some(error) = workspace.reaper.finish_delete(attempt, collect(&mailbox)) {
+            FinishedIo::Delete { attempt, result } => {
+                if let Some(error) = workspace.reaper.finish_delete(attempt, result) {
                     self.queue.maintenance_failed(error);
                 }
             }
