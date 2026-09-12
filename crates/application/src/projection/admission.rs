@@ -7,7 +7,7 @@ use super::{
     state::Command,
 };
 use crate::process::OutputAcceptance;
-use pty_runtime_domain::terminal::TerminalSize;
+use pty_runtime_domain::{process::DrainOutcome, terminal::TerminalSize};
 use std::sync::{Arc, atomic::Ordering};
 impl ProjectionCoordinator {
     pub(super) fn reserve_staging(&self, bytes: usize) -> Result<StagingLease, ProjectionError> {
@@ -207,5 +207,20 @@ impl ProjectionCoordinator {
             self.fail(error);
         }
         Ok(())
+    }
+
+    /// Record final reader drain independently of process exit or parser catchup.
+    /// Existing queued work remains owned; later output/resizes are rejected. Safe
+    /// before process binding. Readers invoke this after their final output callback.
+    ///
+    /// This is the last thing a reader admits, which is why it sits with the rest
+    /// of admission rather than with the worker step that acts on it.
+    pub fn notify_output_drained(&self, outcome: DrainOutcome) {
+        if let Some(failure) = self.queue.record_drain(outcome) {
+            self.journal.end(Some(outcome), Some(failure));
+        }
+        if self.wake().is_err() && self.status().residency != Residency::Closed {
+            self.fail(ProjectionError::Worker);
+        }
     }
 }

@@ -288,7 +288,7 @@ What changed:
   refused (spends an attempt) and a full pool that never asked it (spends none).
 
   `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
-  methods in `io.rs` and `completion.rs`, and they are where the coupling
+  methods in `io.rs`, and they are where the coupling
   actually lives — `finish_io` alone spans five collaborators and ten workspace
   fields, unchanged by the extractions above, because what came out came out
   precisely by touching nothing. That was measured and declined rather than
@@ -296,6 +296,25 @@ What changed:
 
   The native engine driving also remains, and was measured and declined rather
   than deferred — see the P3 list below.
+
+  `Wiring`'s two `#[cfg(test)]` injection seams are gone, closed one PR earlier.
+  A fault is wired in before `create` through `Harness::with_services`, and
+  scheduler loss through the `IWorkScheduler` double, so no production type
+  carries a hook for swapping a collaborator on a live projection. One seam
+  remains and is not on a production type: `wiring::hold_leaf` holds its own
+  mutex through the real `leaf` helper, because the lock-order test needs a
+  closure running while a leaf is held and no production path does that.
+
+  The file layout that review complained about is settled — the "eight files
+  partition a method list" finding is closed, not merely reduced.
+  `stream_end.rs` held two unrelated methods and is gone: the reader-facing `notify_output_drained`
+  sits with the rest of admission, and the worker step that acts on it sits with
+  the worker. `completion.rs` merged into `io.rs`, because the two held the start
+  and finish halves of one lifecycle and every `PendingIo` variant built in one
+  was destructured in the other. `admission.rs` and `teardown.rs` still own no
+  type, and were measured and left: every piece of state they touch already
+  belongs to one, so a type there would hold a back-reference and nothing else.
+  See [`todo/declined.md`](todo/declined.md).
 
 - Still open after the three reviews, all P3:
   - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
@@ -308,12 +327,6 @@ What changed:
     work first; that reasoning is now recorded at the parameter.
   - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
     region-coverage hole.
-  - `Wiring`'s two `#[cfg(test)]` injection seams could be replaced by
-    configuring the harness before `create` rather than mutating a live
-    projection. (The frozen configuration has been split out into
-    `ProjectionConfig`; only the seams remain.)
-  - Eight files in `projection/` define no type of their own; they partition one
-    type's method list rather than splitting a responsibility.
   - The **native engine driving** is still coordinator methods, and on measuring
     it, moving it does not look like a win. `apply_command` touches five
     collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four

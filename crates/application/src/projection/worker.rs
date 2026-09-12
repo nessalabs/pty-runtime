@@ -156,6 +156,19 @@ impl ProjectionCoordinator {
             None => WorkSchedule::Dormant,
         }
     }
+    /// Seal the continuation stream once every admitted mutation has been
+    /// applied and nothing can still extend it.
+    ///
+    /// A worker step, not an API call: the reader says it has drained with
+    /// `notify_output_drained`, and this is where that claim becomes an ended
+    /// stream — only after the engine is idle and the queue has settled.
+    fn seal_journal_if_drained(&self, workspace: &NativeWorkspace) {
+        let engine_idle = workspace.resize.is_none() && workspace.reply.is_none();
+        if let Some(drain) = self.queue.settled_drain(engine_idle) {
+            self.journal.end(Some(drain), None);
+        }
+    }
+
     pub(super) fn fail(&self, error: ProjectionError) {
         // Preserve every parser byte under its staging lease, but failed projection
         // cannot leave already-admitted observation/control futures hanging.

@@ -7,7 +7,7 @@ the open end.
 | | |
 | --- | --- |
 | [`release-blockers.md`](release-blockers.md) | Must close before calling a release ready. Long-running; needs decisions about hardware and duration. |
-| [`code-cleanups.md`](code-cleanups.md) | Small, self-contained, safe to pick up cold. |
+| [`code-cleanups.md`](code-cleanups.md) | Small, self-contained, safe to pick up cold. Currently empty. |
 | [`declined.md`](declined.md) | Considered, measured, and rejected. **Read before starting anything that looks like these** — the measurement is recorded so the work is not redone. |
 
 ## Two conventions worth keeping
