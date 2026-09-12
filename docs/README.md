@@ -8,6 +8,7 @@
 | [features/](features/README.md) | Product behavior by area |
 | [adr/](adr/README.md) | Binding design decisions |
 | [verification.md](verification.md) | What we checked, in plain English |
+| [todo/](todo/README.md) | What is not done, and what was measured and declined |
 | [examples/](examples/) | Interactive shell and SDK sketch |
 | [experiments/](experiments/) | Early measurements that informed ADRs |
 

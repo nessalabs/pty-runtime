@@ -272,10 +272,22 @@ What changed:
   (`commit_park`'s atomic emptiness check, `admit_output`'s rejection precedence)
   are now stated in one place.
 
-  Still worth doing, and not yet done: the blocking-I/O lifecycle
-  (`submit_io`/`start_*`/`finish_io`) and the native engine driving
-  (`apply_command`/`native_call`/`poll_inflight_operations`) are still coordinator
-  methods rather than types that own their state.
+  Partly addressed, and the distinction matters. The provider-facing **job
+  bodies** and the submission primitive were extracted: `read_job`,
+  `commit_job`, `delete_job` and `submit` are free functions in `blocking.rs`
+  over injected ports, with ten tests that need neither a coordinator nor a
+  workspace.
+
+  The **orchestration lifecycle around them was not**. `start_read`,
+  `start_park`, `start_delete` and `finish_io` remain `ProjectionCoordinator`
+  methods in `io.rs` and `completion.rs`, and they are where the coupling
+  actually lives — `finish_io` alone spans five collaborators and ten workspace
+  fields. Calling the lifecycle extracted would erase an unresolved
+  coordinator-responsibility issue, so it stays open; see
+  [`todo/code-cleanups.md`](todo/code-cleanups.md).
+
+  The native engine driving also remains, and was measured and declined rather
+  than deferred — see the P3 list below.
 
 - Still open after the three reviews, all P3:
   - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
@@ -304,6 +316,13 @@ What changed:
     declined rather than outstanding; it would need a different idea, not more
     of the same one.
 
+- **100% line/function/region coverage** is a stated readiness target in
+  `coding_standards.md` and is **not tracked here**, which is itself a gap in
+  this record. No coverage run has been made against current source; the
+  command is `python3 scripts/coverage.py --output work/coverage/<run-name>`.
+  Two known permanent holes are recorded above (`collect`'s empty-mailbox
+  fallback, `commit_park`'s `engine_idle`), so the target cannot be met as
+  stated without either exercising or removing them.
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)
@@ -314,6 +333,7 @@ What changed:
 
 | Want | Go here |
 | --- | --- |
+| What is still to do | [`todo/`](todo/README.md) |
 | How to embed | [`usage.md`](usage.md) |
 | Behavior by area | [`features/`](features/) |
 | Why we chose this | [`adr/`](adr/) |
