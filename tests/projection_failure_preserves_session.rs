@@ -73,8 +73,13 @@ fn until(what: &str, mut condition: impl FnMut() -> bool) {
     }
 }
 
-/// Read until `marker` appears, returning everything seen.
-fn read_until(attachment: &mut Attachment, marker: &[u8]) -> Vec<u8> {
+/// Read until `marker` appears.
+///
+/// Completion before the marker is a failure, not an exit: the point of every
+/// call here is that the child echoed something back, so a session that ends
+/// first means the echo never arrived. Returning normally on `Complete` would
+/// let the post-failure assertions pass without observing any echo at all.
+fn read_until(attachment: &mut Attachment, marker: &[u8]) {
     let deadline = Instant::now() + Duration::from_secs(10);
     let mut seen = Vec::new();
     while !seen.windows(marker.len()).any(|w| w == marker) {
@@ -86,11 +91,17 @@ fn read_until(attachment: &mut Attachment, marker: &[u8]) -> Vec<u8> {
         );
         match block_on(attachment.read_next()).unwrap() {
             OutputEvent::Replay(ReplayPage::Bytes { bytes, .. }) => seen.extend_from_slice(&bytes),
-            OutputEvent::Replay(_) => {}
-            OutputEvent::Complete(_) => break,
+            OutputEvent::Replay(page) => panic!(
+                "unexpected replay gap while waiting for {:?}: {page:?}",
+                String::from_utf8_lossy(marker),
+            ),
+            OutputEvent::Complete(completion) => panic!(
+                "session completed before echoing {:?}; saw {:?} ({completion:?})",
+                String::from_utf8_lossy(marker),
+                String::from_utf8_lossy(&seen),
+            ),
         }
     }
-    seen
 }
 
 #[test]
@@ -198,9 +209,18 @@ fn an_unrestorable_checkpoint_leaves_a_real_child_fully_usable() {
     // Cancellation and exit supervision remain usable.
     session.cancel().expect("cancellation stays usable");
     let completion = block_on(session.wait().unwrap()).unwrap();
+    // An actual reaped exit, not a supervision failure. The domain defines
+    // `exit` as the status collected from the child and `supervision_error` as
+    // supervision failing *without* one, so accepting either would let this pass
+    // on a session whose child was never confirmed reaped.
     assert!(
-        completion.status.exit.is_some() && completion.status.supervision_error.is_none(),
-        "the child was actually reaped, not abandoned: {:?}",
+        completion.status.exit.is_some(),
+        "cancellation must reap the child and record its actual exit: {:?}",
+        completion.status,
+    );
+    assert!(
+        completion.status.supervision_error.is_none(),
+        "supervision must not have failed: {:?}",
         completion.status,
     );
     owner.shutdown();
