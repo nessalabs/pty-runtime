@@ -199,7 +199,7 @@ fn an_unrestorable_checkpoint_leaves_a_real_child_fully_usable() {
     session.cancel().expect("cancellation stays usable");
     let completion = block_on(session.wait().unwrap()).unwrap();
     assert!(
-        completion.status.exit.is_some() || completion.status.supervision_error.is_some(),
+        completion.status.exit.is_some() && completion.status.supervision_error.is_none(),
         "the child was actually reaped, not abandoned: {:?}",
         completion.status,
     );
