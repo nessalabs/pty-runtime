@@ -95,6 +95,43 @@ impl Default for ProcessLimits {
     }
 }
 impl ProcessLimits {
+    /// Deadline the guardian uses for its own escalation, strictly later than
+    /// [`Self::terminate_grace`] wherever there is room for it to be.
+    ///
+    /// Cancellation has two independent triggers for the same kill: the owner's
+    /// timer, which asks the guardian to escalate, and the guardian's own timer,
+    /// which escalates whether or not the owner is still alive. The second is the
+    /// reason the guardian exists — an owner that has died or wedged cannot ask
+    /// for anything — so both must stay.
+    ///
+    /// They must not share a deadline. Firing together makes the backstop
+    /// indistinguishable from the primary: no test can attribute a kill to
+    /// either, so either trigger can be deleted with every test still green.
+    /// Separating them gives the owner first refusal and leaves the guardian as
+    /// what it is supposed to be, which is a backstop.
+    ///
+    /// The margin is half the grace, floored at 250 ms so a short grace still
+    /// clears scheduling jitter between two processes, and capped at 5 s so a
+    /// long grace does not push the backstop hours past it. At the extreme the
+    /// two converge: a grace within the margin of the 24-hour ceiling clamps to
+    /// the ceiling and the staging is lost, which is accepted because an owner
+    /// with a day to act has not been starved of one.
+    ///
+    /// **What a caller sees.** [`Self::terminate_grace`] is a minimum — ADR 0004
+    /// asks to "escalate once *after* the configured grace period" — so waiting
+    /// longer keeps the contract and escalating earlier would break it. In the
+    /// normal case the owner escalates at exactly `terminate_grace` and this
+    /// value is never reached. It is reached only when the owner relayed the
+    /// terminate and then stopped asking, and that is the case where the kill
+    /// lands here instead: up to 5 s later than the configured grace, never more.
+    pub fn guardian_grace(&self) -> Duration {
+        const CEILING: Duration = Duration::from_secs(86400);
+        const FLOOR: Duration = Duration::from_millis(250);
+        const CAP: Duration = Duration::from_secs(5);
+        let margin = (self.terminate_grace / 2).clamp(FLOOR, CAP);
+        self.terminate_grace.saturating_add(margin).min(CEILING)
+    }
+
     /// Reject zero/inconsistent budgets before starting workers or children.
     pub fn validate(&self) -> Result<(), ProcessError> {
         if self.input_slots == 0

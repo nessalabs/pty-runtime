@@ -5,6 +5,21 @@ use crate::{
     workload::Workload,
 };
 use std::time::{Duration, Instant};
+/// Whether the guardian's own escalation deadline has passed.
+///
+/// This is the backstop trigger, and it is deliberately independent of the
+/// owner: an owner that has died or wedged never asks for an escalation, and
+/// something still has to end the workload. The owner has its own, shorter
+/// deadline (`ProcessLimits::guardian_grace` staggers the two), so in the normal
+/// case it asks first and this never fires.
+///
+/// A free function rather than a method so it can be tested without a live
+/// `Workload`: the decision is pure, and it is the whole of what distinguishes
+/// this trigger from the owner's.
+fn backstop_due(term_at: Option<Instant>, grace: Duration, now: Instant) -> bool {
+    term_at.is_some_and(|start| now.duration_since(start) >= grace)
+}
+
 pub struct Cancellation {
     sid: i32,
     guardian: i32,
@@ -69,10 +84,7 @@ impl Cancellation {
         }
         self.anchors
             .retain(|anchor| anchor.state != State::Finished);
-        if self
-            .term_at
-            .is_some_and(|start| now.duration_since(start) >= self.grace)
-        {
+        if backstop_due(self.term_at, self.grace, now) {
             self.request(Kind::Kill);
         }
         if self.requested != self.applied {
@@ -182,5 +194,42 @@ impl Cancellation {
                     .as_millis()
                     .min(i32::MAX as u128) as i32
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::backstop_due;
+    use std::time::{Duration, Instant};
+
+    /// The guardian escalates on its own deadline, having been asked for nothing.
+    ///
+    /// Until the two deadlines were staggered this trigger fired at the same
+    /// instant as the owner's request, so deleting it left every test green.
+    #[test]
+    fn the_backstop_fires_on_its_own_deadline_and_not_before() {
+        let grace = Duration::from_millis(250);
+        let now = Instant::now();
+
+        assert!(
+            !backstop_due(None, grace, now),
+            "nothing to escalate before a terminate has been sent"
+        );
+        assert!(
+            !backstop_due(Some(now), grace, now),
+            "the deadline has not started to elapse"
+        );
+        assert!(
+            !backstop_due(Some(now - Duration::from_millis(249)), grace, now),
+            "one millisecond short must not escalate"
+        );
+        assert!(
+            backstop_due(Some(now - grace), grace, now),
+            "exactly at the deadline escalates"
+        );
+        assert!(
+            backstop_due(Some(now - Duration::from_secs(1)), grace, now),
+            "well past the deadline escalates"
+        );
     }
 }

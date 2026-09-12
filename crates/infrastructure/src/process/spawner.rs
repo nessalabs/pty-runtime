@@ -88,7 +88,9 @@ pub(super) fn run(
             request.size,
             &roots,
             &shared.image,
-            request.limits.terminate_grace,
+            // The guardian's own deadline, not the owner's: it escalates as a
+            // backstop for an owner that never asks, so it must wait longer.
+            request.limits.guardian_grace(),
         ) {
             Ok(child) => {
                 #[cfg(test)]

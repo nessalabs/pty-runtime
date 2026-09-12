@@ -78,3 +78,56 @@ fn deadline_and_allocation_extremes_are_rejected() {
     limits.read_chunk = 65537;
     assert_eq!(limits.validate(), Err(ProcessError::Capacity));
 }
+
+/// The guardian's deadline must land after the owner's, or it is not a backstop.
+///
+/// Sharing a deadline is what made the two cancellation triggers untestable:
+/// they fired together, so no test could attribute a kill to either and either
+/// one could be deleted with the suite still green.
+#[test]
+fn the_guardian_deadline_is_strictly_later_than_the_owners() {
+    for grace in [
+        Duration::from_millis(1),
+        Duration::from_millis(40),
+        Duration::from_millis(250),
+        Duration::from_secs(1),
+        Duration::from_secs(60),
+        Duration::from_secs(3600),
+    ] {
+        let limits = ProcessLimits {
+            terminate_grace: grace,
+            ..ProcessLimits::default()
+        };
+        assert!(
+            limits.guardian_grace() > grace,
+            "guardian must wait longer than the owner for {grace:?}"
+        );
+        assert!(
+            limits.guardian_grace() <= Duration::from_secs(86400),
+            "guardian rejects anything past its own 24-hour ceiling"
+        );
+        assert!(
+            limits.guardian_grace() <= grace + Duration::from_secs(5),
+            "a long grace must not push the backstop hours past it"
+        );
+    }
+}
+
+/// A grace at the ceiling cannot be extended, so the two converge there rather
+/// than producing a deadline the guardian would refuse to start with.
+#[test]
+fn a_grace_at_the_ceiling_clamps_instead_of_overflowing() {
+    let limits = ProcessLimits {
+        terminate_grace: Duration::from_secs(86400),
+        ..ProcessLimits::default()
+    };
+    assert_eq!(limits.guardian_grace(), Duration::from_secs(86400));
+
+    // `validate` rejects anything past the ceiling, so the clamp is only ever
+    // reached by a grace that is itself at it.
+    let beyond = ProcessLimits {
+        terminate_grace: Duration::from_secs(86401),
+        ..ProcessLimits::default()
+    };
+    assert!(beyond.validate().is_err());
+}

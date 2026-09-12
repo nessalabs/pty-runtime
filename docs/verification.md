@@ -562,6 +562,53 @@ What changed:
   decision about measured scope before a number means anything; the numbers, the
   per-file gap and what is still unreachable are in
   [`todo/release-blockers.md`](todo/release-blockers.md).
+- **Cancellation has two triggers, and they are now staged.** The owner's timer
+  asks the guardian to escalate; the guardian's own grace timer escalates whether
+  or not the owner is alive to ask. Both previously used `terminate_grace`, so
+  they fired at the same instant — which made the backstop indistinguishable from
+  the primary, and either one could be deleted with the whole suite still green.
+  `ProcessLimits::guardian_grace` now gives the guardian `terminate_grace` plus a
+  margin, so the owner has first refusal and the backstop is a backstop.
+
+  What each layer is worth is now separable. The owner's trigger is pinned by
+  timing in `cancellation_bypasses_full_input_and_escalates_once`: removing it
+  makes the kill land at the backstop instead, and the test says so. The
+  guardian's own deadline decision is unit-tested in `helpers/guardian`
+  (`the_backstop_fires_on_its_own_deadline_and_not_before`), and unwiring it
+  fails the gate's `clippy -D warnings` as dead code.
+
+  **The backstop's wiring still has no behavioural test, and the obvious route to
+  one was tried and abandoned.** Freezing the owner with `SIGSTOP` after it asks
+  to cancel does not isolate the grace timer, for two reasons found by building
+  it:
+
+  - A stopped owner stops draining the guardian's status channel. That link trips
+    its fixed record bound — measured at about 1.15 s — and `guardian.rs`'s
+    `if !links.owner.healthy() { cleaning = true; }` calls `cancellation.stop()`,
+    which requests the kill outright. Link loss is checked before the grace timer
+    and does not wait for it.
+  - `Session::cancel` only raises a flag; the owner's supervisor thread relays it.
+    Freezing the owner is a race against that relay, and the two outcomes differ
+    completely. Lose the race and the guardian has been told to terminate, so the
+    link-loss path above ends the workload at about 1.15 s. Win it and the
+    guardian was never told anything: no `term_at`, so no grace timer, and a
+    healthy-but-silent link — **the workload was still alive after 10 s**.
+
+  The second is worth its own attention: a workload can outlive an owner frozen
+  in that window, because nothing in the guardian is waiting on anything. It is a
+  narrow case and not known to be reachable outside a debugger or a `SIGSTOP`,
+  but it is not covered.
+
+  The test itself was dropped rather than committed. It was flaky by construction
+  — it asserted whichever side of that race the machine happened to take — and
+  this suite already carries real-child timing flake without adding more.
+
+  The backstop is not dead code. It covers an owner that is alive and still
+  draining but late: one supervisor thread runs `control()` for every session
+  (`supervisor.rs`), so a loop iteration longer than the margin delays that
+  session's escalation while its links stay healthy, and only the guardian's
+  timer remains. That case is most likely at the 128-session scale ADR 0004 asks
+  for and which has never been run, so it is untested rather than impossible.
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)
