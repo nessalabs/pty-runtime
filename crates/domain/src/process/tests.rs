@@ -106,6 +106,10 @@ fn the_guardian_deadline_is_strictly_later_than_the_owners() {
             limits.guardian_grace() <= Duration::from_secs(86400),
             "guardian rejects anything past its own 24-hour ceiling"
         );
+        assert!(
+            limits.guardian_grace() <= grace + Duration::from_secs(5),
+            "a long grace must not push the backstop hours past it"
+        );
     }
 }
 

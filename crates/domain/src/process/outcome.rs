@@ -111,14 +111,24 @@ impl ProcessLimits {
     /// what it is supposed to be, which is a backstop.
     ///
     /// The margin is half the grace, floored at 250 ms so a short grace still
-    /// clears scheduling jitter between two processes. At the extreme the two
-    /// converge: a grace within the margin of the 24-hour ceiling clamps to the
-    /// ceiling and the staging is lost, which is accepted because an owner with
-    /// a day to act has not been starved of one.
+    /// clears scheduling jitter between two processes, and capped at 5 s so a
+    /// long grace does not push the backstop hours past it. At the extreme the
+    /// two converge: a grace within the margin of the 24-hour ceiling clamps to
+    /// the ceiling and the staging is lost, which is accepted because an owner
+    /// with a day to act has not been starved of one.
+    ///
+    /// **What a caller sees.** [`Self::terminate_grace`] is a minimum — ADR 0004
+    /// asks to "escalate once *after* the configured grace period" — so waiting
+    /// longer keeps the contract and escalating earlier would break it. In the
+    /// normal case the owner escalates at exactly `terminate_grace` and this
+    /// value is never reached. It is reached only when the owner relayed the
+    /// terminate and then stopped asking, and that is the case where the kill
+    /// lands here instead: up to 5 s later than the configured grace, never more.
     pub fn guardian_grace(&self) -> Duration {
         const CEILING: Duration = Duration::from_secs(86400);
         const FLOOR: Duration = Duration::from_millis(250);
-        let margin = (self.terminate_grace / 2).max(FLOOR);
+        const CAP: Duration = Duration::from_secs(5);
+        let margin = (self.terminate_grace / 2).clamp(FLOOR, CAP);
         self.terminate_grace.saturating_add(margin).min(CEILING)
     }
 

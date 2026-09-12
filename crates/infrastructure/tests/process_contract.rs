@@ -97,10 +97,14 @@ fn cancellation_bypasses_full_input_and_escalates_once() {
     let first = session.write(&bytes).unwrap();
     let second = session.write(&bytes).unwrap();
     assert!(matches!(session.write(&bytes), Err(ProcessError::Capacity)));
+    // Both escalation clocks start when the supervisor processes the *first*
+    // request, so the measurement has to start before it. Timing from after all
+    // hundred would understate the elapsed time and could let a guardian-driven
+    // kill look like the owner's.
+    let started = Instant::now();
     for _ in 0..100 {
         session.request_cancel().unwrap();
     }
-    let started = Instant::now();
     events.wait(|s| s.exit.is_some() && s.drain.is_some());
     let elapsed = started.elapsed();
     assert!(elapsed < Duration::from_secs(2));
