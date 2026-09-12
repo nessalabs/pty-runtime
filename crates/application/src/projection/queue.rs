@@ -288,23 +288,21 @@ impl AdmissionQueue {
         }
     }
 
-    /// Decide release atomically with the emptiness check it depends on.
+    /// Decide release atomically with the emptiness check it depends on, so no
+    /// command can slip in between the two.
     ///
-    /// `engine_idle` reports the caller's exclusively-held native state; the
-    /// queue is checked here so no command can slip in between the two.
-    ///
-    /// In the worker as it stands `engine_idle` is always true, and it is kept
-    /// as defence rather than as a live condition: `serve` only reaches
-    /// `start_park` after `poll_inflight_operations` has returned `None`, which
-    /// requires both the reply and the resize slot to be clear, and nothing can
-    /// set either between `start_park` and the `finish_io` that lands the
-    /// commit. Probing the whole suite with an assertion here never fired. A
-    /// future path that starts a commit without first draining in-flight native
-    /// work would make it live, which is why it is a parameter and not an
-    /// assumption.
-    pub fn commit_park(&self, attempt: ParkAttempt, engine_idle: bool) -> bool {
+    /// Releasing also requires the caller's exclusively-held native state to be
+    /// idle. That is not checked here, because the worker cannot reach a commit
+    /// while it is not: `serve` only reaches `start_park` after
+    /// `poll_inflight_operations` has returned `None`, which needs both the
+    /// reply and the resize slot clear, and only the worker — holding the
+    /// workspace lock — can set either. This used to be an `engine_idle`
+    /// parameter, always passed `true`; an unreachable condition is not defence,
+    /// because nothing can test it. `the_worker_never_parks_while_native_work_is
+    /// _in_flight` checks the ordering it was standing in for.
+    pub fn commit_park(&self, attempt: ParkAttempt) -> bool {
         let mut state = self.lock();
-        let quiet = engine_idle && state.queue.is_empty();
+        let quiet = state.queue.is_empty();
         state.policy.commit_park(attempt, quiet)
     }
 

@@ -39,10 +39,10 @@ impl IScheduledWork for ProjectionCoordinator {
         // Residency as observed *before* draining in-flight OS work.
         let residency = self.status().residency;
         if matches!(residency, Residency::Closing | Residency::Closed) {
-            return self.cleanup(&mut workspace);
+            return self.cleanup(&mut workspace, &services);
         }
         if residency == Residency::Failed {
-            return self.work_while_failed(&mut workspace);
+            return self.work_while_failed(&mut workspace, &services);
         }
         // Polling can itself fail the projection without returning a schedule,
         // so failure is re-read against the state polling leaves behind. The
@@ -52,7 +52,7 @@ impl IScheduledWork for ProjectionCoordinator {
             return schedule;
         }
         if self.status().failure.is_some() {
-            return self.work_while_failed(&mut workspace);
+            return self.work_while_failed(&mut workspace, &services);
         }
         self.seal_journal_if_drained(&workspace);
         match Phase::of(residency, &workspace) {
@@ -78,7 +78,7 @@ impl ProjectionCoordinator {
     /// transfer can be served straight from the parked source without first
     /// restoring a native owner.
     fn read_back_source(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
-        if workspace.io.is_some() {
+        if workspace.io.busy() {
             return WorkSchedule::Dormant;
         }
         let Some(transfer) = self.queue.take_checkpoint_if_any_work() else {
@@ -131,8 +131,8 @@ impl ProjectionCoordinator {
         workspace: &mut NativeWorkspace,
         services: &super::ProjectionServices,
     ) -> WorkSchedule {
-        let maintenance = if workspace.io.is_none() && workspace.reaper.holds_sources() {
-            Some(self.start_delete(workspace))
+        let maintenance = if !workspace.io.busy() && workspace.reaper.holds_sources() {
+            Some(self.start_delete(workspace, services))
         } else {
             None
         };
@@ -143,11 +143,11 @@ impl ProjectionCoordinator {
         if let Some(schedule) = maintenance {
             return schedule;
         }
-        if workspace.io.is_some() {
+        if workspace.io.busy() {
             return WorkSchedule::Dormant;
         }
         if workspace.reaper.holds_sources() {
-            return self.start_delete(workspace);
+            return self.start_delete(workspace, services);
         }
         let delay = self.queue.park_delay(services.clock.now());
         match delay {
@@ -156,6 +156,19 @@ impl ProjectionCoordinator {
             None => WorkSchedule::Dormant,
         }
     }
+    /// Seal the continuation stream once every admitted mutation has been
+    /// applied and nothing can still extend it.
+    ///
+    /// A worker step, not an API call: the reader says it has drained with
+    /// `notify_output_drained`, and this is where that claim becomes an ended
+    /// stream — only after the engine is idle and the queue has settled.
+    fn seal_journal_if_drained(&self, workspace: &NativeWorkspace) {
+        let engine_idle = workspace.resize.is_none() && workspace.reply.is_none();
+        if let Some(drain) = self.queue.settled_drain(engine_idle) {
+            self.journal.end(Some(drain), None);
+        }
+    }
+
     pub(super) fn fail(&self, error: ProjectionError) {
         // Preserve every parser byte under its staging lease, but failed projection
         // cannot leave already-admitted observation/control futures hanging.
@@ -168,13 +181,40 @@ impl ProjectionCoordinator {
             services.capacity.notify();
         }
     }
-    fn work_while_failed(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
-        if workspace.io.is_none() && workspace.reaper.holds_sources() {
-            return self.start_delete(workspace);
+    fn work_while_failed(
+        &self,
+        workspace: &mut NativeWorkspace,
+        services: &super::ProjectionServices,
+    ) -> WorkSchedule {
+        if !workspace.io.busy() && workspace.reaper.holds_sources() {
+            return self.start_delete(workspace, services);
         }
         WorkSchedule::Dormant
     }
-    fn cleanup(&self, workspace: &mut NativeWorkspace) -> WorkSchedule {
+
+    /// Hand the reaper the ports it needs to submit its next deletion.
+    ///
+    /// Everything about the deletion itself — which source, what a rejected
+    /// submission costs it, what the completion will be — belongs to
+    /// [`super::reaper::SourceReaper`]. This only resolves the injected ports,
+    /// which is the coordinator's business and nothing else's.
+    fn start_delete(
+        &self,
+        workspace: &mut NativeWorkspace,
+        services: &super::ProjectionServices,
+    ) -> WorkSchedule {
+        workspace.reaper.start_delete(
+            &mut workspace.io,
+            services.store.clone(),
+            services.blocking.as_ref(),
+            self.wiring.handle(),
+        )
+    }
+    fn cleanup(
+        &self,
+        workspace: &mut NativeWorkspace,
+        services: &super::ProjectionServices,
+    ) -> WorkSchedule {
         workspace.terminal = None;
         workspace.resident = None;
         workspace.restore_memory = None;
@@ -182,7 +222,7 @@ impl ProjectionCoordinator {
         if let Some(schedule) = self.closing_resize(workspace) {
             return schedule;
         }
-        if workspace.io.is_some() {
+        if workspace.io.busy() {
             return WorkSchedule::Dormant;
         }
         if let Some(source) = workspace.source.take() {
@@ -200,7 +240,7 @@ impl ProjectionCoordinator {
                     .shared
                     .absorb_unreclaimed(workspace.reaper.surrender());
             } else {
-                return self.start_delete(workspace);
+                return self.start_delete(workspace, services);
             }
         }
         let (waiters, failed) = self.queue.finish_close(failed);

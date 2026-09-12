@@ -161,7 +161,8 @@ What changed:
   result were parallel enums that had to agree by convention, and `finish_io`
   carried a defensive "wrong result kind" arm in every branch. They are now one
   `PendingIo` carrying a `Mailbox<T>` per variant, and all four arms are gone —
-  not merely unreachable.
+  not merely unreachable. Both now live in `inflight.rs` beside the slot they
+  fill.
 - `worker::run` went from ~100 lines and twelve early returns to 31, with the
   phases named (`read_back_source`, `restore_step`, `serve`). Its two `status()`
   reads were kept: the second one exists to catch a failure that
@@ -278,51 +279,70 @@ What changed:
   over injected ports, with ten tests that need neither a coordinator nor a
   workspace.
 
-  The **orchestration lifecycle around them was not**. `start_read`,
-  `start_park`, `start_delete` and `finish_io` remain `ProjectionCoordinator`
-  methods in `io.rs` and `completion.rs`, and they are where the coupling
+  The **orchestration lifecycle around them** then came out in two pieces and
+  stopped. The in-flight slot and the submission are `InFlight` in
+  `inflight.rs`, which makes submitting and recording one act — a job cannot be
+  running without the slot knowing. The deletion lifecycle is
+  `SourceReaper::start_delete` / `finish_delete`, driven without a coordinator in
+  `tests/reaper.rs`; those tests pin the distinction between a provider that
+  refused (spends an attempt) and a full pool that never asked it (spends none).
+
+  `start_read`, `start_park` and `finish_io` remain `ProjectionCoordinator`
+  methods in `io.rs`, and they are where the coupling
   actually lives — `finish_io` alone spans five collaborators and ten workspace
-  fields. Calling the lifecycle extracted would erase an unresolved
-  coordinator-responsibility issue, so it stays open; see
-  [`todo/code-cleanups.md`](todo/code-cleanups.md).
+  fields, unchanged by the extractions above, because what came out came out
+  precisely by touching nothing. That was measured and declined rather than
+  deferred; see [`todo/declined.md`](todo/declined.md).
 
   The native engine driving also remains, and was measured and declined rather
   than deferred — see the P3 list below.
 
-- Still open after the three reviews, all P3:
-  - `commit_park`'s `engine_idle` argument is **unreachable-false**, not merely
-    untested. `serve` only reaches `start_park` after
-    `poll_inflight_operations` has returned `None`, which requires both the reply
-    and resize slots to be clear, and nothing can set either between
-    `start_park` and the `finish_io` that lands the commit. Probing the whole
-    suite with an assertion at that call site never fired. It is kept as defence
-    against a future path that starts a commit without draining in-flight native
-    work first; that reasoning is now recorded at the parameter.
-  - `collect`'s empty-mailbox fallback is now unreachable, so it is a permanent
-    region-coverage hole.
-  - `Wiring`'s two `#[cfg(test)]` injection seams could be replaced by
-    configuring the harness before `create` rather than mutating a live
-    projection. (The frozen configuration has been split out into
-    `ProjectionConfig`; only the seams remain.)
-  - Eight files in `projection/` define no type of their own; they partition one
-    type's method list rather than splitting a responsibility.
-  - The **native engine driving** is still coordinator methods, and on measuring
-    it, moving it does not look like a win. `apply_command` touches five
-    collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four
-    workspace fields; `poll_inflight_operations` touches three and four. Passing
-    that as a context object to an `impl NativeWorkspace` renames `self` rather
-    than splitting a responsibility. Contrast the blocking jobs, which touched
-    **zero** collaborators and so came out cleanly. Recorded as considered and
-    declined rather than outstanding; it would need a different idea, not more
-    of the same one.
+  `Wiring`'s two `#[cfg(test)]` injection seams are gone, closed one PR earlier.
+  A fault is wired in before `create` through `Harness::with_services`, and
+  scheduler loss through the `IWorkScheduler` double, so no production type
+  carries a hook for swapping a collaborator on a live projection. One seam
+  remains and is not on a production type: `wiring::hold_leaf` holds its own
+  mutex through the real `leaf` helper, because the lock-order test needs a
+  closure running while a leaf is held and no production path does that.
+
+  The file layout that review complained about is settled — the "eight files
+  partition a method list" finding is closed, not merely reduced.
+  `stream_end.rs` held two unrelated methods and is gone: the reader-facing `notify_output_drained`
+  sits with the rest of admission, and the worker step that acts on it sits with
+  the worker. `completion.rs` merged into `io.rs`, because the two held the start
+  and finish halves of one lifecycle and every `PendingIo` variant built in one
+  was destructured in the other. `admission.rs` and `teardown.rs` still own no
+  type, and were measured and left: every piece of state they touch already
+  belongs to one, so a type there would hold a back-reference and nothing else.
+  See [`todo/declined.md`](todo/declined.md).
+
+- Left from the three reviews, one item, P3 and not open: the **native engine
+  driving** is still coordinator methods, and on measuring it, moving it does
+  not look like a win. `apply_command` touches five
+  collaborators (`queue`, `journal`, `quotas`, `wiring`, `status`) and four
+  workspace fields; `poll_inflight_operations` touches three and four. Passing
+  that as a context object to an `impl NativeWorkspace` renames `self` rather
+  than splitting a responsibility. Contrast the blocking jobs, which touched
+  **zero** collaborators and so came out cleanly. Recorded as considered and
+  declined rather than outstanding; it would need a different idea, not more
+  of the same one.
 
 - **100% line/function/region coverage** is a stated readiness target in
-  `coding_standards.md` and is **not tracked here**, which is itself a gap in
-  this record. No coverage run has been made against current source; the
-  command is `python3 scripts/coverage.py --output work/coverage/<run-name>`.
-  Two known permanent holes are recorded above (`collect`'s empty-mailbox
-  fallback, `commit_park`'s `engine_idle`), so the target cannot be met as
-  stated without either exercising or removing them.
+  `coding_standards.md`. A run now exists: 93.13% lines, 91.75% functions,
+  91.13% regions across the workspace, and 12.50% lines for the separately
+  instrumented guardian helper. The two permanent holes this record used to
+  name are gone — `collect` no longer exists, and `commit_park`'s `engine_idle`
+  parameter was removed in favour of a test of the ordering it stood for.
+
+  That did not move the total, because they were never the obstacle. The
+  largest single gap, `process/image_materialize.rs`, is **unmeasured rather
+  than untested**: every never-executed function in it is the fork child, which
+  exits via `_exit` and never flushes its counters, while the parent half of the
+  same file records 39 to 61 hits. The guardian helper is the same thing one
+  level up. Branch coverage reports 0/0, which is not a pass. The target needs a
+  decision about measured scope before a number means anything; the numbers, the
+  per-file gap and what is still unreachable are in
+  [`todo/release-blockers.md`](todo/release-blockers.md).
 - File size is now a **soft** gate: `scripts/gate.py` reports files over 350
   nonblank lines and continues, rather than failing. Its inventory now includes
   `client/`, which had been invisible to it — `client/server/src/wire.rs` (467)

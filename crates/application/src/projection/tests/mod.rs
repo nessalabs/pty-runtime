@@ -2,6 +2,7 @@ mod blocking_jobs;
 mod cleanup;
 mod parking;
 mod pressure;
+mod reaper;
 mod support;
 mod terminal;
 
