@@ -35,7 +35,7 @@ impl Phase {
 /// indefinitely against its own observers, cancellation or close.
 const OUTPUT_BATCH: usize = 32;
 
-/// How many queued output bytes one worker run may feed beyond its first chunk.
+/// How many queued output bytes one worker run may feed in total.
 ///
 /// A chunk count alone does not bound the work: `feed_bytes` validates up to
 /// 1 MiB, so thirty-two chunks is up to 32 MiB parsed synchronously while
@@ -43,11 +43,15 @@ const OUTPUT_BATCH: usize = 32;
 /// would monopolise it and delay another session's resize, view or close past
 /// ADR 0002's responsiveness targets.
 ///
-/// At the 4 KiB default `feed_bytes` this is 64 chunks, so the chunk bound
+/// The run's first chunk counts against it. Excluding it would let a 1 MiB
+/// `feed_bytes` session feed that chunk and then batch another, doing 2 MiB in
+/// one run — twice the unbatched worst case, from a bound meant to cap it.
+///
+/// At the 4 KiB default `feed_bytes` this is 64 chunks, so the 32-chunk bound
 /// still binds and the measured behaviour is unchanged; at the 1 MiB maximum
-/// the first batched chunk exhausts it and the run returns, which is what the
-/// unbatched code did. The bound is checked before taking a chunk, so one
-/// chunk may overshoot it.
+/// the first chunk alone exhausts it and the run returns without batching,
+/// exactly as the unbatched code behaved. The bound is checked before taking a
+/// chunk, so the chunk that crosses it may overshoot.
 const OUTPUT_BATCH_BYTES: usize = 256 * 1024;
 
 impl IScheduledWork for ProjectionCoordinator {
@@ -159,6 +163,12 @@ impl ProjectionCoordinator {
         };
         let command = self.queue.take_next();
         if let Some(command) = command {
+            // Counted before the move, so the run's own chunk is charged to the
+            // byte bound along with everything the batch adds.
+            let first_bytes = match &command {
+                Command::Output(bytes, _) => bytes.len(),
+                _ => 0,
+            };
             let mut schedule = self.apply_command(workspace, command);
             // Keep feeding queued output within this run rather than taking one
             // chunk per wakeup.
@@ -186,7 +196,7 @@ impl ProjectionCoordinator {
             // check the loop would dequeue the very bytes failure just preserved
             // and drop them.
             let mut applied = 1;
-            let mut batched_bytes = 0usize;
+            let mut batched_bytes = first_bytes;
             while applied < OUTPUT_BATCH
                 && batched_bytes < OUTPUT_BATCH_BYTES
                 && matches!(schedule, WorkSchedule::After(delay) if delay.is_zero())

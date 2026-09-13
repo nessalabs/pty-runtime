@@ -240,11 +240,42 @@ fn a_large_chunk_batch_is_bounded_by_bytes_not_chunk_count() {
     h.step();
     assert_eq!(
         h.owner.queue.queued(),
-        5,
-        "256 KiB of batched output plus the run's own first chunk is five \
-         chunks, well inside the 32-chunk bound, so bytes are what stopped it"
+        6,
+        "256 KiB total, the run's own first chunk included, is four chunks - \
+         well inside the 32-chunk bound, so bytes are what stopped it"
     );
-    assert_eq!(h.owner.status().processed.offset, 5 * 64 * 1024);
+    assert_eq!(h.owner.status().processed.offset, 4 * 64 * 1024);
+    h.close();
+}
+
+/// At the maximum supported `feed_bytes`, one run feeds one chunk.
+///
+/// This is the case the byte bound exists for. A 1 MiB chunk exhausts the bound
+/// on its own, so the run must not batch a second and do 2 MiB of parsing while
+/// holding the workspace and a scheduler worker — which is twice what the
+/// unbatched code ever did in one run.
+#[test]
+fn a_maximum_sized_chunk_is_fed_alone() {
+    let mut options = ProjectionOptions::new(TerminalConfig {
+        feed_bytes: 1024 * 1024,
+        ..TerminalConfig::new(TerminalSize::new(80, 24).unwrap())
+    });
+    options.staging_bytes = 8 * 1024 * 1024;
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    let chunk = vec![b'a'; 1024 * 1024];
+    for _ in 0..2 {
+        assert_eq!(h.owner.stage_output(&chunk), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.queue.queued(),
+        1,
+        "the first chunk alone exhausts the byte bound, so the second must wait \
+         for its own run"
+    );
+    assert_eq!(h.owner.status().processed.offset, 1024 * 1024);
     h.close();
 }
 
