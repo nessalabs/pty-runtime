@@ -24,9 +24,10 @@ platforms; its latency criterion fails reproducibly on an idle host.**
 the fixture checks is byte and gap accounting against absolute offsets,
 processed offsets, and terminal-query counts. It does **not** compare the
 projected state against an uninterrupted native reference under load, and it
-does not exercise a fast and stalled observer on the *same* session. Split
-UTF-8 and VT sequences under load, terminal queries under load, and fairness are
-listed below as unrun. A projection or isolation defect in any of those could
+does not exercise a fast and stalled observer on the *same* session. Fairness is
+listed below as unrun. (Split UTF-8 and VT sequences and terminal queries *are*
+exercised — see the closeout list for what the payload emits and how replies are
+checked; what is missing there is the reference comparison, not the inputs.) A projection or isolation defect in any of those could
 pass every trial recorded here. Read the correctness result as "the ledger
 balances", not as "the projection is correct".
 
@@ -40,7 +41,7 @@ because it re-ran 5 of the 26 cases.
 | Trials completed | 115 of 130 | **130 of 130** |
 | Correctness failures | **0** | **0** |
 | Trials missing a latency target | 10 | **20** |
-| Harness failures | 15 | 0 |
+| Trials with no result, cause unrecorded | 15 | 0 |
 
 The second column is the evidence that matters, because it was measured on a
 dedicated machine doing nothing else and every miss on it repeats on all five
@@ -60,6 +61,15 @@ unpaced `capacity-projected` and `capacity-raw`; **128 independent active
 producers** and 128-session mixed populations; rate, chunk, observer and grid
 sweeps; 64 raw idle sessions; and raw/projected resource measurement at 1, 32
 and 128 sessions.
+
+**The resource cases ran; their measurements were not retained.** Those six
+trials kept only CPU deltas, the idle-CPU verdict and the closing cleanup
+census. The fixture's `budget`, `aggregate`, checkpoint and in-load
+`physical_resources` events are absent from both platform artifacts, so RSS and
+allocation peaks, thread and descriptor scaling, and the logical bounds at 1,
+32 and 128 sessions **cannot be audited from this record** — ADR 0004 asks for
+them and this experiment does not supply them. Listing the cases is not the
+same as having the numbers.
 
 Both hosts recorded the same source identity: `source_head e01c704`, clean tree
 (`diff_sha256` is the empty-input SHA-256), 311 files inventoried.
@@ -125,11 +135,12 @@ from one:
   and not transient load on that host.
 - **Every single-trial macOS miss is absent from Linux** — all three
   `CancelDispatch` rows and `rate-40MiB`. Each appeared once in five trials on a
-  loaded interactive desktop and never on the idle box, which is the signature
-  of noise rather than a defect. Calling it *laptop contention* specifically
-  goes further than this data supports: the two hosts differ in OS, CPU, core
-  count and compiler simultaneously, and no same-host loaded-versus-idle control
-  was run. What is established is that they did not reproduce, not why.
+  loaded interactive desktop and never on the idle box. **That is all this
+  establishes.** Calling them noise, contention, or macOS-specific behaviour all
+  go past the data equally: the hosts differ in OS, architecture, CPU, core
+  count, kernel and compiler simultaneously, and no same-host
+  loaded-versus-idle control was run. A one-off miss that does not reproduce on
+  a different platform is undiagnosed, not dismissed.
 
 ### The rows that matter most
 
