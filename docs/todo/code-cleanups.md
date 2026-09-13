@@ -80,10 +80,17 @@ so p50 = p95 = p99 = max. Conservative by design, but it means those rows are
 upper bounds and the tail is unresolved. `chunk-64`, `chunk-1` and `attached`
 sit well inside resolution and are unaffected.
 
-**Still to do:** record `ulimit -n` in the harness identity block and state the
-limit `128-active` needs in `scripts/release/LOAD.md`; re-run `128-active` at
-five repeats under a raised limit (only one trial exists); no macOS
-after-numbers for any of this.
+**`128-active` now has five-repeat evidence.** Re-run under `ulimit -n 65535`:
+passes 5/5, `ProjectedOutput` p99 **8.0-9.1 ms** against 20 ms, holding
+10.0 MiB/s, with zero histogram overflow so these are real percentiles. The
+earlier 3.5 ms figure came from one trial and is superseded.
+
+**The descriptor limit is now recorded** by both harnesses
+(branch `harness-descriptor-limit`, `77a46d3`), and `LOAD.md` states what the
+128-session cases need.
+
+**Still to do:** no macOS after-numbers for any of this, and 21 of 26 cases
+were not re-run.
 
 ## Fix the resource census process-exit race
 
