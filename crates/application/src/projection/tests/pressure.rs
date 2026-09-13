@@ -218,6 +218,44 @@ fn one_run_feeds_a_bounded_batch_of_queued_output() {
     h.close();
 }
 
+/// A failed projection ends the batch, and the output failure retained stays
+/// retained.
+///
+/// An oversized generated reply fails the projection and then falls through to
+/// an immediate schedule with no reply set, so nothing else in the loop
+/// condition stops it. `queue.fail` keeps staged output on purpose; a batch that
+/// kept running would dequeue exactly those bytes and drop them, because a
+/// failed policy cannot process them and nothing requeues them.
+#[test]
+fn a_failed_projection_stops_the_output_batch_and_keeps_queued_output() {
+    let h = Harness::standard();
+    let bound = options().terminal.reply_bytes;
+    h.probe.reply_size.store(bound + 1, Ordering::Release);
+    // The first chunk fails the projection; the three behind it must survive.
+    for _ in 0..4 {
+        assert_eq!(h.owner.stage_output(b"?"), OutputAcceptance::Accepted);
+    }
+    assert_eq!(h.owner.queue.queued(), 4);
+
+    h.step();
+    assert_eq!(
+        h.owner.status().failure,
+        Some(ProjectionError::Capacity),
+        "the oversized reply must fail the projection"
+    );
+    assert_eq!(
+        h.owner.status().processed.offset,
+        0,
+        "no chunk was processed, so no position may advance"
+    );
+    assert_eq!(
+        h.owner.queue.queued(),
+        3,
+        "the batch must stop at the failure, leaving the retained output queued"
+    );
+    h.close();
+}
+
 /// A generated reply ends the batch, because native work is then outstanding and
 /// `poll_inflight_operations` has to see it before more bytes are fed.
 #[test]
