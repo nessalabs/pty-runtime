@@ -16,9 +16,10 @@ def descriptor_limit():
     """Descriptor limit in force for this driver, which every fixture inherits.
 
     The 128-session cases need more than the common 1024 default and fail at
-    session spawn without it, before any measurement. Experiment 0005 recorded
-    128-active both passing and failing to start on the same host because this
-    was never captured.
+    session spawn without it, before any measurement. One host recorded
+    128-active both passing and failing to start because this was never
+    captured; that run is being written up separately and is not committed
+    here.
     """
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
     return dict(soft=soft, hard=hard,
