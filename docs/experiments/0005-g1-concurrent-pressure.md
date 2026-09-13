@@ -130,8 +130,10 @@ instrumentation in the load fixture. Applied as a working-tree diff, not a
 commit on `main`; `diff_sha256` in
 [`data/0005/linux-x86_64-batching.json`](data/0005/linux-x86_64-batching.json)
 identifies it. **Run:** 2026-09-13, same Linux box as above, load average 0.16.
-4 cases × 5 repeats, 60 s each after a 10 s warmup — same duration and repeat
-count as the numbers it is compared against.
+5 cases × 5 repeats, 60 s each after a 10 s warmup — same duration and repeat
+count as the numbers it is compared against. `capacity-projected` was run
+separately under `ulimit -n 65535`; the other four ran at the box default of
+1024.
 
 `ProjectedOutput` p99 against the 20 ms target:
 
@@ -141,10 +143,45 @@ count as the numbers it is compared against.
 | `chunk-1` | 5/5 pass | 60–82 ms | **5.5–6.0 ms** |
 | `attached` | 5/5 pass | no miss | 0.2–0.3 ms |
 | `128-active` | 5/5 **fail to start** | 24.5–28 ms | see below |
+| `capacity-projected` | 5/5 **still miss** | 468–520 ms | 255–331 ms, see below |
 
 `chunk-64` `ResizeDispatch` moved from 189–252 ms to 86–100 µs against its
 100 ms target. `chunk-1` is the worst surviving case; it is inside target, but
 it is the row to watch if the batch bound is ever revisited.
+
+### `capacity-projected` still misses, and its numbers are not percentiles
+
+The matrix's largest miss is unfixed. All five trials miss `ProjectedOutput`
+(255–331 ms against 20 ms) and `ResizeDispatch` (235–286 ms against 100 ms).
+Batching roughly halves the figure; it does not bring it near target. The case
+is deliberately unpaced (`rate=0`, saturation mode) and accepted 77–79 MiB/s.
+
+**The reported p99 for this case is the maximum, not a 99th percentile, before
+and after.** The latency histogram
+(`crates/application/src/diagnostics/histogram.rs`) has 1025 buckets of 100 µs,
+so it resolves to **102.4 ms**; anything above lands in the final bucket, and
+`percentile_upper_us` deliberately returns the recorded maximum for any rank
+falling there. In these trials **99.76–99.79 % of `ProjectedOutput` samples are
+in that overflow bucket**, so p50, p95, p99 and max are all the same number.
+The same is true of the 468–520 ms baseline above, which is far beyond the
+ceiling and can only have come from the overflow bucket.
+
+This is conservative by design, not a defect — it reports an upper bound rather
+than a wrong number. But it means two things must be said plainly. The
+before/after comparison for this case is **max-to-max**, not p99-to-p99. And the
+honest statement of the miss is: *at least 99.7 % of projected-output samples
+exceed 102.4 ms*, itself more than 5× the target, with the distribution above
+that unresolved. The `chunk-64`, `chunk-1` and `attached` figures are
+unaffected — they sit well inside the histogram's resolution.
+
+**Whether ADR 0004's overload escape applies is left open here.** The clause
+permits a latency miss where "an explicit overload outcome identifies the
+rejected operation". This case does produce exact replay accounting — 1.2 GiB
+of gap bytes against 5.2–5.4 GiB delivered, attributed per producer across all
+64 ledgers — which satisfies the separate criterion that "any observer replay
+loss has an exact cursor gap". A cursor gap identifies *evicted bytes*, not a
+*rejected operation*. Reading one as the other is a judgement for whoever signs
+the gate, and this experiment does not make it.
 
 ### `128-active` did not run, and that is a fact about the host
 
@@ -173,8 +210,8 @@ they are, on this evidence, not reproducible from the record alone. Recording
 
 ### What this follow-up does not establish
 
-- **4 of 26 cases.** `capacity-projected`, the largest miss in the matrix
-  (468–520 ms), was not re-run and is untouched by this measurement.
+- **5 of 26 cases.** The 21 not re-run include `128-mixed`, the rate and
+  observer sweeps, and every resource case.
 - **Linux only.** No macOS re-run; the macOS `chunk-64` misses (22–34 ms, 4/5)
   have no after-number.
 - **One sitting**, as with the original run. No cross-day repetition.
@@ -199,6 +236,11 @@ they are, on this evidence, not reproducible from the record alone. Recording
   pass. This is load evidence on two platforms, not a platform qualification.
 - **One run per host.** Five trials per case, but a single sitting; no
   cross-day repetition.
+- **Latency figures above 102.4 ms are maxima, not percentiles.** The histogram
+  resolves to 1025 × 100 µs and reports the recorded maximum for any percentile
+  landing in the overflow bucket. This affects every row in the miss table above
+  reading over 102.4 ms — both `capacity-projected` rows, and the Linux
+  `chunk-64` rows. See the follow-up for the measured overflow fractions.
 - **The descriptor limit in force was not recorded.** See the follow-up above:
   `128-active` cannot start on the same box at `ulimit -n 1024`, so this run
   had a higher limit that nothing in the data identifies.
@@ -210,7 +252,8 @@ they are, on this evidence, not reproducible from the record alone. Recording
    operation where the workload is genuinely beyond capacity. **Partly done:**
    chunk batching brings `chunk-64` to 0.1 ms, `chunk-1` to 5.5–6.0 ms and
    `128-active` to 3.5 ms on Linux, measured at five repeats for the first two
-   (see the follow-up above). `capacity-projected` is unaddressed, macOS has no
+   (see the follow-up above). **`capacity-projected` is not fixed** — it still
+   misses at 255–331 ms, roughly half its previous figure. macOS has no
    after-number, and the patch is not on `main`.
 2. Fix the macOS `lsof` census failure and complete the macOS matrix, including
    `dominant`.
