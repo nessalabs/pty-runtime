@@ -29,6 +29,13 @@ impl Phase {
         }
     }
 }
+/// How many queued output chunks one worker run may feed before returning.
+///
+/// Bounded so that a session with a deep queue cannot hold its workspace lock
+/// indefinitely against its own observers, cancellation or close. Thirty-two
+/// chunks is at most `32 * feed_bytes` in one run.
+const OUTPUT_BATCH: usize = 32;
+
 impl IScheduledWork for ProjectionCoordinator {
     fn run(&self) -> WorkSchedule {
         let Ok(services) = self.services() else {
@@ -138,7 +145,39 @@ impl ProjectionCoordinator {
         };
         let command = self.queue.take_next();
         if let Some(command) = command {
-            return self.apply_command(workspace, command);
+            let mut schedule = self.apply_command(workspace, command);
+            // Keep feeding queued output within this run rather than taking one
+            // chunk per wakeup.
+            //
+            // Everything around a chunk — the workspace lock, the in-flight poll,
+            // the phase decision, the scheduler round trip — is paid per chunk,
+            // not per byte. At 4 KiB that overhead disappears against the work;
+            // at 64 bytes it is paid sixty-four times as often for the same bytes
+            // and becomes the cost, which is what pushed `ProjectedOutput` p99 to
+            // 225-273 ms against a 20 ms target in Experiment 0005.
+            //
+            // Only output is batched, and only while nothing else wants the
+            // worker: a non-immediate schedule means the last chunk asked to be
+            // retried or stopped, and a reply or resize appearing means native
+            // work is outstanding that `poll_inflight_operations` has to see
+            // before more bytes are fed. Both end the batch, so this changes when
+            // the worker returns, never the order in which commands apply.
+            let mut applied = 1;
+            while applied < OUTPUT_BATCH
+                && matches!(schedule, WorkSchedule::After(delay) if delay.is_zero())
+                && workspace.reply.is_none()
+                && workspace.resize.is_none()
+            {
+                let Some(next) = self
+                    .queue
+                    .take_next_if(|command| matches!(command, Command::Output(..)))
+                else {
+                    break;
+                };
+                schedule = self.apply_command(workspace, next);
+                applied += 1;
+            }
+            return schedule;
         }
         if let Some(schedule) = maintenance {
             return schedule;

@@ -50,8 +50,17 @@ fn exercise(shared: bool) {
     assert!(poll(&mut first).is_pending());
     assert!(poll(&mut second).is_pending());
 
-    h.step(); // One earlier output releases a parser slot, not a control request.
-    assert_eq!(h.owner.status().processed.offset, 5);
+    // Draining output releases parser slots, not control requests. One run now
+    // feeds the queued output as a bounded batch rather than a single chunk, so
+    // both staged chunks apply here; what this asserts is which budget the drain
+    // returns capacity to, not how many chunks a run happens to take.
+    h.step();
+    assert_eq!(h.owner.status().processed.offset, 11);
+    assert_eq!(
+        h.budgets.resources().requests.used,
+        2,
+        "draining output must not release a control request"
+    );
     assert_eq!(h.owner.stage_output(b"after"), OutputAcceptance::Accepted);
     h.pump();
     let first_result = result(&mut first).unwrap();

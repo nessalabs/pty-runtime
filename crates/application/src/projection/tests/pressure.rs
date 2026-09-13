@@ -183,3 +183,62 @@ fn empty_output_chunk_is_accepted_without_waking_or_failing() {
     assert!(h.owner.status().failure.is_none());
     assert_eq!(h.owner.queue.queued(), 0);
 }
+
+/// One worker run feeds many queued chunks, bounded, and stops for native work.
+///
+/// Everything around a chunk — the workspace lock, the in-flight poll, the phase
+/// decision, the scheduler round trip — is paid per chunk rather than per byte.
+/// Taking one chunk per run made that overhead the dominant cost for small
+/// writes: Experiment 0005 measured `ProjectedOutput` p99 at 225-273 ms against
+/// a 20 ms target with 64-byte chunks, while 64 KiB chunks passed.
+///
+/// The bound matters as much as the batching. A session with a deep queue must
+/// not hold its workspace lock indefinitely against its own observers or a
+/// close, so a run stops after `OUTPUT_BATCH` chunks even with more queued.
+#[test]
+fn one_run_feeds_a_bounded_batch_of_queued_output() {
+    let mut options = options();
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    for _ in 0..40 {
+        assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    }
+    assert_eq!(h.owner.queue.queued(), 40);
+
+    h.step();
+    let after_one_run = h.owner.status().processed.offset;
+    assert_eq!(
+        after_one_run, 64,
+        "one run should feed exactly the 32-chunk bound, two bytes each"
+    );
+    assert_eq!(h.owner.queue.queued(), 8, "the rest must stay queued");
+
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 80);
+    h.close();
+}
+
+/// A generated reply ends the batch, because native work is then outstanding and
+/// `poll_inflight_operations` has to see it before more bytes are fed.
+#[test]
+fn a_generated_reply_stops_the_output_batch() {
+    let h = Harness::standard();
+    // The second chunk makes the engine produce a reply; chunks after it must
+    // not be fed in the same run.
+    assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    assert_eq!(h.owner.stage_output(b"?"), OutputAcceptance::Accepted);
+    assert_eq!(h.owner.stage_output(b"cd"), OutputAcceptance::Accepted);
+
+    h.step();
+    assert_eq!(
+        h.owner.status().processed.offset,
+        3,
+        "the batch must stop at the chunk that generated a reply"
+    );
+    assert!(h.owner.workspace.lock().unwrap().reply.is_some());
+    assert_eq!(h.owner.queue.queued(), 1);
+
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 5);
+    h.close();
+}
