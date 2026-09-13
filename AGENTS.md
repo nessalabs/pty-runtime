@@ -19,11 +19,17 @@ from a forgotten one. The rules behind it:
   seen this repository should understand what was broken and why it mattered
   before they meet a single identifier or acronym. Explain jargon at first use
   or drop it.
-- **Every claim carries a number.** "Faster", "more reliable" and "should fix"
-  are not claims, they are opinions. Give the before value, the after value,
-  the target being measured against, how many trials, and where the raw data
-  lives. State the trial count honestly - one trial is an observation, not
-  evidence, and must be labelled as such.
+- **Every claim carries evidence, of the kind that claim needs.** "Faster",
+  "more reliable" and "should fix" are not claims, they are opinions. The two
+  kinds are not interchangeable:
+  - *Correctness* is proved by a named test shown failing without the change and
+    passing with it. One deterministic run each way is complete evidence, and
+    repeating it proves nothing further. A test that still passes with the
+    change reverted is not evidence of anything.
+  - *Measurement* - latency, throughput, memory - needs the before value, the
+    after value, the target, the trial count, and where the raw data lives. One
+    trial is an observation, not a measurement, and must be labelled as such.
+    That rule is about variance, so it does not apply to deterministic tests.
 - **Say what the change does not fix.** The limitations section is required,
   not optional. Name the cases still failing, the platforms with no coverage,
   and anything assumed rather than measured.

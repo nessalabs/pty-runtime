@@ -16,10 +16,27 @@ say what behaves differently now. -->
 
 ## Evidence
 
-<!-- Numbers, not adjectives. Every performance or correctness claim needs a
-measurement behind it. Give before AND after, the target, how many trials,
-and where the data lives. A single trial is not evidence - say so if that is
-all you have. -->
+<!-- Numbers, not adjectives. The two kinds below are not interchangeable, and
+a change may need one, the other, or both. Keep the heading of whichever does
+not apply and say so. -->
+
+### Correctness
+
+<!-- For a defect fix or a behaviour change. Name the test and show it failing
+without the change and passing with it. One deterministic run each way is
+complete evidence; repeating it proves nothing further. If the test passes
+with the change reverted, it is not testing the change. -->
+
+| Test | Without the change | With the change |
+| --- | --- | --- |
+|  |  |  |
+
+### Performance
+
+<!-- For anything measured rather than decided: latency, throughput, memory.
+Give before AND after, the target being measured against, and how many trials.
+A single trial is an observation, not a measurement - label it as one if that
+is all you have. Say what varied between runs and what did not. -->
 
 | Measure | Before | After | Target | Trials |
 | --- | --- | --- | --- | --- |
