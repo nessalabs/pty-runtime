@@ -7,7 +7,7 @@
 | Branch | Commit | State |
 | --- | --- | --- |
 | `g1-load-evidence` | `24a6f60` | **Ready.** Experiment 0005 artifact + verification.md update. Gate not yet run on it since the split. |
-| `chunk-batching` | `56c013f` | **Incomplete.** The batching fix + 2 tests. See `docs/todo/code-cleanups.md` first item. |
+| `chunk-batching` | (see log) | **Measured.** Batching fix + 2 tests + path instrumentation. Four cases at five repeats run on `bx_pvnvgsk9` 2026-09-13: 15/20 pass, the five `128-active` failures are the host's `ulimit -n 1024`, not the patch. See `docs/todo/code-cleanups.md` first item. |
 
 ### The box
 
@@ -29,4 +29,7 @@ anything was known to be wrong.
 
 Running it found a real defect: `ProjectedOutput` p99 misses its 20 ms target
 because per-chunk scheduling overhead dominates at small chunk sizes. That is
-what `chunk-batching` fixes, and the fix is measured but not yet trustworthy.
+what `chunk-batching` fixes. The fix now has five-repeat full-duration evidence
+on three cases (`chunk-64` 0.1 ms every trial, `chunk-1` 5.5-6.0 ms, `attached`
+0.2-0.3 ms). The fourth case, `128-active`, needs `ulimit -n` raised on the host
+before it can run at all — 128 sessions do not fit in 1024 descriptors.

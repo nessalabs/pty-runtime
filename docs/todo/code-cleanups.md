@@ -2,79 +2,72 @@
 
 Small and self-contained. Each says what is wrong and what done looks like.
 
-## Explain the batching sequence failure before trusting the fix
+## Batching sequence failure: resolved, and it was the host
 
-**Branch:** `chunk-batching` (commit `56c013f`, not pushed) ·
-**Evidence:** [`../experiments/0005-g1-concurrent-pressure.md`](../experiments/0005-g1-concurrent-pressure.md)
+**Branch:** `chunk-batching` · **Run:** 2026-09-13, box `bx_pvnvgsk9`
+(Linux x86_64, 8 vCPU, load average 0.16), `/tmp/g1-batching-4case`.
 
-`serve()` now feeds up to 32 queued output chunks per worker run instead of one.
-On an idle Linux host this moved `chunk-64` `ProjectedOutput` p99 from
-225-273 ms to **0.1 ms** against a 20 ms target, and `ResizeDispatch` from
-189-252 ms to 0.071 ms, on a full 60-second trial at the same revision.
+`serve()` feeds up to 32 queued output chunks per worker run instead of one.
 
-**It is not finished.** Running four cases at five repeats in one invocation
-(`--case chunk-64 --case chunk-1 --case 128-active --case attached`) failed
-*every* trial with `Error: Os { code: 2, kind: NotFound }` from the fixture,
-exit 1. A single full-duration run of `chunk-64` alone passes cleanly with the
-same binary, and a smoke run passes. So it is not simply "the patch is broken",
-and it is not yet understood.
+**The four-case run now completes**, and the `NotFound` failure did not recur.
+Four cases at five repeats, full 60-second trials, instrumented binary,
+batching patch applied: **15 of 20 passed**, all five failures confined to
+`128-active`. `chunk-64`, `chunk-1` and `attached` passed 5/5.
 
-Do not repeat the mistake that was made while chasing this: a reverted build was
-compared against a *smoke* run and the difference read as proof the patch was at
-fault. Compare like for like — same case, same duration, same repeat count.
+`ProjectedOutput` p99, microseconds, against a 20 000 us target:
 
-**Both original suspects have now been graded against the code. Neither holds.**
+| Case | Trials | p99 | Before batching |
+| --- | --- | --- | --- |
+| `chunk-64` | 5/5 pass | 100 (every trial) | 225 000-273 000 |
+| `chunk-1` | 5/5 pass | 5500-6000 | not measured |
+| `attached` | 5/5 pass | 200-300 | not measured |
+| `128-active` | 5/5 fail | - | - |
 
-*Parking (second suspect) is refuted.* The load fixture sets
-`projection.park_after = Duration::from_secs(3600)`
-(`examples/release_load_support/population.rs`), and `begin_park` refuses unless
-`park_delay(now) == Some(Duration::ZERO)`, computed from
-`last_activity + park_after` (`crates/domain/src/projection/policy.rs`). No
-60-second trial can reach that, drained queue or not. Batching cannot have made
-parking eligible mid-run.
+So the 0.1 ms `chunk-64` figure now carries five-repeat full-duration weight,
+not one trial. `chunk-1` is the worst surviving case at 5.5-6.0 ms; still inside
+target, but it is the one to watch.
 
-*The census race (first suspect) is the wrong layer.* That race surfaces as a
-Python `ProcessLookupError`/`FileNotFoundError` recorded as `trial_failure`, and
-`load_support/census.py` already catches those on the batch path. The recorded
-symptom — `Error: Os { code: 2, kind: NotFound }`, exit 1 — is Rust's
-`Termination` printing an `io::Error` returned out of the fixture's `main`. It
-is still a real defect (see the next item); it is not this one.
+**Named cause of the `128-active` failure: the host descriptor limit.** Every
+trial died at the `runtime` checkpoint — inside `Population::new`, while
+spawning the 128 sessions, before any measurement — with `Error: Process(Io)`
+and exit 1. The box default is `ulimit -n 1024`. Re-running the same case, same
+binary, same duration under `ulimit -n 65535` passes, `ProjectedOutput` p99
+3500 us. This is host configuration, not a runtime defect, and it is unrelated
+to batching: it fails before a single byte is projected.
 
-**Not reproduced on macOS in smoke.** Four cases at one repeat, then at five
-repeats (20 trials), all passed. So "several cases in one invocation" is not by
-itself the trigger. Smoke clamps sessions to 4 and duration to 2 s, so this
-rules out the cheap explanation, not scale or duration.
+**Two things the earlier write-up got wrong**, recorded so the record is
+straight:
 
-**Current lead.** Every ENOENT-capable call in the owner is a path operation,
-and one path is used unlike all the others. `phase.rs` spawns the transient
-cancel probe as `population.spawn(config, config.sessions, true)` once per
-second for the whole run, always at the same socket name `s<sessions>`; each
-pass binds it and then unconditionally `remove_file`s it after the handshake.
-It is the only name bound and unlinked repeatedly, and it only runs when
-`config.active > 0`. A 2-second smoke trial fires it at most twice; a
-60-second trial fires it about sixty times. That matches "full duration
-reproduces, smoke does not" without the multi-case part being causal at all —
-which would also mean the single-case `chunk-64` pass was luck, not a control.
+- It reported the failure as `Error: Os { code: 2, kind: NotFound }`. The
+  reproducible failure is `Error: Process(Io)`. No path syscall failed in any
+  of the 20 trials.
+- It reported *every* trial failing. Only `128-active` fails. Three of four
+  cases pass 5/5. That one case was almost certainly the whole of the earlier
+  observation.
 
-**Instrumentation is in place** (commit on this branch): every path syscall in
-the fixture now names its site and operand, and distinguishes the transient
-probe socket from producer sockets. A negative control confirms the label
-reaches `main`:
+Both of the original suspects were also graded against the code before the run,
+and neither holds. Parking cannot become eligible: the fixture sets
+`projection.park_after` to an hour (`population.rs`) and `begin_park` requires
+`park_delay(now) == Some(Duration::ZERO)` (`crates/domain/src/projection/policy.rs`).
+The census race is a Python-side `ProcessLookupError` recorded as
+`trial_failure`, a different layer from a Rust error out of `main`.
 
-    Error: Custom { kind: Other, error: "child connect to producer socket s7
-    /tmp/pty-load-nonexistent/s7: No such file or directory (os error 2)" }
+**The path instrumentation added on this branch did not fire**, because no path
+call failed. It is still worth keeping — a negative control confirms the label
+reaches `main` — but it produced no evidence here and should not be described
+as having diagnosed anything.
 
-The next full-duration run on the quiet Linux host should therefore report which
-call failed instead of requiring a bisect.
+**Residual, and the reason this item is not simply deleted:** `ProcessError::Io`
+is a payload-free variant, so the errno never reaches the operator. `EMFILE`
+was indistinguishable from any other I/O failure, which is why naming this cost
+a full matrix run. Same shape as the raw-child redaction item below: the
+redaction instinct is right, the diagnosability is not.
 
-*Unrelated fragility found while reading:* the fixture directory is
-`/tmp/pty-load-<pid>` with no randomness, and `Drop` is its only cleanup, so a
-driver `process.kill()` leaves it behind. That yields `AlreadyExists`, not
-`NotFound`, so it is not this bug.
-
-**Done when:** the sequence failure has a named cause; the affected cases are
-re-run at five repeats each so the after-numbers carry the same weight as the
-before-numbers in Experiment 0005; and 0005 is updated with the result.
+**Still to do:** `experiments/0005-g1-concurrent-pressure.md` lives on
+`g1-load-evidence` and has not been updated with any of the above. The
+after-numbers, the `128-active` host-limit finding, and the corrected failure
+signature all belong in it. Recording the run's `ulimit -n` in the harness
+identity block would stop this recurring.
 
 ## Fix the resource census process-exit race
 
