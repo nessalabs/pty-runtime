@@ -1,8 +1,9 @@
 use super::support::*;
 use crate::{
     process::OutputAcceptance,
-    projection::{ProjectionError, ProjectionLimits, Residency},
+    projection::{ProjectionError, ProjectionLimits, ProjectionOptions, Residency},
 };
+use pty_runtime_domain::terminal::{TerminalConfig, TerminalSize};
 use std::{
     sync::atomic::Ordering,
     time::{Duration, Instant},
@@ -215,6 +216,35 @@ fn one_run_feeds_a_bounded_batch_of_queued_output() {
 
     h.pump();
     assert_eq!(h.owner.status().processed.offset, 80);
+    h.close();
+}
+
+/// The batch is bounded by bytes as well as by chunk count.
+///
+/// `feed_bytes` validates up to 1 MiB, so a 32-chunk bound alone would let one
+/// run parse up to 32 MiB while holding a scheduler worker. With large chunks
+/// the byte bound must bind first.
+#[test]
+fn a_large_chunk_batch_is_bounded_by_bytes_not_chunk_count() {
+    let mut options = ProjectionOptions::new(TerminalConfig {
+        feed_bytes: 64 * 1024,
+        ..TerminalConfig::new(TerminalSize::new(80, 24).unwrap())
+    });
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    let chunk = vec![b'a'; 64 * 1024];
+    for _ in 0..10 {
+        assert_eq!(h.owner.stage_output(&chunk), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.queue.queued(),
+        5,
+        "256 KiB of batched output plus the run's own first chunk is five \
+         chunks, well inside the 32-chunk bound, so bytes are what stopped it"
+    );
+    assert_eq!(h.owner.status().processed.offset, 5 * 64 * 1024);
     h.close();
 }
 

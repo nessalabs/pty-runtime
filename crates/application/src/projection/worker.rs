@@ -32,9 +32,23 @@ impl Phase {
 /// How many queued output chunks one worker run may feed before returning.
 ///
 /// Bounded so that a session with a deep queue cannot hold its workspace lock
-/// indefinitely against its own observers, cancellation or close. Thirty-two
-/// chunks is at most `32 * feed_bytes` in one run.
+/// indefinitely against its own observers, cancellation or close.
 const OUTPUT_BATCH: usize = 32;
+
+/// How many queued output bytes one worker run may feed beyond its first chunk.
+///
+/// A chunk count alone does not bound the work: `feed_bytes` validates up to
+/// 1 MiB, so thirty-two chunks is up to 32 MiB parsed synchronously while
+/// holding a scheduler worker. The default pool has two, so two such sessions
+/// would monopolise it and delay another session's resize, view or close past
+/// ADR 0002's responsiveness targets.
+///
+/// At the 4 KiB default `feed_bytes` this is 64 chunks, so the chunk bound
+/// still binds and the measured behaviour is unchanged; at the 1 MiB maximum
+/// the first batched chunk exhausts it and the run returns, which is what the
+/// unbatched code did. The bound is checked before taking a chunk, so one
+/// chunk may overshoot it.
+const OUTPUT_BATCH_BYTES: usize = 256 * 1024;
 
 impl IScheduledWork for ProjectionCoordinator {
     fn run(&self) -> WorkSchedule {
@@ -172,9 +186,11 @@ impl ProjectionCoordinator {
             // check the loop would dequeue the very bytes failure just preserved
             // and drop them.
             let mut applied = 1;
+            let mut batched_bytes = 0usize;
             while applied < OUTPUT_BATCH
+                && batched_bytes < OUTPUT_BATCH_BYTES
                 && matches!(schedule, WorkSchedule::After(delay) if delay.is_zero())
-                && self.status().failure.is_none()
+                && self.batch_may_continue()
                 && workspace.reply.is_none()
                 && workspace.resize.is_none()
             {
@@ -184,6 +200,9 @@ impl ProjectionCoordinator {
                 else {
                     break;
                 };
+                if let Command::Output(bytes, _) = &next {
+                    batched_bytes += bytes.len();
+                }
                 schedule = self.apply_command(workspace, next);
                 applied += 1;
             }
@@ -216,6 +235,24 @@ impl ProjectionCoordinator {
         if let Some(drain) = self.queue.settled_drain(engine_idle) {
             self.journal.end(Some(drain), None);
         }
+    }
+
+    /// Whether a started output batch may take another chunk.
+    ///
+    /// `run` re-reads failure and residency on every invocation, and at one
+    /// chunk per run that guard sat between every chunk. A batch runs inside a
+    /// single invocation, so it has to re-read them itself: `apply_command` can
+    /// fail the projection and still return an immediate schedule with no reply
+    /// or resize set, and `queue.fail` deliberately *retains* staged output, so
+    /// a batch that kept going would consume exactly the bytes failure had just
+    /// preserved. Closure is read for the same reason.
+    fn batch_may_continue(&self) -> bool {
+        let status = self.status();
+        status.failure.is_none()
+            && !matches!(
+                status.residency,
+                Residency::Failed | Residency::Closing | Residency::Closed
+            )
     }
 
     pub(super) fn fail(&self, error: ProjectionError) {

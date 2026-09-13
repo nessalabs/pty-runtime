@@ -2,20 +2,38 @@
 
 **main** is `e01c704`. PRs #6-#15 are merged.
 
-### Branches not yet pushed
+### Open pull requests
 
-| Branch | Commit | State |
+All four are pushed and open against `main`. They touch separate files and can
+merge in any order, though #17 before #18 keeps this branch's citations live.
+
+| PR | Branch | State |
 | --- | --- | --- |
-| `g1-load-evidence` | `24a6f60` | **Ready.** Experiment 0005 artifact + verification.md update. Gate not yet run on it since the split. |
-| `chunk-batching` | (see log) | **Measured.** Batching fix + 2 tests + path instrumentation. Four cases at five repeats run on `bx_pvnvgsk9` 2026-09-13: 15/20 pass, the five `128-active` failures are the host's `ulimit -n 1024`, not the patch. See `docs/todo/code-cleanups.md` first item. |
+| #16 | `pr-conventions` | PR template and the `AGENTS.md` rules behind it. |
+| #17 | `g1-load-evidence` | Experiment 0005 and its data, plus the `verification.md` update. **`verification.md` is only current on that branch** — on `main`, and therefore on this branch, it still reads as though no 128-session workload has run. |
+| #18 | `chunk-batching` | This branch: the batching fix, its tests, and the session notes. |
+| #19 | `harness-descriptor-limit` | Records `ulimit -n` per run; documents what the 128-session cases need. |
+
+### Where the 128-session evidence actually stands
+
+`128-active` **has been run and passes** — 5/5 at `ProjectedOutput` p99
+8.0-9.1 ms against a 20 ms target, holding 10.0 MiB/s, with zero histogram
+overflow. It needs `ulimit -n 65535`; at the common 1024 default it cannot
+start at all, which is a host limit and not a property of the runtime (#19
+records the limit, and reverting the patch reproduces the same failure).
+
+The authoritative record for this is Experiment 0005 on #17. Treat the numbers
+here as a pointer to it, not as a second source.
 
 ### The box
 
 `bx_pvnvgsk9` — Linux x86_64, Ubuntu 24.04, 8 vCPU, kernel 6.8.0-117. Auto-stops
 when idle; `box resume bx_pvnvgsk9` brings it back. Repo cloned at
 `/home/user/ptyrepo` at `e01c704`, native bootstrap done, release example built.
-The batching patch is currently applied there (`git stash`/`git stash pop` was
-used; check `git status` before trusting the tree).
+The batching patch is applied there as a working-tree diff, together with the
+fixture path instrumentation (`git stash`/`git stash pop` was used; check
+`git status` and the binary's hash before trusting the tree — a stale build
+caused one measurement to be re-run).
 
 It is the only quiet host available and the only Linux evidence. Keep it.
 
