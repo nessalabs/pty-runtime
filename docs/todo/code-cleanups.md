@@ -23,17 +23,54 @@ Do not repeat the mistake that was made while chasing this: a reverted build was
 compared against a *smoke* run and the difference read as proof the patch was at
 fault. Compare like for like — same case, same duration, same repeat count.
 
-**First suspect**, untested: the resource census racing process exit. The macOS
-matrix lost 15 of 130 trials to exactly that (`ProcessLookupError` from `lsof`),
-and batching drains the queue faster, so producers finish sooner. `ENOENT` is
-what a `/proc/<pid>` read returns after the process is gone. That would make it
-a harness defect this change merely exposes — but that is a hypothesis, not a
-finding.
+**Both original suspects have now been graded against the code. Neither holds.**
 
-**Second thing to check**, also untested: draining to empty changes when parking
-becomes eligible. `begin_park` requires an empty queue, and at `chunk-64` the
-backlog previously meant the queue was never empty. Whether that now starts
-parking mid-run, and what that does, has not been examined.
+*Parking (second suspect) is refuted.* The load fixture sets
+`projection.park_after = Duration::from_secs(3600)`
+(`examples/release_load_support/population.rs`), and `begin_park` refuses unless
+`park_delay(now) == Some(Duration::ZERO)`, computed from
+`last_activity + park_after` (`crates/domain/src/projection/policy.rs`). No
+60-second trial can reach that, drained queue or not. Batching cannot have made
+parking eligible mid-run.
+
+*The census race (first suspect) is the wrong layer.* That race surfaces as a
+Python `ProcessLookupError`/`FileNotFoundError` recorded as `trial_failure`, and
+`load_support/census.py` already catches those on the batch path. The recorded
+symptom — `Error: Os { code: 2, kind: NotFound }`, exit 1 — is Rust's
+`Termination` printing an `io::Error` returned out of the fixture's `main`. It
+is still a real defect (see the next item); it is not this one.
+
+**Not reproduced on macOS in smoke.** Four cases at one repeat, then at five
+repeats (20 trials), all passed. So "several cases in one invocation" is not by
+itself the trigger. Smoke clamps sessions to 4 and duration to 2 s, so this
+rules out the cheap explanation, not scale or duration.
+
+**Current lead.** Every ENOENT-capable call in the owner is a path operation,
+and one path is used unlike all the others. `phase.rs` spawns the transient
+cancel probe as `population.spawn(config, config.sessions, true)` once per
+second for the whole run, always at the same socket name `s<sessions>`; each
+pass binds it and then unconditionally `remove_file`s it after the handshake.
+It is the only name bound and unlinked repeatedly, and it only runs when
+`config.active > 0`. A 2-second smoke trial fires it at most twice; a
+60-second trial fires it about sixty times. That matches "full duration
+reproduces, smoke does not" without the multi-case part being causal at all —
+which would also mean the single-case `chunk-64` pass was luck, not a control.
+
+**Instrumentation is in place** (commit on this branch): every path syscall in
+the fixture now names its site and operand, and distinguishes the transient
+probe socket from producer sockets. A negative control confirms the label
+reaches `main`:
+
+    Error: Custom { kind: Other, error: "child connect to producer socket s7
+    /tmp/pty-load-nonexistent/s7: No such file or directory (os error 2)" }
+
+The next full-duration run on the quiet Linux host should therefore report which
+call failed instead of requiring a bisect.
+
+*Unrelated fragility found while reading:* the fixture directory is
+`/tmp/pty-load-<pid>` with no randomness, and `Drop` is its only cleanup, so a
+driver `process.kill()` leaves it behind. That yields `AlreadyExists`, not
+`NotFound`, so it is not this bug.
 
 **Done when:** the sequence failure has a named cause; the affected cases are
 re-run at five repeats each so the after-numbers carry the same weight as the
