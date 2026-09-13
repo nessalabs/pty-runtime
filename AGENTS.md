@@ -11,7 +11,9 @@ Do not turn experiment fixtures into claims of implemented runtime behavior.
 ## Pull requests
 
 Every PR uses [`.github/pull_request_template.md`](.github/pull_request_template.md)
-and fills in every section. The rules behind it:
+and fills in every section. A section that genuinely does not apply says so and
+says why — it is never deleted, because a missing section cannot be told apart
+from a forgotten one. The rules behind it:
 
 - **Write for someone with no context.** Plain English. A reader who has never
   seen this repository should understand what was broken and why it mattered

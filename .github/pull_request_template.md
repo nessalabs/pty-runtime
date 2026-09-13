@@ -1,7 +1,7 @@
 <!--
 Write for a reader with no context on this work. Plain English first,
 numbers second, jargon only where it is unavoidable and explained.
-Delete any section that genuinely does not apply, and say why.
+Keep every section. If a section genuinely does not apply, say why.
 -->
 
 ## What problem does this solve?
