@@ -30,6 +30,12 @@ from a forgotten one. The rules behind it:
     after value, the target, the trial count, and where the raw data lives. One
     trial is an observation, not a measurement, and must be labelled as such.
     That rule is about variance, so it does not apply to deterministic tests.
+    It also needs the workload, source revision and platform behind *each*
+    number, as `coding_standards.md` requires: a figure without them cannot be
+    tied to the reviewed code. State them per configuration rather than once —
+    a before and an after taken on different hardware, kernels or builds are
+    not a controlled comparison, and the difference is not attributable to the
+    change alone.
 - **Say what the change does not fix.** The limitations section is required,
   not optional. Name the cases still failing, the platforms with no coverage,
   and anything assumed rather than measured.

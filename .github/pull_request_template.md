@@ -36,11 +36,22 @@ with the change reverted, it is not testing the change. -->
 <!-- For anything measured rather than decided: latency, throughput, memory.
 Give before AND after, the target being measured against, and how many trials.
 A single trial is an observation, not a measurement - label it as one if that
-is all you have. Say what varied between runs and what did not. -->
+is all you have. -->
 
 | Measure | Before | After | Target | Trials |
 | --- | --- | --- | --- | --- |
 |  |  |  |  |  |
+
+<!-- `coding_standards.md` requires recorded workload, source identity, platform
+and raw results. A number without these cannot be tied to the reviewed code or
+repeated by anyone else. Fill one row per distinct configuration: if the before
+and after numbers were taken on different hardware, kernels or builds, that is
+two rows, and the difference is not attributable to this change alone. -->
+
+| | Workload | Source revision | Platform (OS, kernel, CPU, load) |
+| --- | --- | --- | --- |
+| Before |  |  |  |
+| After |  |  |  |
 
 **How to reproduce:**
 
