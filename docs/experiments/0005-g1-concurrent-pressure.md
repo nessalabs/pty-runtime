@@ -17,13 +17,23 @@ This is that run, on two platforms.
 
 ## Verdict
 
-**G1 is not signed off. Its correctness criteria pass on both platforms; its
-latency criterion fails reproducibly, and the failures are not host noise.**
+**G1 is not signed off. Every accounting check this matrix runs passes on both
+platforms; its latency criterion fails reproducibly on an idle host.**
+
+**"Accounting" is the honest word, and it is narrower than "correctness."** What
+the fixture checks is byte and gap accounting against absolute offsets,
+processed offsets, and terminal-query counts. It does **not** compare the
+projected state against an uninterrupted native reference under load, and it
+does not exercise a fast and stalled observer on the *same* session. Split
+UTF-8 and VT sequences under load, terminal queries under load, and fairness are
+listed below as unrun. A projection or isolation defect in any of those could
+pass every trial recorded here. Read the correctness result as "the ledger
+balances", not as "the projection is correct".
 
 This verdict is for `e01c704`. A follow-up measurement of a candidate fix, at a
 different revision, is recorded in [Follow-up: chunk
 batching](#follow-up-chunk-batching) below; it does not change this verdict,
-because it re-ran 4 of the 26 cases.
+because it re-ran 5 of the 26 cases.
 
 | | macOS arm64 | Linux x86_64 |
 | --- | --- | --- |
@@ -63,11 +73,12 @@ Both hosts ran the identical source: `source_head e01c704`, clean tree
 Both clear the 1.85 MSRV. The compiler differs between hosts and is recorded
 rather than reconciled.
 
-## Correctness: passes
+## Accounting: passes
 
-No trial failed a correctness or accounting check on either host. 145.6 GiB
-(macOS) and 151.7 GiB (Linux) of delivered bytes were verified against their
-expected values at absolute offsets.
+No trial failed an accounting check on either host. 145.6 GiB (macOS) and
+151.7 GiB (Linux) of delivered bytes were verified against their expected values
+at absolute offsets. See the verdict above for what this does and does not
+cover — in particular there is no reference-state comparison under load here.
 
 **Replay eviction is accounted, not silent.** Four cases report gap bytes —
 `detached` and `stalled-observer`, where no one is reading and the 1 MiB
@@ -136,10 +147,20 @@ verdict above stands.
 
 **Revision:** `e01c704` plus the `chunk-batching` patch — `serve()` feeds up to
 32 queued output chunks per worker run instead of one — plus path-naming
-instrumentation in the load fixture. Applied as a working-tree diff, not a
-commit on `main`; `diff_sha256` in
+instrumentation in the load fixture. It was measured as a working-tree diff, so
+`diff_sha256` in
 [`data/0005/linux-x86_64-batching.json`](data/0005/linux-x86_64-batching.json)
-identifies it. **Run:** 2026-09-13, same Linux box as above, load average 0.16.
+can verify those bytes only to someone holding them.
+
+**The measured source is now committed**, as `56c013f` on the `chunk-batching`
+branch (PR #18); the instrumentation is `bb4f000` on the same branch. Read the
+numbers below against those two commits, **not** against that branch's head:
+review of #18 added a failure-and-closure guard and a 256 KiB byte bound to the
+batch afterwards, and neither was in this build. Neither changes these figures —
+the fixture runs at the 4 KiB default `feed_bytes`, where the byte bound works
+out to 64 chunks and the 32-chunk bound still binds first, and the guard only
+engages on a failed or closing projection, which no trial here reached — but
+that is reasoning, not a re-measurement. **Run:** 2026-09-13, same Linux box as above, load average 0.16.
 5 cases × 5 repeats, 60 s each after a 10 s warmup — same duration and repeat
 count as the numbers it is compared against. `capacity-projected` and
 `128-active` were run under `ulimit -n 65535`; the other three ran at the box
@@ -246,20 +267,30 @@ they are, on this evidence, not reproducible from the record alone. Recording
 
 ## Limitations
 
-- **The macOS dataset is incomplete: 115 of 130 trials**, from 15 harness
-  failures — 9 `ProcessLookupError` from the `lsof` resource census losing a
-  process, and 6 trial aborts. **`dominant` has zero completed macOS trials**,
-  so the dominant-producer scenario has no macOS evidence at all. Linux
-  completed 130 of 130 with no harness failures. This is a defect in the
-  harness's macOS resource census, not in the runtime, and it is unfixed.
+- **The macOS dataset is incomplete: 115 of 130 trials**, and **the committed
+  artifact does not say why.** Each of the 15 incomplete entries stops after
+  `runtime_options`: no failure record, exit status, stderr, timeout or closing
+  census was retained. The split previously stated here — 9 `ProcessLookupError`
+  from the `lsof` census plus 6 aborts — came from console output that was not
+  kept, so it cannot be audited from this data and is no longer asserted.
+  What the artifact does support: 15 trials produced no result, and the cases
+  affected are `dominant` (5), `rate-40MiB` (4), `capacity-projected` (2),
+  `rate-20MiB` (2), `capacity-raw` (1) and `stalled-sink` (1). **`dominant` has
+  zero completed macOS trials**, so that scenario has no macOS evidence at all.
+  Attributing all 15 to the census harness rather than the runtime is therefore
+  a hypothesis this data cannot settle; re-running with the failure records
+  retained is what would settle it. Linux completed 130 of 130.
 - **macOS latency figures are upper bounds.** The host was an interactive
   desktop under load. Its correctness results are unaffected; its latency tails
   should not be read as this machine's best case.
 - **Cross-host differences are not attributed.** The two hosts differ in OS,
-  CPU, core count and compiler at once; no host-load measurement was recorded
-  during the matrix, and no same-host loaded-versus-idle control was run. Any
-  statement here about *why* a result differs between hosts is an observation
-  that it differs, not an isolated cause.
+  architecture, CPU, core count, kernel and compiler at once; no host-load
+  measurement was recorded during the matrix, and no same-host
+  loaded-versus-idle control was run. Any statement here about *why* a result
+  differs between hosts is an observation that it differs, not an isolated
+  cause. **Settling the macOS one-off misses needs a controlled repeat on the
+  same macOS host**, idle, at the same revision — not a comparison against
+  Linux.
 - **500 active sessions were not run.** `LOAD.md` places full 500-session
   qualification outside this bounded 128-session matrix as host-dependent.
 - **Neither host is qualified.** Per ADR 0004 and
