@@ -61,8 +61,17 @@ producers** and 128-session mixed populations; rate, chunk, observer and grid
 sweeps; 64 raw idle sessions; and raw/projected resource measurement at 1, 32
 and 128 sessions.
 
-Both hosts ran the identical source: `source_head e01c704`, clean tree
-(`diff_sha256` is the empty-input SHA-256), 311 files inventoried by hash.
+Both hosts recorded the same source identity: `source_head e01c704`, clean tree
+(`diff_sha256` is the empty-input SHA-256), 311 files inventoried.
+
+**That identity is weaker than it looks, and the artifact says so itself.** The
+committed data keeps only the file *count*, not the inventory hashes, and its own
+`source_binary_link` field carries the warning that hashes alone do not prove
+which source built the binary. No build record was retained for either host. A
+binary built from a different tree, run later against a clean checkout, would
+record exactly this. So read `e01c704` as the revision the harness reported, not
+as a proven build-to-source link; retaining the build log is what would close
+that gap.
 
 | | macOS | Linux |
 | --- | --- | --- |
@@ -142,7 +151,7 @@ throughput. That is a hypothesis this experiment does not test.
 ## Follow-up: chunk batching
 
 **This section is a different revision from everything above.** It measures a
-candidate fix, not the qualification matrix, and it re-ran 4 of 26 cases. The
+candidate fix, not the qualification matrix, and it re-ran 5 of 26 cases. The
 verdict above stands.
 
 **Revision:** `e01c704` plus the `chunk-batching` patch — `serve()` feeds up to
@@ -160,7 +169,9 @@ batch afterwards, and neither was in this build. Neither changes these figures �
 the fixture runs at the 4 KiB default `feed_bytes`, where the byte bound works
 out to 64 chunks and the 32-chunk bound still binds first, and the guard only
 engages on a failed or closing projection, which no trial here reached — but
-that is reasoning, not a re-measurement. **Run:** 2026-09-13, same Linux box as above, load average 0.16.
+that is reasoning, not a re-measurement. **Run:** 2026-09-13, the same Linux box
+as above, load average 0.16 — but **not the same kernel throughout**; see the
+limitation below.
 5 cases × 5 repeats, 60 s each after a 10 s warmup — same duration and repeat
 count as the numbers it is compared against. `capacity-projected` and
 `128-active` were run under `ulimit -n 65535`; the other three ran at the box
@@ -256,6 +267,18 @@ they are, on this evidence, not reproducible from the record alone. Recording
 
 - **5 of 26 cases.** The 21 not re-run include `128-mixed`, the rate and
   observer sweeps, and every resource case.
+- **The follow-up spans two kernels, and three of its comparisons cross one.**
+  The box reported `6.8.0-117` for the baseline matrix, and reports it again for
+  `128-active` (five repeats), `capacity-projected` and the revert control. It
+  reported **`6.8.0-136`** for the run that produced `chunk-64`, `chunk-1` and
+  `attached`, and for the single raised-limit `128-active` trial. Those three
+  before/after comparisons therefore change the kernel along with the patch, and
+  this was not one platform configuration or one sitting. The `chunk-64`
+  movement is 225-273 ms to 0.1 ms, which no kernel revision plausibly accounts
+  for, and the mechanism is understood — but *plausibly* is the word, and a
+  same-kernel repeat is what would remove the confound. `128-active` and
+  `capacity-projected` are unaffected: they ran on `6.8.0-117`, the same kernel
+  as the figures they are compared against.
 - **`128-active` and `capacity-projected` ran at a different descriptor limit**
   from the other three cases, and from the matrix above. The limit is now
   recorded per run by the harness; these runs predate that.
@@ -317,11 +340,18 @@ they are, on this evidence, not reproducible from the record alone. Recording
    above). **`capacity-projected` is not fixed** — it still misses at
    255–331 ms, roughly half its previous figure. macOS has no after-number, and
    the patch is not on `main`.
-2. Fix the macOS `lsof` census failure and complete the macOS matrix, including
-   `dominant`.
+2. Establish why 15 macOS trials produced no result — the artifact records no
+   cause, so the census harness is a suspect and not a finding — and complete
+   the macOS matrix, including `dominant`.
 3. Run the remaining ADR 0004 items this matrix does not cover: the
-   after-all-observers-detach case, split UTF-8/VT sequences and terminal
-   queries under load, and an explicit fairness outcome.
+   after-all-observers-detach case, a canonical reference-state comparison under
+   load, and an explicit fairness outcome. Split UTF-8/VT sequences and terminal
+   queries are **not** in this list: the fixture's payload emits `ESC[H`,
+   `ESC[6n`, SGR colour, wide and combining UTF-8 and an emoji every 4096 bytes,
+   the 1-byte and 4093-byte chunk cases split those across writes, and every
+   authoritative reply is matched against `payload::queries()`. What is missing
+   is the comparison against an independent reference terminal under load, not
+   the inputs.
 4. Record `ulimit -n` in the harness identity block, and state the limit
    `128-active` requires in [`scripts/release/LOAD.md`](../../scripts/release/LOAD.md).
    Without it the 128-session rows cannot be reproduced from the record.
