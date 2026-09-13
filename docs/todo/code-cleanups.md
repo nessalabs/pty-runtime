@@ -63,11 +63,27 @@ was indistinguishable from any other I/O failure, which is why naming this cost
 a full matrix run. Same shape as the raw-child redaction item below: the
 redaction instinct is right, the diagnosability is not.
 
-**Still to do:** `experiments/0005-g1-concurrent-pressure.md` lives on
-`g1-load-evidence` and has not been updated with any of the above. The
-after-numbers, the `128-active` host-limit finding, and the corrected failure
-signature all belong in it. Recording the run's `ulimit -n` in the harness
-identity block would stop this recurring.
+**Experiment 0005 is updated** on `g1-load-evidence` (`8389efa`, `f3d0f93`)
+with the after-numbers, the `128-active` host-limit finding and the corrected
+failure signature.
+
+**`capacity-projected` is not fixed.** Re-run with batching at five repeats:
+`ProjectedOutput` 255-331 ms against 20 ms, `ResizeDispatch` 235-286 ms against
+100 ms, all five trials. Batching roughly halves the figure and does not bring
+it near target. It helps the paced small-chunk cases; saturation is untouched.
+
+**Reported p99 above 102.4 ms is a maximum, not a percentile.** The diagnostics
+histogram (`crates/application/src/diagnostics/histogram.rs`) is 1025 buckets of
+100 us, and `percentile_upper_us` returns the recorded maximum for any rank in
+the overflow bucket. At `capacity-projected` 99.76-99.79% of samples land there,
+so p50 = p95 = p99 = max. Conservative by design, but it means those rows are
+upper bounds and the tail is unresolved. `chunk-64`, `chunk-1` and `attached`
+sit well inside resolution and are unaffected.
+
+**Still to do:** record `ulimit -n` in the harness identity block and state the
+limit `128-active` needs in `scripts/release/LOAD.md`; re-run `128-active` at
+five repeats under a raised limit (only one trial exists); no macOS
+after-numbers for any of this.
 
 ## Fix the resource census process-exit race
 
