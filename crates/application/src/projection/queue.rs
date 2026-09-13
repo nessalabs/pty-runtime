@@ -274,6 +274,32 @@ impl AdmissionQueue {
         take.then(|| state.queue.pop_front()).flatten()
     }
 
+    /// Take the head only if it is output *and* the projection is still
+    /// serving, deciding both under one lock acquisition.
+    ///
+    /// The two questions cannot be asked separately. `fail` retains staged
+    /// output while holding this lock, so a failure landing between a status
+    /// read and a dequeue would hand back precisely the bytes it had just
+    /// preserved — and the worker would feed them to a model that can no longer
+    /// process them. Only the output batch needs this; a single command per run
+    /// is re-checked by `run` before the next one.
+    pub fn take_next_output_while_serving(&self) -> Option<Command> {
+        let mut state = self.lock();
+        let status = state.policy.status();
+        if status.failure.is_some()
+            || matches!(
+                status.residency,
+                Residency::Failed | Residency::Closing | Residency::Closed
+            )
+        {
+            return None;
+        }
+        if !matches!(state.queue.front(), Some(Command::Output(..))) {
+            return None;
+        }
+        state.queue.pop_front()
+    }
+
     // ---- park lifecycle ----------------------------------------------------
 
     /// Begin encoding only against a quiet queue and an eligible policy.

@@ -279,6 +279,36 @@ fn a_maximum_sized_chunk_is_fed_alone() {
     h.close();
 }
 
+/// A non-output command at the head of the queue does not start a batch.
+///
+/// A view or checkpoint extraction is bounded on its own terms. Batching output
+/// behind one would put two separately bounded pieces of work into a single run
+/// with no yield between them.
+#[test]
+fn a_view_does_not_pull_queued_output_into_its_run() {
+    let h = Harness::standard();
+    let view = h.owner.view();
+    for _ in 0..4 {
+        assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.status().processed.offset,
+        0,
+        "the run served the view, so no output may have been fed behind it"
+    );
+    assert_eq!(
+        h.owner.queue.queued(),
+        4,
+        "all four chunks must still be queued"
+    );
+    drop(view);
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 8);
+    h.close();
+}
+
 /// A failed projection ends the batch, and the output failure retained stays
 /// retained.
 ///

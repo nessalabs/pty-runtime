@@ -164,10 +164,13 @@ impl ProjectionCoordinator {
         let command = self.queue.take_next();
         if let Some(command) = command {
             // Counted before the move, so the run's own chunk is charged to the
-            // byte bound along with everything the batch adds.
-            let first_bytes = match &command {
-                Command::Output(bytes, _) => bytes.len(),
-                _ => 0,
+            // byte bound along with everything the batch adds. `None` for any
+            // other command: a view or checkpoint extraction is bounded on its
+            // own terms, and batching output behind one would combine two
+            // separately bounded pieces of work into a single unyielding run.
+            let first_output_bytes = match &command {
+                Command::Output(bytes, _) => Some(bytes.len()),
+                _ => None,
             };
             let mut schedule = self.apply_command(workspace, command);
             // Keep feeding queued output within this run rather than taking one
@@ -195,26 +198,24 @@ impl ProjectionCoordinator {
             // next chunk. Inside a batch there is no such guard, so without this
             // check the loop would dequeue the very bytes failure just preserved
             // and drop them.
-            let mut applied = 1;
-            let mut batched_bytes = first_bytes;
-            while applied < OUTPUT_BATCH
-                && batched_bytes < OUTPUT_BATCH_BYTES
-                && matches!(schedule, WorkSchedule::After(delay) if delay.is_zero())
-                && self.batch_may_continue()
-                && workspace.reply.is_none()
-                && workspace.resize.is_none()
-            {
-                let Some(next) = self
-                    .queue
-                    .take_next_if(|command| matches!(command, Command::Output(..)))
-                else {
-                    break;
-                };
-                if let Command::Output(bytes, _) = &next {
-                    batched_bytes += bytes.len();
+            if let Some(first_bytes) = first_output_bytes {
+                let mut applied = 1;
+                let mut batched_bytes = first_bytes;
+                while applied < OUTPUT_BATCH
+                    && batched_bytes < OUTPUT_BATCH_BYTES
+                    && matches!(schedule, WorkSchedule::After(delay) if delay.is_zero())
+                    && workspace.reply.is_none()
+                    && workspace.resize.is_none()
+                {
+                    let Some(next) = self.queue.take_next_output_while_serving() else {
+                        break;
+                    };
+                    if let Command::Output(bytes, _) = &next {
+                        batched_bytes += bytes.len();
+                    }
+                    schedule = self.apply_command(workspace, next);
+                    applied += 1;
                 }
-                schedule = self.apply_command(workspace, next);
-                applied += 1;
             }
             return schedule;
         }
@@ -245,24 +246,6 @@ impl ProjectionCoordinator {
         if let Some(drain) = self.queue.settled_drain(engine_idle) {
             self.journal.end(Some(drain), None);
         }
-    }
-
-    /// Whether a started output batch may take another chunk.
-    ///
-    /// `run` re-reads failure and residency on every invocation, and at one
-    /// chunk per run that guard sat between every chunk. A batch runs inside a
-    /// single invocation, so it has to re-read them itself: `apply_command` can
-    /// fail the projection and still return an immediate schedule with no reply
-    /// or resize set, and `queue.fail` deliberately *retains* staged output, so
-    /// a batch that kept going would consume exactly the bytes failure had just
-    /// preserved. Closure is read for the same reason.
-    fn batch_may_continue(&self) -> bool {
-        let status = self.status();
-        status.failure.is_none()
-            && !matches!(
-                status.residency,
-                Residency::Failed | Residency::Closing | Residency::Closed
-            )
     }
 
     pub(super) fn fail(&self, error: ProjectionError) {
