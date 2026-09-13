@@ -32,9 +32,13 @@ because it re-ran 4 of the 26 cases.
 | Trials missing a latency target | 10 | **20** |
 | Harness failures | 15 | 0 |
 
-The second column is the evidence that matters. It was measured on a dedicated
-machine doing nothing else, and it is *worse* than the noisy laptop — which is
-what rules out contention as the explanation.
+The second column is the evidence that matters, because it was measured on a
+dedicated machine doing nothing else and every miss on it repeats on all five
+trials. That rules out transient load *on that host* as the explanation for the
+Linux misses. It does not explain the difference between the two columns: the
+hosts differ in operating system, CPU, core count and compiler all at once, no
+same-host idle-versus-loaded control was run, and host load was not recorded
+during the matrix.
 
 ## What was run
 
@@ -97,9 +101,15 @@ p99 against target:
 Two separations fall out of having run both hosts, and neither was available
 from one:
 
-- **Every Linux miss is 5 of 5.** Perfectly reproducible on an idle machine.
-- **Every single-trial macOS miss disappeared on Linux** — all three
-  `CancelDispatch` rows and `rate-40MiB`. Those were laptop contention.
+- **Every Linux miss is 5 of 5**, on an otherwise idle machine. Reproducible,
+  and not transient load on that host.
+- **Every single-trial macOS miss is absent from Linux** — all three
+  `CancelDispatch` rows and `rate-40MiB`. Each appeared once in five trials on a
+  loaded interactive desktop and never on the idle box, which is the signature
+  of noise rather than a defect. Calling it *laptop contention* specifically
+  goes further than this data supports: the two hosts differ in OS, CPU, core
+  count and compiler simultaneously, and no same-host loaded-versus-idle control
+  was run. What is established is that they did not reproduce, not why.
 
 ### The rows that matter most
 
@@ -186,9 +196,11 @@ the gate, and this experiment does not make it.
 ### `128-active`: passes once the host allows it to start
 
 **At the box default of `ulimit -n 1024` it does not run at all.** All five
-trials in the first sitting died inside `Population::new` while spawning the
-sessions — at the `runtime` checkpoint, before any measurement — with
-`Error: Process(Io)` and exit 1. 128 sessions do not fit in 1024 descriptors.
+trials in the first sitting — the `g1-batching-4case` run in the data file,
+whose five `128-active` entries each carry a `failure` record — died inside
+`Population::new` while spawning the sessions, at the `runtime` checkpoint and
+before any measurement, with `Error: Process(Io)` and exit 1. 128 sessions do
+not fit in 1024 descriptors.
 
 **Re-run at five repeats under `ulimit -n 65535`, it passes 5 of 5**:
 `ProjectedOutput` p99 **8.0–9.1 ms** against the 20 ms target, `ResizeDispatch`
@@ -202,11 +214,12 @@ An earlier single trial of this case reported 3.5 ms. The five-repeat figure of
 
 Two controls, both same case, same duration, same binary:
 
-- **Raise the limit:** under `ulimit -n 65535` the case passes; see the
-  five-repeat figures above.
-- **Revert the patch:** with batching stashed and the descriptor limit left at
-  1024, the trial fails identically — same error, same checkpoint. Batching does
-  not change descriptor usage.
+- **Raise the limit** (`g1-128-ulimit`, then `g1-128-batching-x5`): under
+  `ulimit -n 65535` the case passes; see the five-repeat figures above.
+- **Revert the patch** (`g1-128-baseline`, **one trial**, deliberately): with
+  batching stashed and the descriptor limit left at 1024, the trial fails
+  identically — same error, same checkpoint. One trial is enough to show the
+  failure does not depend on the patch, and is not offered as a rate.
 
 So this is host configuration, not a runtime defect and not a regression.
 
@@ -242,6 +255,11 @@ they are, on this evidence, not reproducible from the record alone. Recording
 - **macOS latency figures are upper bounds.** The host was an interactive
   desktop under load. Its correctness results are unaffected; its latency tails
   should not be read as this machine's best case.
+- **Cross-host differences are not attributed.** The two hosts differ in OS,
+  CPU, core count and compiler at once; no host-load measurement was recorded
+  during the matrix, and no same-host loaded-versus-idle control was run. Any
+  statement here about *why* a result differs between hosts is an observation
+  that it differs, not an isolated cause.
 - **500 active sessions were not run.** `LOAD.md` places full 500-session
   qualification outside this bounded 128-session matrix as host-dependent.
 - **Neither host is qualified.** Per ADR 0004 and
