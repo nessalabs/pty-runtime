@@ -26,6 +26,16 @@ trials do not fulfill the performance acceptance requirement. No existing output
 directory is overwritten. Full 500-session qualification remains host-dependent
 and is not included in this bounded 128-session matrix.
 
+**Raise the descriptor limit before running the 128-session cases.** Each session
+holds several descriptors, and a common `ulimit -n` of 1024 is not enough:
+`128-active` and `128-mixed` then fail inside session spawn, at the `runtime`
+checkpoint and before any measurement, with `Error: Process(Io)` and exit 1. A
+soft limit of 65535 has been verified sufficient; the exact minimum has not been
+determined. The limit in force is recorded per run as `descriptor_limit` in the
+`identity` record, because a run that does not capture it cannot be reproduced —
+Experiment 0005 has `128-active` both completing and failing to start on the same
+host for this reason.
+
 The fixture accepts `--staging-slots N` (default 256, range 1–1,048,576) to
 sweep each projected session's parser-output queue through the existing public
 projection option. This leaves runtime defaults, global limits and control-request
