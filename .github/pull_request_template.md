@@ -60,6 +60,24 @@ two rows, and the difference is not attributable to this change alone. -->
 
 **Where the data is:**
 
+## Review gates
+
+<!-- `AGENTS.md` requires a gate run and independent specialist reviews before
+a milestone is claimed. State the outcome, or say plainly that a gate is not
+required for this change and why. "Pending" is an answer; silence is not. -->
+
+| Gate | Revision | Outcome |
+| --- | --- | --- |
+| `python3 scripts/gate.py` |  |  |
+| DDD review |  |  |
+| Organization / design-pattern review |  |  |
+| Adversarial correctness review |  |  |
+
+<!-- Findings and their resolutions belong in `docs/verification.md` when they
+bear on a gate. Link the record, or say why none was needed. -->
+
+**Findings recorded in `docs/verification.md`:**
+
 ## What this does NOT fix
 
 <!-- Required. Every change has edges. Name the cases still failing, the
