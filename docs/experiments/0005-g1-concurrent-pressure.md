@@ -131,9 +131,9 @@ commit on `main`; `diff_sha256` in
 [`data/0005/linux-x86_64-batching.json`](data/0005/linux-x86_64-batching.json)
 identifies it. **Run:** 2026-09-13, same Linux box as above, load average 0.16.
 5 cases × 5 repeats, 60 s each after a 10 s warmup — same duration and repeat
-count as the numbers it is compared against. `capacity-projected` was run
-separately under `ulimit -n 65535`; the other four ran at the box default of
-1024.
+count as the numbers it is compared against. `capacity-projected` and
+`128-active` were run under `ulimit -n 65535`; the other three ran at the box
+default of 1024.
 
 `ProjectedOutput` p99 against the 20 ms target:
 
@@ -142,7 +142,7 @@ separately under `ulimit -n 65535`; the other four ran at the box default of
 | `chunk-64` | 5/5 pass | 225–273 ms | **0.1 ms**, every trial |
 | `chunk-1` | 5/5 pass | 60–82 ms | **5.5–6.0 ms** |
 | `attached` | 5/5 pass | no miss | 0.2–0.3 ms |
-| `128-active` | 5/5 **fail to start** | 24.5–28 ms | see below |
+| `128-active` | 5/5 pass at raised limit | 24.5–28 ms | **8.0–9.1 ms** |
 | `capacity-projected` | 5/5 **still miss** | 468–520 ms | 255–331 ms, see below |
 
 `chunk-64` `ResizeDispatch` moved from 189–252 ms to 86–100 µs against its
@@ -183,17 +183,27 @@ loss has an exact cursor gap". A cursor gap identifies *evicted bytes*, not a
 *rejected operation*. Reading one as the other is a judgement for whoever signs
 the gate, and this experiment does not make it.
 
-### `128-active` did not run, and that is a fact about the host
+### `128-active`: passes once the host allows it to start
 
-All five `128-active` trials died inside `Population::new` while spawning the
+**At the box default of `ulimit -n 1024` it does not run at all.** All five
+trials in the first sitting died inside `Population::new` while spawning the
 sessions — at the `runtime` checkpoint, before any measurement — with
-`Error: Process(Io)` and exit 1. The box defaults to **`ulimit -n 1024`**, and
-128 sessions do not fit in 1024 descriptors.
+`Error: Process(Io)` and exit 1. 128 sessions do not fit in 1024 descriptors.
+
+**Re-run at five repeats under `ulimit -n 65535`, it passes 5 of 5**:
+`ProjectedOutput` p99 **8.0–9.1 ms** against the 20 ms target, `ResizeDispatch`
+1.7–3.8 ms against 100 ms, holding the offered 10.0 MiB/s. These are real
+percentiles — **zero samples in the overflow bucket**, against ~157 000 samples
+per trial — unlike the capacity rows above. This is ADR 0004's headline G1
+scenario, and at `e01c704` it missed on all five Linux trials at 24.5–28 ms.
+
+An earlier single trial of this case reported 3.5 ms. The five-repeat figure of
+8.0–9.1 ms supersedes it; one trial was not enough to characterise it.
 
 Two controls, both same case, same duration, same binary:
 
-- **Raise the limit:** under `ulimit -n 65535` the trial passes, `ProjectedOutput`
-  p99 3.5 ms.
+- **Raise the limit:** under `ulimit -n 65535` the case passes; see the
+  five-repeat figures above.
 - **Revert the patch:** with batching stashed and the descriptor limit left at
   1024, the trial fails identically — same error, same checkpoint. Batching does
   not change descriptor usage.
@@ -212,6 +222,9 @@ they are, on this evidence, not reproducible from the record alone. Recording
 
 - **5 of 26 cases.** The 21 not re-run include `128-mixed`, the rate and
   observer sweeps, and every resource case.
+- **`128-active` and `capacity-projected` ran at a different descriptor limit**
+  from the other three cases, and from the matrix above. The limit is now
+  recorded per run by the harness; these runs predate that.
 - **Linux only.** No macOS re-run; the macOS `chunk-64` misses (22–34 ms, 4/5)
   have no after-number.
 - **One sitting**, as with the original run. No cross-day repetition.
@@ -251,10 +264,10 @@ they are, on this evidence, not reproducible from the record alone. Recording
    `chunk-1`, or record an explicit overload outcome identifying the rejected
    operation where the workload is genuinely beyond capacity. **Partly done:**
    chunk batching brings `chunk-64` to 0.1 ms, `chunk-1` to 5.5–6.0 ms and
-   `128-active` to 3.5 ms on Linux, measured at five repeats for the first two
-   (see the follow-up above). **`capacity-projected` is not fixed** — it still
-   misses at 255–331 ms, roughly half its previous figure. macOS has no
-   after-number, and the patch is not on `main`.
+   `128-active` to 8.0–9.1 ms on Linux, each at five repeats (see the follow-up
+   above). **`capacity-projected` is not fixed** — it still misses at
+   255–331 ms, roughly half its previous figure. macOS has no after-number, and
+   the patch is not on `main`.
 2. Fix the macOS `lsof` census failure and complete the macOS matrix, including
    `dominant`.
 3. Run the remaining ADR 0004 items this matrix does not cover: the
