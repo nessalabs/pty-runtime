@@ -62,9 +62,10 @@ two rows, and the difference is not attributable to this change alone. -->
 
 ## Review gates
 
-<!-- `AGENTS.md` requires a gate run and independent specialist reviews before
-a milestone is claimed. State the outcome, or say plainly that a gate is not
-required for this change and why. "Pending" is an answer; silence is not. -->
+<!-- `AGENTS.md` requires a gate run and independent specialist reviews for
+every review loop. They are not waivable here: report the outcome of each.
+"Pending" is a reportable outcome and so is a failure; silence is not, and
+neither is declaring one unnecessary. -->
 
 | Gate | Revision | Outcome |
 | --- | --- | --- |

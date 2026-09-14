@@ -36,12 +36,12 @@ from a forgotten one. The rules behind it:
     a before and an after taken on different hardware, kernels or builds are
     not a controlled comparison, and the difference is not attributable to the
     change alone.
-- **Report the gates, including the ones you did not run.** The gate run and
-  the three specialist reviews above are requirements, so a description that
-  does not mention them leaves a reviewer unable to tell a passing gate from a
-  forgotten one. Give the revision each was run against — a gate result for an
-  older commit is not a result for this one. "Not required, because…" is an
-  acceptable answer; omitting the section is not.
+- **Report every gate, and do not waive any.** The gate run and the three
+  specialist reviews above are unconditional, so a description that omits them
+  leaves a reviewer unable to tell a passing gate from a forgotten one. Give
+  the revision each was run against — a gate result for an older commit is not
+  a result for this one. "Pending" and "failed" are reportable outcomes;
+  declaring one unnecessary is not, because it does not make it so.
 - **Say what the change does not fix.** The limitations section is required,
   not optional. Name the cases still failing, the platforms with no coverage,
   and anything assumed rather than measured.
