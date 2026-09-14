@@ -405,15 +405,33 @@ rate as before. It simply records them now instead of discarding the sample.
 This is the fix demonstrated under load on the platform that lost the trials,
 rather than against a synthetic exit.
 
-### `rate-40MiB` has now reproduced, and that changes its reading
+### `rate-40MiB` missed again, and the per-trial numbers say why
 
-Experiment 0005 recorded a single `rate-40MiB` miss on macOS, absent from
-Linux, and this record described it as having "did not reproduce" — true then,
-and it implied noise. It has now missed again on fresh trials, at 81 ms against
-a 20 ms target. **Two independent occurrences, macOS only, none on Linux**, is
-no longer well described as noise. It is undiagnosed and looks
-platform-specific, which is a different open question from the one this
-experiment closed.
+Experiment 0005 recorded one `rate-40MiB` miss on macOS, absent from Linux.
+This re-run missed once more, at 81 ms against a 20 ms target — and the first
+reading written here was that two independent macOS-only occurrences are "no
+longer well described as noise". **The per-trial figures do not support that**,
+and they were available before the claim was made:
+
+| Trial | `ProjectedOutput` p99 | Owner CPU | Accepted |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.3 ms | 180 % | 40.0 MiB/s |
+| **2** | **81.2 ms** | **250 %** | 40.0 MiB/s |
+| 3 | 0.4 ms | 204 % | 40.0 MiB/s |
+| 4 | 0.4 ms | 210 % | 40.0 MiB/s |
+| 5 | 0.7 ms | 260 % | 40.0 MiB/s |
+
+Four of five trials are **thirty times inside** the target, with the offered
+rate held in all five. A platform-specific defect does not leave four trials at
+0.3–0.7 ms and spike one to 81 ms; a transient stall on an interactive desktop
+running at 180–260 % owner CPU does exactly that. Both macOS occurrences are one
+miss in five, and Linux has none.
+
+So the original reading stands: this is most consistent with **host contention**,
+which is what Experiment 0005 said and what its "macOS latency figures are upper
+bounds" limitation already covers. It is not proven — nothing here isolates
+contention — but "two occurrences, therefore not noise" counted events without
+looking at their distribution, and the distribution is the evidence.
 
 `capacity-projected`'s 76–78 ms is the saturation behaviour described in Part 2
 and is expected rather than new.

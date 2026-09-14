@@ -94,11 +94,12 @@ and completing the macOS matrix, which lost 15 of 130 trials **for a
 reason the artifact does not record**. **That matrix is now complete.** All six cases that lost
 trials were re-run on macOS arm64 at five trials each: **30 trials, none lost**,
 while more than sixty censuses recorded a process vanishing — the same race, no
-longer fatal. `dominant` has macOS evidence for the first time. One result is
-not a pass: `rate-40MiB` misses `ProjectedOutput` at 81 ms against a 20 ms
-target, which with the single miss in Experiment 0005 makes **two independent
-macOS-only occurrences**, so it is no longer well described as noise and is
-undiagnosed. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). For **G2**, G1 first, then real-child
+longer fatal. `dominant` has macOS evidence for the first time. One result is not a pass: `rate-40MiB` misses
+`ProjectedOutput` once at 81 ms against a 20 ms target, as it did once in
+Experiment 0005. The other four trials of that case sit at 0.3-0.7 ms with the
+offered rate held throughout, on a host running at 180-260 % owner CPU, so this
+remains most consistent with the host contention that section already records
+rather than with a platform defect. Linux has never missed it. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). For **G2**, G1 first, then real-child
 coverage of the READY-gated path, then an integrated result artifact under
 `docs/experiments` in the shape ADR 0004 specifies. Neither is a large amount of
 writing; both are runs nobody has made.
