@@ -127,18 +127,20 @@ pub async fn run(
         // transition is where retention, parsing and admission have to notice
         // that nobody is reading any more. Half way through the measurement
         // phase, drop every attachment and keep producing.
-        if config.mode == "detaching" && phase == 1 && !observers.iter().all(Vec::is_empty) {
-            if began.elapsed() >= Duration::from_secs_f64(seconds as f64 / 2.0) {
-                let released: usize = observers.iter().map(Vec::len).sum();
-                for session in observers.iter_mut() {
-                    session.clear();
-                }
-                println!(
-                    "{{\"event\":\"observers_detached\",\"released\":{released},\"elapsed_seconds\":{:.3}}}",
-                    began.elapsed().as_secs_f64()
-                );
-                resources::report("after_detach", &population.runtime.resources(), false);
+        if config.mode == "detaching"
+            && phase == 1
+            && !observers.iter().all(Vec::is_empty)
+            && began.elapsed() >= Duration::from_secs_f64(seconds as f64 / 2.0)
+        {
+            let released: usize = observers.iter().map(Vec::len).sum();
+            for session in observers.iter_mut() {
+                session.clear();
             }
+            println!(
+                "{{\"event\":\"observers_detached\",\"released\":{released},\"elapsed_seconds\":{:.3}}}",
+                began.elapsed().as_secs_f64()
+            );
+            resources::report("after_detach", &population.runtime.resources(), false);
         }
         if matches!(
             config.mode.as_str(),
