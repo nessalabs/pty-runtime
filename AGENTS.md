@@ -4,7 +4,13 @@ Read `coding_standards.md` before editing. Follow the ADRs. Keep
 `docs/verification.md` honest about what works and what is still open. Every
 review loop must run `python3 scripts/gate.py` and obtain independent specialist
 agent reviews for DDD, organization/design patterns, and adversarial correctness.
-Record and resolve findings before claiming a milestone passed.
+Record and resolve findings before claiming a milestone passed. Record them in
+`docs/verification.md` when they bear on a gate or on what is claimed about the
+runtime, and in the pull request thread and the commit message otherwise —
+nothing is closed silently, and a finding declined is stated as declined, with
+its reason. The ledger stays a record of the runtime rather than of process
+work: its whole value is that every line in it can be trusted to be about what
+the code does.
 User authorization permits commits and pushes to main in this private repository.
 Do not turn experiment fixtures into claims of implemented runtime behavior.
 

@@ -74,10 +74,13 @@ neither is declaring one unnecessary. -->
 | Organization / design-pattern review |  |  |
 | Adversarial correctness review |  |  |
 
-<!-- Findings and their resolutions belong in `docs/verification.md` when they
-bear on a gate. Link the record, or say why none was needed. -->
+<!-- Findings that bear on a gate, or on what is claimed about the runtime, are
+recorded in `docs/verification.md`; everything else lives in this PR's threads
+and commit messages. Either way nothing is closed silently, and a finding you
+declined is named as declined with its reason. Link the record, or say which of
+the two applies here. -->
 
-**Findings recorded in `docs/verification.md`:**
+**Where this loop's findings are recorded:**
 
 ### Release qualification
 
