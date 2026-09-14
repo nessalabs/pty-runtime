@@ -181,6 +181,11 @@ def main():
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--repeats', type=int, help='defaults to five full trials or one smoke trial')
     parser.add_argument('--sample-seconds', type=float, default=5)
+    parser.add_argument('--seconds', type=int,
+                        help='override each case\'s measurement duration. The matrix runs 60 s '
+                             'because that is what the latency targets are defined over; a longer '
+                             'run answers a different question, whether anything accumulates, and '
+                             'is not a substitute for the matrix')
     parser.add_argument('--staging-slots', type=int,
                         help='override each projected session\'s parser-output queue depth; '
                              'the fixture default is 256. Recorded in the trial configuration, '
@@ -188,6 +193,11 @@ def main():
     parser.add_argument('--list', action='store_true')
     args = parser.parse_args()
     cases = matrix.cases(args.smoke)
+    if args.seconds is not None:
+        if args.seconds < 1:
+            parser.error('a measurement duration must be at least one second')
+        for case in cases.values():
+            case['seconds'] = args.seconds
     if args.staging_slots is not None:
         if not 1 <= args.staging_slots <= 1_048_576:
             parser.error('staging slots must be within the range the fixture validates')
