@@ -42,6 +42,14 @@ from a forgotten one. The rules behind it:
   the revision each was run against — a gate result for an older commit is not
   a result for this one. "Pending" and "failed" are reportable outcomes;
   declaring one unnecessary is not, because it does not make it so.
+- **A release claim carries ADR 0004's evidence.** A PR claiming a G3 or G4
+  milestone, or release qualification, records the five performance repeats,
+  10,000 lifecycle cycles, 100,000 attach/detach operations, 12-hour soak,
+  failures and timeouts, latency distributions, and resource peaks and cleanup
+  — each as passed, failed or **not run**, linked to integrated results under
+  `docs/experiments`. "Not run" is an ordinary answer and most of these usually
+  are; a blank row is not, because nobody can tell it from a forgotten one. A
+  PR claiming no milestone says that, which is also an answer.
 - **Say what the change does not fix.** The limitations section is required,
   not optional. Name the cases still failing, the platforms with no coverage,
   and anything assumed rather than measured.

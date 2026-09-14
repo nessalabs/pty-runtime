@@ -79,6 +79,29 @@ bear on a gate. Link the record, or say why none was needed. -->
 
 **Findings recorded in `docs/verification.md`:**
 
+### Release qualification
+
+<!-- Does this PR claim a G3 or G4 milestone, or release qualification? State
+yes or no — the answer is required either way. If no, the table below is not
+applicable and saying so is the entry.
+
+If yes, ADR 0004 requires each of these, and each is recorded as passed,
+failed, or NOT RUN. "Not run" is an honest and common answer; leaving a row
+blank is not, because a reader cannot tell it from a forgotten one. Link the
+integrated results under `docs/experiments`. -->
+
+**Claims a G3/G4 milestone or release qualification:**
+
+| ADR 0004 requirement | Result | Where recorded |
+| --- | --- | --- |
+| Five 60-second performance repeats |  |  |
+| 10,000 process lifecycle cycles |  |  |
+| 100,000 attach/detach operations |  |  |
+| 12-hour mixed-load soak |  |  |
+| Failures and timeouts |  |  |
+| Latency distributions |  |  |
+| Resource peaks and cleanup |  |  |
+
 ## What this does NOT fix
 
 <!-- Required. Every change has edges. Name the cases still failing, the
