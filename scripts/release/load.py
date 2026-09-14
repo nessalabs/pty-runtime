@@ -177,9 +177,18 @@ def main():
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--repeats', type=int, help='defaults to five full trials or one smoke trial')
     parser.add_argument('--sample-seconds', type=float, default=5)
+    parser.add_argument('--staging-slots', type=int,
+                        help='override each projected session\'s parser-output queue depth; '
+                             'the fixture default is 256. Recorded in the trial configuration, '
+                             'so a sweep is distinguishable from the matrix it is compared against')
     parser.add_argument('--list', action='store_true')
     args = parser.parse_args()
     cases = matrix.cases(args.smoke)
+    if args.staging_slots is not None:
+        if not 1 <= args.staging_slots <= 1_048_576:
+            parser.error('staging slots must be within the range the fixture validates')
+        for case in cases.values():
+            case['staging_slots'] = args.staging_slots
     if args.list:
         print(json.dumps(cases, indent=2))
         return
