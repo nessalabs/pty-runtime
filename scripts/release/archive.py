@@ -27,6 +27,10 @@ def trim(buckets):
     return {'first_bucket': occupied[0], 'counts': buckets[occupied[0]:occupied[-1] + 1]}
 
 
+# Steady state, and the quiescence that has to follow it.
+FULL_ROW_PHASES = ('measurement_end', 'closed')
+
+
 def totals(sample):
     rows = sample.get('processes') or []
     def total(field):
@@ -80,9 +84,13 @@ def summarize(path, keep_process_rows):
             trial['latency'].append(row)
         elif kind == 'physical_resources':
             trial['resource_series'].append(totals(event))
-            # The closing census proves cleanup, and the resource cases exist to
-            # measure per-process scaling; both need the rows themselves.
-            if keep_process_rows or event.get('phase') == 'closed':
+            # Per-process rows answer two questions and no others: what the tree
+            # looks like in steady state, and whether it emptied afterwards. At
+            # 128 sessions a census carries ~385 rows, so keeping every periodic
+            # sample was 90% of the artifact and nineteen near-identical copies
+            # of the same answer. Accumulation is already in `resource_series`.
+            if event.get('phase') in FULL_ROW_PHASES and (
+                    keep_process_rows or event.get('phase') == 'closed'):
                 trial['census_full'].append(event)
         elif kind == 'budget':
             key = event['name']
@@ -137,8 +145,11 @@ def main():
             'latency_distribution': 'full histogram trimmed to its occupied bucket span; '
                                     'bucket width, count, ceiling and overflow count retained',
             'resource_series': 'every periodic census reduced to tree totals over time, '
-                               'which is what shows accumulation; per-process rows kept whole '
-                               'for the closing census and for cases named in full_process_rows',
+                               'which is what shows accumulation',
+            'process_rows': 'kept whole at measurement_end and at the closing census - steady '
+                            'state and the quiescence that must follow it - and only for cases '
+                            'named in full_process_rows, except the closing census which is '
+                            'kept for every case because it is the cleanup proof',
             'budget_series': 'per-name peak used against its limit, with the sample count; '
                              'individual budget records are not retained',
             'full_process_row_cases': args.full_process_rows,

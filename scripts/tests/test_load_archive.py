@@ -64,12 +64,26 @@ class Retention(unittest.TestCase):
         self.assertEqual([row['fds'] for row in series], [10, 11, 12, 13, 14])
         self.assertEqual([row['monotonic_seconds'] for row in series], [0.0, 1.0, 2.0, 3.0, 4.0])
 
-    def test_resource_cases_keep_their_per_process_rows(self):
+    def test_resource_cases_keep_rows_at_steady_state_and_at_quiescence(self):
         rows = [proc(1, 100, 4), proc(2, 200, 5)]
-        artifact = self.build('resources-projected-32', [identity(), census(1.0, 'periodic', rows)])
+        artifact = self.build('resources-projected-32', [
+            identity(),
+            census(1.0, 'measurement_end', rows),
+            census(2.0, 'closed', [proc(1, 100, 4)])])
         kept = artifact['trials'][0]['census_full']
+        self.assertEqual([entry['phase'] for entry in kept], ['measurement_end', 'closed'])
         self.assertEqual([row['pid'] for row in kept[0]['processes']], [1, 2],
                          'per-process scaling is the whole point of a resources- case')
+
+    def test_periodic_rows_are_dropped_but_their_totals_are_not(self):
+        """Nineteen near-identical censuses were 90% of a real artifact."""
+        events = [identity()] + [
+            census(float(at), 'periodic', [proc(pid, 100, 4) for pid in range(30)])
+            for at in range(6)]
+        trial = self.build('resources-projected-32', events)['trials'][0]
+        self.assertEqual(trial['census_full'], [], 'periodic rows repeat the same answer')
+        self.assertEqual(len(trial['resource_series']), 6, 'accumulation must still be visible')
+        self.assertEqual(trial['resource_series'][0]['measured_processes'], 30)
 
     def test_other_cases_keep_process_rows_only_for_the_closing_census(self):
         artifact = self.build('attached', [
