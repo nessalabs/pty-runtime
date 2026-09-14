@@ -85,6 +85,7 @@ impl Config {
                 result.mode.as_str(),
                 "attached"
                     | "detached"
+                    | "detaching"
                     | "stalled-observer"
                     | "stalled-sink"
                     | "dominant"

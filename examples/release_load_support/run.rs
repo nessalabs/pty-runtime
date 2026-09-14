@@ -112,6 +112,15 @@ pub async fn execute(config: Config) -> Result<()> {
             ) {
                 assert_eq!(observer.gaps, 0, "fast observer fell behind");
             }
+            // `detaching` is deliberately absent above. Once every observer has
+            // gone, the final accounting attaches a fresh one at offset zero,
+            // and a 1 MiB retention cap cannot still hold half a minute of
+            // output at 10 MiB/s — so a gap is the correct answer, not a
+            // failure. What must hold is that the gap is *exact*, which the
+            // `bytes + gaps == total` assertion above already requires of every
+            // mode. That is the ADR 0004 claim this case exists to test: after
+            // all observers detach, a later attach is told precisely what it
+            // missed rather than being given silence or the wrong bytes.
         }
     }
     if let Some(sink) = sink {

@@ -161,6 +161,38 @@ The fixture now refuses any argument outside the names it knows. A harness that
 quietly substitutes a default for what it was asked to run cannot be trusted to
 have run the experiment being reported.
 
+## Part 3: after all observers detach
+
+ADR 0004 asks what happens once *every* observer has gone while producers keep
+running. Nothing in the matrix exercised it. `detached` never attaches an
+observer at all, which is a different question: it never crosses the transition,
+and the transition is where retention, parsing and admission have to notice that
+nobody is reading any more.
+
+`detaching` attaches observers normally, then drops all of them half way through
+the measurement phase and keeps producing. Five trials:
+
+| | Result |
+| --- | --- |
+| Observers released | 64, at 30.0 s, every trial |
+| Accepted throughput after they left | **10.0 MiB/s** — the offered rate, unchanged |
+| `ProjectedOutput` p99 | 0.60 ms against a 20 ms target, passing |
+| Replay gap seen by a later attach | 684.1 MiB, **exactly accounted** in all five |
+| Final process tree / zombies | 1 / 0 |
+
+**The gap is the finding, not a failure.** The run's final accounting attaches a
+fresh observer at offset zero. A 1 MiB per-session retention cap cannot still
+hold thirty seconds of output at 10 MiB/s, so that observer must be told it
+missed something — and it is told *exactly* what, with `verified + gaps ==
+total` holding on every trial. That is ADR 0004's requirement: a later attach
+gets a precise cursor gap rather than silence or the wrong bytes.
+
+The first run of this case failed, on an assertion of mine rather than on the
+runtime: `detaching` had been grouped with `attached` in a check that no
+observer falls behind. A re-attached observer necessarily falls behind. The
+assertion was wrong, the runtime was right, and the exact-accounting assertion
+that every mode already shares is what actually proves the claim.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
@@ -176,7 +208,13 @@ have run the experiment being reported.
 - **Source identity is the revision the harness reported.** As in Experiment
   0005, no build record binds the measured binary to `981a74a`.
 - **The resource cases in part 1 ran but are not analysed here.** Their series
-  are retained in the artifact for the first time; reading them is separate work.
+  are retained in the artifact for the first time. Running
+  `scripts/release/accumulation.py` over them reports nothing accumulating in
+  any of the 25 trials, which bounds growth within each 60-second window; it
+  does not bound a slope whose onset is later than that window.
+- **The detach case covers one shape.** All observers leave at once, half way
+  through, at 64 sessions with one observer each. Staggered departures, partial
+  detachment, and detaching under saturation are not covered.
 
 ## What this closes, and what it does not
 

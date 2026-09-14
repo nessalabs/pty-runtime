@@ -7,7 +7,11 @@ def cases(smoke=False):
     result = {}
     def add(name, **changes):
         result[name] = {**baseline, 'mode': 'attached', **changes}
-    for mode in ('attached', 'detached', 'stalled-observer', 'stalled-sink', 'dominant'):
+    # `detached` never attaches an observer; `detaching` attaches and then drops
+    # them all half way through, which is the transition ADR 0004 asks about and
+    # the one nothing else in this matrix exercises.
+    for mode in ('attached', 'detached', 'detaching', 'stalled-observer',
+                 'stalled-sink', 'dominant'):
         add(mode, mode=mode)
     add('capacity-projected', mode='saturation', rate=0)
     add('capacity-raw', mode='saturation', rate=0, raw=True)
