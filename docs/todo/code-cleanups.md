@@ -92,34 +92,63 @@ earlier 3.5 ms figure came from one trial and is superseded.
 **Still to do:** no macOS after-numbers for any of this, and 21 of 26 cases
 were not re-run.
 
-## Fix the resource census process-exit race
+## Resource census process-exit race: fixed
 
-**Where:** `scripts/release/load_support/census.py`, and whatever reads
-`/proc/<pid>` on Linux.
+`process_costs` returned rows or raised. A sampled process exiting mid-census
+raised, and the raise discarded the whole sample — every other process's
+measurement lost because one had ended. That cost 15 of 130 macOS trials in
+Experiment 0005 and left `dominant` with no macOS evidence at all.
 
-The macOS census lost 15 of 130 trials in Experiment 0005 —
-9 `ProcessLookupError` from `lsof` plus 6 aborts — and left the
-dominant-producer case with **no macOS evidence at all**. Linux completed
-130 of 130 in that run, but the `ENOENT` above may be the same race.
+It now returns `(rows, vanished)`. On Linux each `/proc` read is guarded per
+pid; on Darwin a non-zero `lsof` exit is no longer fatal by itself, while a
+collector that produced no output at all still raises, because that is the
+collector failing rather than a process ending. Verified against the real race
+on Linux: with a child exiting between calls, the survivor is still measured and
+the dead pid is named.
 
-This is now the limiting factor on G1 evidence rather than the runtime.
+**Still open:** the macOS matrix has not been re-run, so `dominant` still has no
+macOS evidence. The fix removes the cause; only a run produces the evidence.
 
-**Done when:** a sampled process exiting mid-census is tolerated and recorded,
-not fatal, and the macOS matrix completes 130 of 130 including `dominant`.
-
-## Make the raw-child flake diagnosable
-
-Real-child tests failed under CPU contention **six times** in one working
-session, across four files: `raw_child_contract`, `event_stream_failures`,
-`process_contract` and `event_stream_decode_contract`. All pass in isolation.
-One of them failed CI on an unrelated documentation-only PR.
+## Raw-child flake: diagnosable
 
 `raw_child_contract::empty_environment_is_exact_at_uninstrumented_exec_boundary`
-fails with "unexpected exec environment" and deliberately does not print the
-mismatch ("Compare without printing unexpected values if a future environment
-leak occurs"). The redaction instinct is right and `coding_standards.md` requires
-it, but as written nobody can tell a truncated read from a leaked variable.
+printed nothing on failure, deliberately, to avoid leaking environment values —
+which left a truncated read and a real leak looking identical across six
+failures, one of them in CI on a documentation-only pull request.
 
-**Done when:** the failure prints something actionable and still redacts values
-— observed variable *names* and byte length would do — and the contention
-timeouts are either widened or explained.
+It now reports variable **names**, byte count, and whether the final line was
+terminated, with values withheld. A short count with an unterminated line is a
+truncated read; an extra name is a leak.
+
+**Still open:** the contention timeouts are neither widened nor explained, and
+the underlying flakiness is unaddressed — this makes the next failure readable,
+not less likely.
+
+## Resource measurements were not retained: fixed
+
+Experiment 0005's artifact was assembled by hand and kept only a closing census
+and a filtered event list, so the six resource cases could not be audited and
+the claim behind them was withdrawn under review. The raw output had
+everything; the archiving step lost it.
+
+`scripts/release/archive.py` now defines retention in code, and
+`scripts/tests/test_load_archive.py` pins it. On a real 25-trial run that is
+976 KiB from 22 MiB of raw output, retaining the accumulation series, the
+steady-state and closing per-process rows, budget peaks, and latency
+distributions trimmed to their occupied span.
+
+## A misspelled fixture flag ran the default silently: fixed
+
+The driver sent `--staging_slots`; the fixture reads `--staging-slots`, did not
+find it, and used its default. A four-point sweep measured one point four times
+and produced a flat result that looked like a clean refutation. The fixture now
+refuses any argument outside the names it knows, and the driver hyphenates.
+
+## `ProcessError::Io` carried no meaning: fixed
+
+`EMFILE`, `ENFILE`, `ENOMEM` and `ENOSPC` now classify as `Capacity` — the word
+this boundary already has for admission being full. The 128-session failure
+would read `Process(Capacity)`. The errno itself stays out of the domain, as
+`ProcessError`'s own note and ADR 0005 require; `EAGAIN` stays `Io` because it
+is exhaustion from `fork` and "not ready" from a non-blocking read and this
+boundary cannot tell which.
