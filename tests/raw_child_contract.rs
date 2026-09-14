@@ -160,11 +160,40 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     };
     assert_eq!(done.status.exit, Some(ExitStatus::Code(0)));
     assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
+
+    // Three separate claims, asserted separately, because one combined byte
+    // comparison could fail for three unrelated reasons and said which only by
+    // being absent. Six failures under contention were undiagnosable for that
+    // reason, one of them in CI on a documentation-only pull request.
+    //
+    // 1. Delivery was complete. `env` terminates every assignment, so output
+    //    that does not end in a newline is a truncated read and nothing about
+    //    the environment can be concluded from it.
+    let text = String::from_utf8_lossy(&output);
     assert!(
-        output == b"PTY_SYNTHETIC_FLAG=final-override\r\n"
-            || output == b"PTY_SYNTHETIC_FLAG=final-override\n",
-        "unexpected exec environment: {}",
+        text.ends_with('\n'),
+        "truncated delivery, not an environment result: {}",
         redacted_environment(&output)
+    );
+    // 2. Exactly one variable reached the child. A leak adds a name here, and
+    //    the names are safe to report where the values are not.
+    let assignments: Vec<&str> = text.lines().filter(|line| !line.is_empty()).collect();
+    let names: Vec<&str> = assignments
+        .iter()
+        .map(|line| line.split('=').next().unwrap_or(""))
+        .collect();
+    assert_eq!(
+        names,
+        ["PTY_SYNTHETIC_FLAG"],
+        "environment leak at the exec boundary: {}",
+        redacted_environment(&output)
+    );
+    // 3. The override won. Compared as a parsed assignment rather than as raw
+    //    bytes, so a line-ending difference is not mistaken for a leak.
+    assert_eq!(
+        assignments,
+        ["PTY_SYNTHETIC_FLAG=final-override"],
+        "override not applied at the exec boundary"
     );
     owner.shutdown();
 }
