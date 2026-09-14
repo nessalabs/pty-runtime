@@ -136,8 +136,16 @@ rate-limited so this is not a contested-share measurement, and input,
 cancellation and resize fairness are not isolated. A **canonical reference-state
 comparison under load** now also passes: one session's full 43.8 MiB stream is
 replayed into an independent engine after a measurement phase under pressure and
-the views are equal, on all three trials. One item remains unexercised: an
-**explicit overload outcome** identifying a rejected operation — the last of which is what
+the views are equal, on all three trials. An **explicit overload outcome** is now reported
+rather than inferred: the runtime's own counters are emitted per trial, and the
+saturating case shows 5,645,046 output-backpressure events and 1.27 GB of
+exactly-accounted observer gap where the passing case shows zero of both.
+**Input admission rejections are zero**, which is the crux — nothing is
+*rejected*; operations are delayed losslessly and replay is evicted with exact
+cursor gaps. Whether that satisfies ADR 0004's wording, "an explicit overload
+outcome identifies the *rejected* operation", is a reading of that ADR and is
+not settled here; it can now be made from the artifact rather than from the
+source — the last of which is what
 the unpaced capacity cases would need in order to claim ADR 0004's latency
 escape. Two caveats on the rest: the dominant-producer case has **no macOS
 evidence at all**, and latency values above 102.4 ms are the histogram's

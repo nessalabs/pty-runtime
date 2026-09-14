@@ -351,6 +351,38 @@ numbers attached, rather than a number nobody could justify.
 It does not make the soak redundant, and this experiment does not claim a
 twelve-hour result. A 55-minute window cannot see an onset at hour six.
 
+## Part 8: the overload outcome was always counted, never reported
+
+ADR 0004 permits a latency miss where "an explicit overload outcome identifies
+the rejected operation". That had been recorded as unexercised, and I had
+described supplying it as a change to what the runtime promises. **That was
+wrong.** The runtime has counted it all along — `CounterKind::InputSaturation`
+is admission rejections, `CounterKind::OutputBackpressure` is lossless admission
+attempts that had to wait — and the counters reached the record only as
+unlabelled positions inside a Debug string, which is not something a gate can be
+evaluated against.
+
+One trial each, counters named:
+
+| Case | Admission rejections | Backpressure events | Observer gaps | Gap bytes | Any operation refused or delayed | `ProjectedOutput` p99 |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| `attached` | 0 | 0 | 0 | 0 | **no** | 0.7 ms, passes |
+| `capacity-projected` | 0 | **5,645,046** | 3,167 | **1.27 GB** | **yes** | 245.5 ms, fails |
+
+The case that meets its target emits no overload signal at all; the case that
+misses emits millions of backpressure events and a gigabyte of exactly-accounted
+replay loss. The signal and the failure coincide precisely.
+
+**The crux is that admission rejections are zero.** Nothing is *rejected* under
+saturation. Operations are delayed losslessly, and replay is evicted with an
+exact cursor gap per observer. ADR 0004's escape names a *rejected operation*,
+so whether backpressure-and-gaps satisfies it is a reading of that ADR.
+
+This experiment does not make that reading, and deliberately: it decides whether
+a gate passes. What it changes is that the question can now be answered from the
+artifact instead of from the source, which is what "explicit outcome" has to
+mean if it means anything.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
