@@ -192,6 +192,17 @@ Two scope notes that a reader will otherwise get wrong:
 > Pinned Rust FFI build; ordered parsing, replies, resize, binary checkpoints,
 > READY/history restoration, and reference-state comparisons pass
 
+**The projected-output latency failure is filed here**, moved from G1 on this
+row's own wording — it names "ordered parsing", and `ProjectedOutput` measures
+the parsing path. See the G1 concurrency row above for the reasoning and the
+counter-argument. The failure itself: `ProjectedOutput` p99 missed its 20 ms
+target by 13× on the paced `chunk-64` case at `e01c704`, which chunk batching
+brings to 0.8–0.9 ms; it still misses under unpaced saturation at 255–331 ms,
+where [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md)
+shows the tail is per-session staging-queue residence time. Every `RawOutput`
+target passes in the same trials, which is why this is filed under projection
+rather than under process and bytes.
+
 | Clause | Verdict | Evidence | Why that verdict |
 | --- | --- | --- | --- |
 | Pinned Rust FFI build | proven | `scripts/native/verify_source.py`, `scripts/native/build.rs`, `scripts/native/bootstrap.py`, `scripts/native/tests/run_allocator_contract.py`, `run_boundary_contract.py` | The archive SHA-256, the commit, the patch SHA-256 and per-file pre/post hashes for all eight patched Zig files are pinned and re-verified on **every build** (`build.rs` calls the verifier with `--built`, and asserts the static library exists). Zig 0.16.0 is pinned; every Rust dependency that touches the boundary is `=`-pinned. Pinning is proven; this says nothing about *where* the pinned build has been executed. |
