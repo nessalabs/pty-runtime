@@ -39,7 +39,7 @@ because it re-ran 5 of the 26 cases.
 | | macOS arm64 | Linux x86_64 |
 | --- | --- | --- |
 | Trials completed | 115 of 130 | **130 of 130** |
-| Correctness failures | **0** | **0** |
+| Accounting-check failures | **0** | **0** |
 | Trials missing a latency target | 10 | **20** |
 | Trials with no result, cause unrecorded | 15 | 0 |
 
@@ -264,7 +264,14 @@ Two controls, both same case, same duration, same binary:
   identically — same error, same checkpoint. One trial is enough to show the
   failure does not depend on the patch, and is not offered as a rate.
 
-So this is host configuration, not a runtime defect and not a regression.
+So the descriptor limit is strongly indicated — but **the artifact cannot prove
+it.** Each failing entry retains only `Process(Io)`, exit 1 and the `runtime`
+checkpoint: no `NOFILE` value and no errno, because `ProcessError::Io` carries
+no payload and the harness did not record the limit in force at the time. The
+limit was raised in a later sitting and the shell reported it, which is not the
+same as the artifact recording it. Read this as a well-supported hypothesis with
+two controls behind it, not as a proven cause; PR #19 makes future runs record
+the limit, and an errno on `ProcessError::Io` is what would close the rest.
 
 **But it contradicts the matrix above, and the record cannot say why.** The
 Linux run at `e01c704` completed `128-active` 5 of 5 and reported 24.5–28 ms. On
@@ -298,6 +305,25 @@ they are, on this evidence, not reproducible from the record alone. Recording
 - **One sitting**, as with the original run. No cross-day repetition.
 - The path instrumentation added for this run never fired — no path syscall
   failed in any of the 20 trials. It diagnosed nothing here.
+
+## Which gate owns this failure is not settled here
+
+ADR 0004 puts "ordered input/output … pass **concurrent pressure tests**" under
+G1, and "ordered parsing, replies, resize … and reference-state comparisons"
+under G2. `ProjectedOutput` under concurrent pressure sits across that line: the
+pressure clause is G1's, the projection path it measures is G2's.
+
+One fact sharpens the question rather than settling it. **Every recorded
+`RawOutput` target passes, including in the trials where `ProjectedOutput`
+fails.** The process-and-bytes path — G1's own territory — meets its target
+under exactly the pressure that the projection path misses it under.
+
+This experiment does not reassign the verdict, because that is a reading of the
+ADRs rather than a measurement, and it changes which gate blocks a release. It
+is recorded here for whoever owns that decision. What is not in question is that
+G1's own remaining work — fairness, observer isolation on a single session,
+retained resource evidence, 500 sessions, the macOS matrix — is unfinished
+regardless of how the projection latency is filed.
 
 ## Limitations
 
