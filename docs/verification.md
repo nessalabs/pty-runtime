@@ -4,6 +4,22 @@ Plain-English snapshot of what we have checked and what is still open.
 Product behavior lives in [`usage.md`](usage.md), [`features/`](features/), and
 [`adr/`](adr/).
 
+**What belongs here, and what does not.** This is the record of what is proven
+about the *runtime*: gate clauses, the evidence behind each, and what is still
+unproven. Review findings are recorded here when they bear on a gate or on a
+claim made about the runtime; findings about process, tooling or documentation
+belong in their pull request's threads and commit messages instead. The value of
+this file is that every line in it can be trusted to be about what the code
+does, so keeping process work out of it is part of keeping it honest, not a gap
+in it.
+
+**A claim here names its evidence and its limits.** "Proven" means a named test
+or a recorded experiment, linked. Where evidence exists but does not reach as
+far as the claim would, the claim is narrowed rather than the evidence
+stretched — and where a measurement's source, platform or build cannot be tied
+to the revision under review, that is stated at the claim, not left for a reader
+to discover in the artifact.
+
 ## How we check things
 
 - Run `python3 scripts/gate.py` (format, lint, tests, native build).
