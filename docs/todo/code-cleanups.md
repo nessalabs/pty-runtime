@@ -121,9 +121,15 @@ pid is named, where the previous code raised and discarded both:
     both alive -> [31630, 31631] vanished []
     one exited -> [31630] vanished [31631]
 
-**Still open:** the macOS matrix has not been re-run, so `dominant` still has no
-macOS evidence. The cause is fixed and now proven fixed on the platform where it
-occurred; only a run produces the evidence, and that needs a quiet macOS host.
+**`dominant` now has macOS evidence, and it is the fix working under load.**
+Five trials on macOS arm64, all passing, `ProjectedOutput` p99 0.20-0.30 ms
+against a 20 ms target and the offered 10.0 MiB/s held, teardown to one process
+with no zombies. Three to four censuses *per trial* recorded a vanished process:
+that is the same race, occurring at the same rate, no longer fatal.
+
+**Still open:** the other 10 lost macOS trials, spread across `rate-40MiB`,
+`capacity-projected`, `rate-20MiB`, `capacity-raw` and `stalled-sink`, have not
+been re-run.
 
 ## Raw-child flake: diagnosable
 
