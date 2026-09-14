@@ -47,7 +47,10 @@ anything was known to be wrong.
 
 Running it found a real defect: `ProjectedOutput` p99 misses its 20 ms target
 because per-chunk scheduling overhead dominates at small chunk sizes. That is
-what `chunk-batching` fixes. The fix now has five-repeat full-duration evidence
-on three cases (`chunk-64` 0.1 ms every trial, `chunk-1` 5.5-6.0 ms, `attached`
-0.2-0.3 ms). The fourth case, `128-active`, needs `ulimit -n` raised on the host
-before it can run at all — 128 sessions do not fit in 1024 descriptors.
+what `chunk-batching` fixes. The fix has five-repeat full-duration evidence on
+four cases: `chunk-64` 0.1 ms every trial, `chunk-1` 5.5-6.0 ms, `attached`
+0.2-0.3 ms, and **`128-active` 8.0-9.1 ms, passing 5/5**. `128-active` needs
+`ulimit -n 65535` to run at all — at the 1024 default 128 sessions do not fit
+in the descriptor limit and the case fails before measuring anything, which is
+a host limit rather than a property of the runtime. A fifth case,
+`capacity-projected`, was also re-run and **still fails** at 255-331 ms.
