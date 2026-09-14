@@ -229,6 +229,36 @@ contention for a scarce resource, and it says nothing about input, cancellation
 or resize fairness, which the same clause also names and which this case does
 not isolate.
 
+## Part 5: reference-state comparison under load
+
+ADR 0004 asks that reference-state comparisons pass. Unit tests already feed an
+independent engine the same bytes and require an equal view, but only on a quiet
+runtime. What that leaves unproven is the thing this matrix exists to stress:
+whether the projection is still *correct* after pressure, rather than merely
+still keeping up.
+
+The new `reference` case runs the controlled reference workload and then, for
+one session, rebuilds its entire byte stream from `payload` — a pure function of
+offset and producer, so it can supply history that the 1 MiB retention cap
+cannot — feeds it to an independent `GhosttyTerminalFactory` engine, and
+compares that engine's view against `session.projected_view()`.
+
+| Trial | Bytes compared | Feed time | Grid | Views equal | Replay gap |
+| --- | ---: | ---: | --- | --- | ---: |
+| 1 | 43.8 MiB | 0.25 s | 80×24 | **yes** | 0 |
+| 2 | 43.8 MiB | 0.27 s | 80×24 | **yes** | 0 |
+| 3 | 43.8 MiB | 0.25 s | 80×24 | **yes** | 0 |
+
+It is affordable because ADR 0002's offered rate is *combined* across producers,
+so one producer's stream is about 44 MiB rather than the ~600 MiB the population
+moves between them. The comparison is an assertion rather than a reported
+number: an unequal view after load is a correctness failure, not a measurement.
+
+**What it does not cover.** One session of the 64, one grid, the controlled
+reference rate — not saturation, not the small-chunk cases, and not after a park
+or restore. Equality is checked once, at the end of the measurement phase,
+rather than continuously.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.

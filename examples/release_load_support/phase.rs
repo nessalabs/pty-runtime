@@ -144,7 +144,13 @@ pub async fn run(
         }
         if matches!(
             config.mode.as_str(),
-            "attached" | "detaching" | "dominant" | "stalled-sink" | "idle" | "saturation"
+            "attached"
+                | "detaching"
+                | "reference"
+                | "dominant"
+                | "stalled-sink"
+                | "idle"
+                | "saturation"
         ) {
             for session in observers.iter_mut() {
                 for observer in session {

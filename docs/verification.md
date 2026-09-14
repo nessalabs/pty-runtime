@@ -85,8 +85,7 @@ What closing each gate now requires, concretely: for **G1**, bringing
 `ProjectedOutput` p99 within its 20 ms target for `128-active`, `chunk-64` and
 `chunk-1` — or recording an explicit overload outcome that identifies the
 rejected operation where the workload is genuinely past capacity — plus the
-a canonical reference-state comparison under load, and completing the macOS
-matrix, which lost 15 of 130 trials **for a
+and completing the macOS matrix, which lost 15 of 130 trials **for a
 reason the artifact does not record** and has no `dominant` evidence at all. For **G2**, G1 first, then real-child
 coverage of the READY-gated path, then an integrated result artifact under
 `docs/experiments` in the shape ADR 0004 specifies. Neither is a large amount of
@@ -129,8 +128,11 @@ later attach is given an exactly-accounted 684 MiB cursor gap. A **fairness outc
 producer and passes — under a session flooding at 135 times the median, the
 other fifteen are served identically and none is starved, though they are
 rate-limited so this is not a contested-share measurement, and input,
-cancellation and resize fairness are not isolated. One item remains
-unexercised: an **explicit overload outcome** identifying a rejected operation — the last of which is what
+cancellation and resize fairness are not isolated. A **canonical reference-state
+comparison under load** now also passes: one session's full 43.8 MiB stream is
+replayed into an independent engine after a measurement phase under pressure and
+the views are equal, on all three trials. One item remains unexercised: an
+**explicit overload outcome** identifying a rejected operation — the last of which is what
 the unpaced capacity cases would need in order to claim ADR 0004's latency
 escape. Two caveats on the rest: the dominant-producer case has **no macOS
 evidence at all**, and latency values above 102.4 ms are the histogram's

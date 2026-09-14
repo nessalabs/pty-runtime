@@ -10,8 +10,8 @@ def cases(smoke=False):
     # `detached` never attaches an observer; `detaching` attaches and then drops
     # them all half way through, which is the transition ADR 0004 asks about and
     # the one nothing else in this matrix exercises.
-    for mode in ('attached', 'detached', 'detaching', 'stalled-observer',
-                 'stalled-sink', 'dominant'):
+    for mode in ('attached', 'detached', 'detaching', 'reference',
+                 'stalled-observer', 'stalled-sink', 'dominant'):
         add(mode, mode=mode)
     add('capacity-projected', mode='saturation', rate=0)
     add('capacity-raw', mode='saturation', rate=0, raw=True)

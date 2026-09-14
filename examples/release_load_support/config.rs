@@ -86,6 +86,7 @@ impl Config {
                 "attached"
                     | "detached"
                     | "detaching"
+                    | "reference"
                     | "stalled-observer"
                     | "stalled-sink"
                     | "dominant"
