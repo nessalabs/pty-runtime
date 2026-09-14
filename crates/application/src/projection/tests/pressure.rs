@@ -1,8 +1,9 @@
 use super::support::*;
 use crate::{
     process::OutputAcceptance,
-    projection::{ProjectionError, ProjectionLimits, Residency},
+    projection::{ProjectionError, ProjectionLimits, ProjectionOptions, Residency},
 };
+use pty_runtime_domain::terminal::{TerminalConfig, TerminalSize};
 use std::{
     sync::atomic::Ordering,
     time::{Duration, Instant},
@@ -182,4 +183,191 @@ fn empty_output_chunk_is_accepted_without_waking_or_failing() {
     assert_eq!(h.owner.stage_output(b""), OutputAcceptance::Accepted);
     assert!(h.owner.status().failure.is_none());
     assert_eq!(h.owner.queue.queued(), 0);
+}
+
+/// One worker run feeds many queued chunks, bounded, and stops for native work.
+///
+/// Everything around a chunk — the workspace lock, the in-flight poll, the phase
+/// decision, the scheduler round trip — is paid per chunk rather than per byte.
+/// Taking one chunk per run made that overhead the dominant cost for small
+/// writes: Experiment 0005 measured `ProjectedOutput` p99 at 225-273 ms against
+/// a 20 ms target with 64-byte chunks, while 64 KiB chunks passed.
+///
+/// The bound matters as much as the batching. A session with a deep queue must
+/// not hold its workspace lock indefinitely against its own observers or a
+/// close, so a run stops after `OUTPUT_BATCH` chunks even with more queued.
+#[test]
+fn one_run_feeds_a_bounded_batch_of_queued_output() {
+    let mut options = options();
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    for _ in 0..40 {
+        assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    }
+    assert_eq!(h.owner.queue.queued(), 40);
+
+    h.step();
+    let after_one_run = h.owner.status().processed.offset;
+    assert_eq!(
+        after_one_run, 64,
+        "one run should feed exactly the 32-chunk bound, two bytes each"
+    );
+    assert_eq!(h.owner.queue.queued(), 8, "the rest must stay queued");
+
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 80);
+    h.close();
+}
+
+/// The batch is bounded by bytes as well as by chunk count.
+///
+/// `feed_bytes` validates up to 1 MiB, so a 32-chunk bound alone would let one
+/// run parse up to 32 MiB while holding a scheduler worker. With large chunks
+/// the byte bound must bind first.
+#[test]
+fn a_large_chunk_batch_is_bounded_by_bytes_not_chunk_count() {
+    let mut options = ProjectionOptions::new(TerminalConfig {
+        feed_bytes: 64 * 1024,
+        ..TerminalConfig::new(TerminalSize::new(80, 24).unwrap())
+    });
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    let chunk = vec![b'a'; 64 * 1024];
+    for _ in 0..10 {
+        assert_eq!(h.owner.stage_output(&chunk), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.queue.queued(),
+        6,
+        "256 KiB total, the run's own first chunk included, is four chunks - \
+         well inside the 32-chunk bound, so bytes are what stopped it"
+    );
+    assert_eq!(h.owner.status().processed.offset, 4 * 64 * 1024);
+    h.close();
+}
+
+/// At the maximum supported `feed_bytes`, one run feeds one chunk.
+///
+/// This is the case the byte bound exists for. A 1 MiB chunk exhausts the bound
+/// on its own, so the run must not batch a second and do 2 MiB of parsing while
+/// holding the workspace and a scheduler worker — which is twice what the
+/// unbatched code ever did in one run.
+#[test]
+fn a_maximum_sized_chunk_is_fed_alone() {
+    let mut options = ProjectionOptions::new(TerminalConfig {
+        feed_bytes: 1024 * 1024,
+        ..TerminalConfig::new(TerminalSize::new(80, 24).unwrap())
+    });
+    options.staging_bytes = 8 * 1024 * 1024;
+    options.staging_slots = 256;
+    let h = Harness::new(options, ProjectionLimits::default());
+    let chunk = vec![b'a'; 1024 * 1024];
+    for _ in 0..2 {
+        assert_eq!(h.owner.stage_output(&chunk), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.queue.queued(),
+        1,
+        "the first chunk alone exhausts the byte bound, so the second must wait \
+         for its own run"
+    );
+    assert_eq!(h.owner.status().processed.offset, 1024 * 1024);
+    h.close();
+}
+
+/// A non-output command at the head of the queue does not start a batch.
+///
+/// A view or checkpoint extraction is bounded on its own terms. Batching output
+/// behind one would put two separately bounded pieces of work into a single run
+/// with no yield between them.
+#[test]
+fn a_view_does_not_pull_queued_output_into_its_run() {
+    let h = Harness::standard();
+    let view = h.owner.view();
+    for _ in 0..4 {
+        assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    }
+
+    h.step();
+    assert_eq!(
+        h.owner.status().processed.offset,
+        0,
+        "the run served the view, so no output may have been fed behind it"
+    );
+    assert_eq!(
+        h.owner.queue.queued(),
+        4,
+        "all four chunks must still be queued"
+    );
+    drop(view);
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 8);
+    h.close();
+}
+
+/// A failed projection ends the batch, and the output failure retained stays
+/// retained.
+///
+/// An oversized generated reply fails the projection and then falls through to
+/// an immediate schedule with no reply set, so nothing else in the loop
+/// condition stops it. `queue.fail` keeps staged output on purpose; a batch that
+/// kept running would dequeue exactly those bytes and drop them, because a
+/// failed policy cannot process them and nothing requeues them.
+#[test]
+fn a_failed_projection_stops_the_output_batch_and_keeps_queued_output() {
+    let h = Harness::standard();
+    let bound = options().terminal.reply_bytes;
+    h.probe.reply_size.store(bound + 1, Ordering::Release);
+    // The first chunk fails the projection; the three behind it must survive.
+    for _ in 0..4 {
+        assert_eq!(h.owner.stage_output(b"?"), OutputAcceptance::Accepted);
+    }
+    assert_eq!(h.owner.queue.queued(), 4);
+
+    h.step();
+    assert_eq!(
+        h.owner.status().failure,
+        Some(ProjectionError::Capacity),
+        "the oversized reply must fail the projection"
+    );
+    assert_eq!(
+        h.owner.status().processed.offset,
+        0,
+        "no chunk was processed, so no position may advance"
+    );
+    assert_eq!(
+        h.owner.queue.queued(),
+        3,
+        "the batch must stop at the failure, leaving the retained output queued"
+    );
+    h.close();
+}
+
+/// A generated reply ends the batch, because native work is then outstanding and
+/// `poll_inflight_operations` has to see it before more bytes are fed.
+#[test]
+fn a_generated_reply_stops_the_output_batch() {
+    let h = Harness::standard();
+    // The second chunk makes the engine produce a reply; chunks after it must
+    // not be fed in the same run.
+    assert_eq!(h.owner.stage_output(b"ab"), OutputAcceptance::Accepted);
+    assert_eq!(h.owner.stage_output(b"?"), OutputAcceptance::Accepted);
+    assert_eq!(h.owner.stage_output(b"cd"), OutputAcceptance::Accepted);
+
+    h.step();
+    assert_eq!(
+        h.owner.status().processed.offset,
+        3,
+        "the batch must stop at the chunk that generated a reply"
+    );
+    assert!(h.owner.workspace.lock().unwrap().reply.is_some());
+    assert_eq!(h.owner.queue.queued(), 1);
+
+    h.pump();
+    assert_eq!(h.owner.status().processed.offset, 5);
+    h.close();
 }

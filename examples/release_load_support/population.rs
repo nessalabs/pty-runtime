@@ -1,5 +1,5 @@
 use super::{
-    DEADLINE, Result,
+    DEADLINE, Result, at,
     config::Config,
     wire::{Frame, Reader},
 };
@@ -32,7 +32,11 @@ pub struct Population {
 impl Population {
     pub fn new(config: &Config, diagnostics: Arc<RuntimeDiagnostics>) -> Result<Self> {
         let directory = std::env::temp_dir().join(format!("pty-load-{}", std::process::id()));
-        std::fs::create_dir(&directory)?;
+        at(
+            "create fixture socket directory",
+            &directory,
+            std::fs::create_dir(&directory),
+        )?;
         let options = RuntimeOptions {
             max_sessions: config.sessions + 1,
             replay_bytes: (config.sessions + 1) * 1024 * 1024,
@@ -42,8 +46,9 @@ impl Population {
             "{{\"event\":\"runtime_options\",\"value\":{:?}}}",
             format!("{options:?}")
         );
-        let runtime = Runtime::new(vec![std::env::current_dir()?], options)?
-            .with_diagnostics(diagnostics.clone());
+        let root = std::env::current_dir()
+            .map_err(|error| std::io::Error::other(format!("runtime root current_dir: {error}")))?;
+        let runtime = Runtime::new(vec![root], options)?.with_diagnostics(diagnostics.clone());
         let mut population = Self {
             runtime,
             children: Vec::with_capacity(config.sessions),
@@ -57,10 +62,18 @@ impl Population {
         Ok(population)
     }
     pub fn spawn(&self, config: &Config, producer: usize, transient: bool) -> Result<Child> {
+        // The transient cancel probe reuses one socket name for the whole run,
+        // once per second; producer sockets are bound once each. Distinguish them.
+        let role = if transient {
+            format!("bind transient probe socket s{producer}")
+        } else {
+            format!("bind producer socket s{producer}")
+        };
         let path = self.directory.join(format!("s{producer}"));
-        let listener = UnixListener::bind(&path)?;
+        let listener = at(&role, &path, UnixListener::bind(&path))?;
         listener.set_nonblocking(true)?;
-        let executable = std::env::current_exe()?;
+        let executable = std::env::current_exe()
+            .map_err(|error| std::io::Error::other(format!("fixture current_exe: {error}")))?;
         let mut arguments = vec![
             "--child".into(),
             path.as_os_str().to_owned(),
@@ -79,7 +92,10 @@ impl Population {
         } else {
             executable
         };
-        let command = CommandSpec::new(executable, std::env::current_dir()?, arguments)?;
+        let working_directory = std::env::current_dir().map_err(|error| {
+            std::io::Error::other(format!("spawn current_dir s{producer}: {error}"))
+        })?;
+        let command = CommandSpec::new(executable, working_directory, arguments)?;
         let size = TerminalSize::new(config.cols, config.rows)
             .map_err(|_| std::io::Error::other("invalid grid"))?;
         let mut options = if config.raw || transient {
@@ -111,7 +127,12 @@ impl Population {
         };
         let ready = ready_frame(&mut socket)?;
         assert_eq!(ready.kind, b'r');
-        std::fs::remove_file(path)?;
+        let unlink = if transient {
+            format!("unlink transient probe socket s{producer}")
+        } else {
+            format!("unlink producer socket s{producer}")
+        };
+        at(&unlink, &path, std::fs::remove_file(&path))?;
         Ok(Child {
             session,
             id,

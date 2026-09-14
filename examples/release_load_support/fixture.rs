@@ -1,4 +1,4 @@
-use super::{Result, producer, wire::Frame};
+use super::{Result, at, producer, wire::Frame};
 use std::{
     io::Read,
     os::{
@@ -40,7 +40,11 @@ pub fn run(path: &str, producer: usize) -> Result<()> {
     {
         return Err(std::io::Error::other("raw fixture PTY setup failed").into());
     }
-    let mut command = UnixStream::connect(path)?;
+    let mut command = at(
+        &format!("child connect to producer socket s{producer}"),
+        std::path::Path::new(path),
+        UnixStream::connect(path),
+    )?;
     let output = Arc::new(Mutex::new(command.try_clone()?));
     let replies = Arc::new(AtomicU64::new(0));
     let errors = Arc::new(AtomicU64::new(0));
