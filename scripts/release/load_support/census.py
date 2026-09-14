@@ -24,13 +24,9 @@ def sample(owner, workloads, phase):
     table = members(owner)
     started = time.monotonic()
     # Batch on Darwin: per-process lsof has prohibitive observer overhead at 128 sessions.
-    try:
-        rows = process_costs(sorted(table))
-        unavailable = []
-    except (FileNotFoundError, ProcessLookupError, AssertionError, subprocess.CalledProcessError) as error:
-        rows = process_costs([owner])
-        unavailable = [pid for pid in table if pid != owner]
-        reason = str(error)
+    # A process that exits mid-census is reported, not raised: it is ordinary at
+    # this scale, and failing the sample would discard every other process too.
+    rows, unavailable = process_costs(sorted(table))
     thread_counts = {}
     if platform.system() == 'Darwin':
         result = subprocess.run(['ps', '-M', '-p', ','.join(map(str, table))], capture_output=True, text=True)
@@ -42,7 +38,8 @@ def sample(owner, workloads, phase):
         row['category'] = 'owner' if row['pid'] == owner else 'workload_fixture' if row['pid'] in workloads else 'guardian_helper'
     return dict(event='physical_resources', phase=phase, monotonic_seconds=started,
                 collection_seconds=time.monotonic()-started, processes=rows,
-                unavailable_pids=unavailable, unavailable_reason=reason if unavailable else None,
+                unavailable_pids=unavailable,
+                unavailable_reason='sampled process exited during the census' if unavailable else None,
                 wakeup_counts=None, wakeup_counts_reason='No portable per-process wakeup counter available from this collector',
                 tree_processes=len(table), zombies=[pid for pid, (_, state) in table.items() if state.startswith('Z')])
 

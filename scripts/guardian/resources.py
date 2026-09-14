@@ -12,50 +12,65 @@ from probe import Session
 
 
 def process_costs(pids):
+    """Measure each process, returning `(rows, vanished)`.
+
+    A sampled process exiting mid-census is ordinary, not a fault: producers
+    finish, transient probes are cancelled, and the census is not synchronised
+    with any of them. Reporting that as an exception loses every *other*
+    process's measurement for the sake of one that ended — which cost 15 of 130
+    macOS trials in Experiment 0005 and left the dominant-producer case with no
+    macOS evidence at all. A process that is gone is named in `vanished`; only a
+    collector that cannot run at all still raises.
+    """
     if platform.system() == 'Linux':
-        rows = []
+        rows, vanished = [], []
         for pid in pids:
             root = Path('/proc') / str(pid)
-            stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
-            memory = {}
-            for line in (root / 'smaps_rollup').read_text().splitlines():
-                key, _, value = line.partition(':')
-                if key in ('Rss', 'Pss'):
-                    memory[key] = int(value.split()[0]) * 1024
-            rows.append({'pid': pid, 'rss_bytes': memory['Rss'], 'pss_bytes': memory['Pss'],
-                         'cpu_seconds': (int(stat[11]) + int(stat[12])) / os.sysconf('SC_CLK_TCK'),
-                         'fds': len(list((root / 'fd').iterdir())),
-                         'threads': len(list((root / 'task').iterdir()))})
-        return rows
+            try:
+                stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
+                memory = {}
+                for line in (root / 'smaps_rollup').read_text().splitlines():
+                    key, _, value = line.partition(':')
+                    if key in ('Rss', 'Pss'):
+                        memory[key] = int(value.split()[0]) * 1024
+                rows.append({'pid': pid, 'rss_bytes': memory['Rss'], 'pss_bytes': memory['Pss'],
+                             'cpu_seconds': (int(stat[11]) + int(stat[12])) / os.sysconf('SC_CLK_TCK'),
+                             'fds': len(list((root / 'fd').iterdir())),
+                             'threads': len(list((root / 'task').iterdir()))})
+            except (FileNotFoundError, ProcessLookupError, KeyError, IndexError):
+                # /proc/<pid> disappearing, or emptying as the kernel tears it
+                # down, is how exit looks from here.
+                vanished.append(pid)
+        return rows, vanished
     selector = ','.join(map(str, pids))
-    output = subprocess.check_output(['ps', '-p', selector, '-o', 'pid=,rss=,time='], text=True)
-    fds = {}
-    current = None
+    output = subprocess.run(['ps', '-p', selector, '-o', 'pid=,rss=,time='],
+                            capture_output=True, text=True).stdout
     inventory = subprocess.run(['lsof', '-Fpf', '-p', selector], capture_output=True, text=True)
-    if inventory.returncode != 0:
+    if inventory.returncode != 0 and not inventory.stdout.strip():
+        # No output at all is the collector failing, not a process exiting.
         raise ProcessLookupError(
             f'lsof process census pids={pids} exit={inventory.returncode} '
-            f'stderr={inventory.stderr!r} stdout={inventory.stdout!r}')
+            f'stderr={inventory.stderr!r}')
+    fds = {}
+    current = None
     for line in inventory.stdout.splitlines():
         if line.startswith('p'):
             current = int(line[1:])
             fds[current] = 0
         elif line.startswith('f') and line[1:].isdigit():
             fds[current] += 1
-    missing_fds = sorted({int(line.split()[0]) for line in output.splitlines()} - fds.keys())
-    if missing_fds:
-        raise ProcessLookupError(f'lsof process census missing_pids={missing_fds} requested_pids={pids} stdout={inventory.stdout!r}')
     rows = []
     for line in output.splitlines():
         pid, rss, elapsed = line.split()
+        pid = int(pid)
+        if pid not in fds:
+            # Present to ps, gone by the time lsof looked.
+            continue
         minutes, seconds = elapsed.split(':')
-        rows.append({'pid': int(pid), 'rss_bytes': int(rss) * 1024, 'pss_bytes': None,
+        rows.append({'pid': pid, 'rss_bytes': int(rss) * 1024, 'pss_bytes': None,
                      'cpu_seconds': int(minutes) * 60 + float(seconds),
-                     'fds': fds[int(pid)], 'threads': None})
-    missing = sorted(set(pids) - {row['pid'] for row in rows})
-    if missing:
-        raise ProcessLookupError(f'ps process census missing_pids={missing} requested_pids={pids} stdout={output!r}')
-    return rows
+                     'fds': fds[pid], 'threads': None})
+    return rows, sorted(set(pids) - {row['pid'] for row in rows})
 
 
 def measure(helper, count, seconds):
