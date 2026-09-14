@@ -125,9 +125,12 @@ case, stalled-observer and stalled-sink modes, observer counts of 1, 4 and 16,
 and per-boundary latency distributions. The **after-all-observers-detach** case is now covered: see
 [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md),
 where 64 observers leave mid-run, throughput holds at the offered rate, and a
-later attach is given an exactly-accounted 684 MiB cursor gap. Two items remain
-unexercised: a **fairness target**, and an **explicit overload outcome**
-identifying a rejected operation — the last of which is what
+later attach is given an exactly-accounted 684 MiB cursor gap. A **fairness outcome** is now reported per active
+producer and passes — under a session flooding at 135 times the median, the
+other fifteen are served identically and none is starved, though they are
+rate-limited so this is not a contested-share measurement, and input,
+cancellation and resize fairness are not isolated. One item remains
+unexercised: an **explicit overload outcome** identifying a rejected operation — the last of which is what
 the unpaced capacity cases would need in order to claim ADR 0004's latency
 escape. Two caveats on the rest: the dominant-producer case has **no macOS
 evidence at all**, and latency values above 102.4 ms are the histogram's

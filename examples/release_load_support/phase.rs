@@ -274,6 +274,58 @@ pub async fn run(
             child.window[2] as f64 * 1_000_000_000.0 / (child.window[1] - child.window[0]) as f64
         );
     }
+    // ADR 0001's fairness clause is that "a flooding session or slow snapshot
+    // consumer does not starve input, cancellation, resize, or other sessions",
+    // and ADR 0004 asks for that as an *explicit outcome* rather than an
+    // inference from aggregate throughput. Aggregate throughput cannot show it:
+    // one session taking everything and one taking nothing sum to exactly the
+    // same total as an even split.
+    //
+    // No threshold is invented here. The distribution is reported so a reader
+    // can apply ADR 0002's targets, and the one property asserted is the one
+    // that needs no threshold to name: a session that was asked to produce, in
+    // a phase that delivered bytes, must not have been served none of them.
+    let mut served: Vec<u64> = population
+        .children
+        .iter()
+        .filter(|child| (child.producer as u64) < config.active as u64)
+        .map(|child| child.window[2])
+        .collect();
+    served.sort_unstable();
+    if !served.is_empty() {
+        let total: u64 = served.iter().sum();
+        let median = served[served.len() / 2];
+        let lowest = served[0];
+        let highest = served[served.len() - 1];
+        // The flooding session in `dominant` is producer 0 by construction; the
+        // question is what the *others* got, so it is reported separately
+        // rather than averaged into them.
+        let others = &served[..served.len().saturating_sub(1)];
+        println!(
+            "{{\"event\":\"fairness\",\"phase\":{phase},\"active_producers\":{},\"phase_bytes\":{total},             \"min_bytes\":{lowest},\"median_bytes\":{median},\"max_bytes\":{highest},             \"min_over_median\":{:.4},\"max_over_median\":{:.4},\"starved_producers\":{},             \"excluding_largest_min_over_median\":{:.4}}}",
+            served.len(),
+            if median > 0 {
+                lowest as f64 / median as f64
+            } else {
+                0.0
+            },
+            if median > 0 {
+                highest as f64 / median as f64
+            } else {
+                0.0
+            },
+            served.iter().filter(|bytes| **bytes == 0).count(),
+            if median > 0 && !others.is_empty() {
+                others[0] as f64 / median as f64
+            } else {
+                0.0
+            }
+        );
+        assert!(
+            total == 0 || lowest > 0,
+            "a producer was served nothing while others were served: min={lowest} median={median} max={highest}"
+        );
+    }
     let accepted = population
         .children
         .iter()

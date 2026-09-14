@@ -193,6 +193,42 @@ observer falls behind. A re-attached observer necessarily falls behind. The
 assertion was wrong, the runtime was right, and the exact-accounting assertion
 that every mode already shares is what actually proves the claim.
 
+## Part 4: fairness, as an outcome rather than an inference
+
+ADR 0001 states the clause: "a flooding session or slow snapshot/event consumer
+does not starve input, cancellation, resize, or other sessions", and ADR 0004
+asks for it as an **explicit outcome**. Aggregate throughput cannot supply one —
+one session taking everything and another taking nothing sums to exactly the
+same total as an even split. The fixture already tracked per-session bytes;
+nothing reported their distribution.
+
+Three trials each, measurement phase, bytes per active producer:
+
+| Case | Active | Min | Median | Max | Max/median | Starved |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `128-active` | 128 | 4.7 MiB | 4.7 MiB | 4.7 MiB | 1.000 | 0 |
+| `attached` | 16 | 37.5 MiB | 37.5 MiB | 37.5 MiB | 1.000 | 0 |
+| **`dominant`** | 16 | **4.0 MiB** | 4.0 MiB | **540.0 MiB** | **135×** | **0** |
+
+`dominant` is the case that tests the clause. One session floods at 135 times
+the median, and the other fifteen are served *identically to each other* —
+min over median exactly 1.000, with nothing starved, on every trial.
+
+**No threshold was invented.** ADR 0002 sets no fairness number, so a pass mark
+defined in the fixture would be one this project never agreed. The distribution
+is reported so it can be read against whatever target is chosen, and the single
+asserted property is the one that needs no threshold to justify: a producer
+asked to produce, in a phase that delivered bytes, must not have been served
+none of them.
+
+**What this does not measure.** The non-dominant producers are rate-limited, so
+4.0 MiB each is their offered rate being met rather than a contested share
+they had to win. It establishes that a flooding session does not prevent others
+reaching their rate — which is the clause — but it is not a measurement of
+contention for a scarce resource, and it says nothing about input, cancellation
+or resize fairness, which the same clause also names and which this case does
+not isolate.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
