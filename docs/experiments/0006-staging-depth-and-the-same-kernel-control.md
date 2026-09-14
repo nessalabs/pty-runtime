@@ -103,6 +103,41 @@ a product default anyway, and a deeper queue is exactly what absorbs bursts
 without backpressuring a producer. A six-workload comparison at 256 against 16
 was started and stopped once the decision was made.
 
+### Six workloads at 256 against 64: a trade, not a free win
+
+The saturating case made a shallower default look free. It is not. Six cases,
+five trials each, at both depths, on the same host and kernel — `ProjectedOutput`
+p99, worst of five:
+
+| Case | @256 | @64 | |
+| --- | ---: | ---: | --- |
+| `attached` | 0.7 ms | 0.7 ms | unchanged |
+| `chunk-64` | 0.8 ms | 0.9 ms | slightly worse |
+| `128-active` | 14.5 ms | **8.9 ms** | better |
+| `stalled-observer` | 0.7 ms | 0.8 ms | slightly worse |
+| **`dominant`** | **0.8 ms** | **1.7 ms** | **worse, about twofold** |
+| `rate-40MiB` | 1.1 ms | 1.0 ms | unchanged |
+
+Accepted throughput is identical at both depths in every case, every latency
+target passes at both, and no case gains replay eviction at 64 —
+`stalled-observer` evicts the same 0.67 GiB either way.
+
+**The `dominant` regression is real, not scatter.** The five trials do not
+overlap: 0.6–0.8 ms at 256 against 1.0–1.7 ms at 64. `chunk-64` and
+`stalled-observer` move the same way by 0.1 ms with almost no overlap. One
+heavy producer is exactly the shape a deep queue absorbs, so this is the cost
+that the single saturating workload could not show.
+
+**The default stays at 256**, on a criterion fixed before the numbers were
+seen: no case may have a worse p99 at 64 than at 256. `dominant` does.
+
+The wider reading matters more than the verdict. **Across every paced workload
+the depth barely matters** — everything lands between 0.6 ms and 14.5 ms
+against a 20 ms target at both depths. Depth dominates only under unpaced
+saturation, where 64 would not be enough either (66 ms against 20 ms; that case
+needs 16). So there was less to gain here than the first sweep implied, and a
+measurable amount to lose.
+
 **One consequence is worth separating from the latency**, because accepting the
 latency does not automatically accept this: at 256 slots the saturating case
 evicts **1.46 GiB of replay**, and at 64 and below it evicts none. That loss is
