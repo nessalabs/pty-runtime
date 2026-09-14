@@ -14,8 +14,8 @@ from probe import Session
 def resident_costs(pids):
     """Measure a population that is supposed to be wholly alive.
 
-    `process_costs` reports exits rather than raising, because the load census
-    samples a population that is legitimately churning. These callers are the
+    `process_costs` reports processes it could not measure rather than raising,
+    because the load census samples a population that is legitimately churning. These callers are the
     opposite case: they hold a fixed set of helpers open for the whole sample,
     so a process leaving means the measurement is describing something other
     than what it claims, and the totals built from it would be quietly wrong.
@@ -56,6 +56,18 @@ def process_costs(pids):
             except (FileNotFoundError, ProcessLookupError, KeyError, IndexError):
                 # /proc/<pid> disappearing, or emptying as the kernel tears it
                 # down, is how exit looks from here.
+                vanished.append(pid)
+            except PermissionError:
+                # The tree came from a `ps` snapshot, so by the time /proc is
+                # read a pid in it may belong to somebody else: this fixture
+                # spawns a transient probe every second, and over a long run
+                # that churn is enough for the kernel to hand one of those
+                # numbers to a process that is not ours. Reading its memory is
+                # then correctly refused.
+                #
+                # This was fatal until a 75-minute soak hit it after 91 seconds.
+                # A one-minute trial never does, which is exactly the kind of
+                # thing only a long run finds.
                 vanished.append(pid)
         return rows, vanished
     selector = ','.join(map(str, pids))

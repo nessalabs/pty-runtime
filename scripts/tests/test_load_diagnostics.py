@@ -142,6 +142,21 @@ class LoadDiagnostics(unittest.TestCase):
             self.assertTrue(any(row.get('text') == 'final fixture stderr' for row in events))
             self.assertEqual(events[-1]['event'], 'trial_result')
 
+    def test_a_reused_pid_we_may_not_read_does_not_kill_the_census(self):
+        """A 75-minute soak died after 91 seconds because this raised."""
+        def read(self, *args, **kwargs):
+            if '/777/' in str(self):
+                raise PermissionError(13, 'Permission denied')
+            if str(self).endswith('/stat'):
+                return '1 (x) S' + ' 0' * 20
+            return 'Rss: 4 kB\nPss: 2 kB\n'
+        with patch.object(resources.platform, 'system', return_value='Linux'), \
+             patch.object(Path, 'read_text', read), \
+             patch.object(Path, 'iterdir', lambda self: iter([])):
+            rows, vanished = resources.process_costs([123, 777])
+        self.assertEqual([row['pid'] for row in rows], [123])
+        self.assertEqual(vanished, [777])
+
     def test_a_process_missing_from_ps_is_reported_as_vanished(self):
         def darwin(args, **kwargs):
             if args[0] == 'lsof':
