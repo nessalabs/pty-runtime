@@ -94,12 +94,22 @@ So the default trades 20× projected-output latency, 12× control latency, and
 (`crates/domain/src/projection/options.rs`). The fixture inherits it rather than
 inventing it.
 
-**This experiment does not change it.** One workload — 16 unpaced producers at
-4093-byte chunks — is not a basis for a product default, and a deeper queue is
-exactly what absorbs bursts without backpressuring a producer. What the data
-supports is narrower: *for a saturating workload, 256 is far past the point of
-diminishing return, and the cost is not only latency.* Choosing a default, or
-making it adaptive, is a decision for whoever owns ADR 0002's targets.
+**This experiment does not change it**, and the decision has since been taken
+to leave it: 278 ms under unpaced saturation is accepted for now. Recorded here
+so the number is not rediscovered as a defect later.
+
+One workload — 16 unpaced producers at 4093-byte chunks — was never a basis for
+a product default anyway, and a deeper queue is exactly what absorbs bursts
+without backpressuring a producer. A six-workload comparison at 256 against 16
+was started and stopped once the decision was made.
+
+**One consequence is worth separating from the latency**, because accepting the
+latency does not automatically accept this: at 256 slots the saturating case
+evicts **1.46 GiB of replay**, and at 64 and below it evicts none. That loss is
+exactly accounted — every observer gets a precise cursor gap, which is what ADR
+0004 requires — so it is correct behaviour, not corruption. But it is bytes an
+observer cannot get back, caused by the queue depth rather than by the offered
+load. If that is also acceptable, nothing here needs revisiting.
 
 ## An invalid run happened first, and is why the fixture now refuses unknown flags
 
