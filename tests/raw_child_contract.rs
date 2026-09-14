@@ -99,6 +99,38 @@ fn merged_stdout_stderr_preserves_binary_bytes_through_public_observer() {
     owner.shutdown();
 }
 
+/// Describe an unexpected exec environment without printing any value.
+///
+/// `coding_standards.md` requires environment values redacted, and this
+/// assertion used to honour that by printing nothing at all — which left a
+/// truncated read and a real variable leak looking identical. This test has
+/// failed six times under CPU contention, once in CI on a documentation-only
+/// pull request, and every one of those failures was undiagnosable for exactly
+/// that reason.
+///
+/// Names and lengths separate the two cases and disclose no value: a leak adds
+/// a name, while a truncated read shows a short byte count and an unterminated
+/// final line.
+fn redacted_environment(output: &[u8]) -> String {
+    let text = String::from_utf8_lossy(output);
+    let names: Vec<&str> = text
+        .split('\n')
+        .map(|line| line.trim_end_matches('\r'))
+        .filter(|line| !line.is_empty())
+        .map(|line| line.split('=').next().unwrap_or(""))
+        .collect();
+    format!(
+        "{} bytes, {} assignment(s), names {:?}, final line terminated: {}, \
+         valid utf-8: {} (values withheld deliberately; a short byte count with \
+         an unterminated line is a truncated read, an extra name is a leak)",
+        output.len(),
+        names.len(),
+        names,
+        text.ends_with('\n'),
+        std::str::from_utf8(output).is_ok(),
+    )
+}
+
 #[test]
 fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     let owner = runtime(RuntimeOptions::default());
@@ -128,11 +160,11 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     };
     assert_eq!(done.status.exit, Some(ExitStatus::Code(0)));
     assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
-    // Compare without printing unexpected values if a future environment leak occurs.
     assert!(
         output == b"PTY_SYNTHETIC_FLAG=final-override\r\n"
             || output == b"PTY_SYNTHETIC_FLAG=final-override\n",
-        "unexpected exec environment"
+        "unexpected exec environment: {}",
+        redacted_environment(&output)
     );
     owner.shutdown();
 }
