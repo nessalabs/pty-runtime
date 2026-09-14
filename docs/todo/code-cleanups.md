@@ -128,9 +128,33 @@ It now reports variable **names**, byte count, and whether the final line was
 terminated, with values withheld. A short count with an unterminated line is a
 truncated read; an extra name is a leak.
 
-**Still open:** the contention timeouts are neither widened nor explained, and
-the underlying flakiness is unaddressed — this makes the next failure readable,
-not less likely.
+**The mechanism is still unfound, and four attempts to reproduce it failed.**
+On the Linux box, at `981a74a` plus this branch:
+
+| Attempt | Result |
+| --- | --- |
+| 60 runs of the test alone under 32-way CPU contention on 8 cores | 0 failures |
+| The four historically affected binaries run concurrently, 15 rounds | 0 of 60 |
+| Full `cargo test --locked --workspace`, pinned to 2 cores, 3 rounds | 0 failures |
+
+Two earlier guesses were wrong and are recorded so they are not retried. A
+variable being inherited from the parent cannot happen: the second argument to
+`with_environment` is `removals`, not an inheritance list, so `PATH` never
+reaches the child. And `OutputEvent::Complete` cannot overtake pending replay
+bytes: the replay read and the completion check happen under one lock, and the
+drain outcome is part of the completion record.
+
+A third attempt produced a false positive worth recording. Running the four
+binaries as `cargo test --test process_contract` from the workspace root
+"failed" 12 times out of 12 — because that target lives in
+`pty-runtime-infrastructure` and was never run at all. Cargo said so in the log.
+It looked exactly like a clean reproduction.
+
+**Still open:** the mechanism, and therefore the flakiness itself. The
+contention timeouts are neither widened nor explained. What has changed is that
+the next failure will name which of the three claims broke rather than printing
+nothing, which is what made the original six undiagnosable — so the next
+occurrence should be worth more than all six previous ones combined.
 
 ## Resource measurements were not retained: fixed
 
