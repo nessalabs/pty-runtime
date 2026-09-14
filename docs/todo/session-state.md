@@ -4,15 +4,19 @@
 
 ### Open pull requests
 
-All four are pushed and open against `main`. They touch separate files and can
-merge in any order, though #17 before #18 keeps this branch's citations live.
+They touch separate files, but the order is **not** free: **#17 must merge
+before #18.** Until it does, `docs/verification.md` on `main` still says no
+128-producer workload has run, while this branch's notes record `128-active`
+passing 5/5 — so merging this one first would put two contradictory accounts
+into `main` at once, with the authoritative ledger holding the wrong one. #16
+is independent of both. #19 is already merged.
 
 | PR | Branch | State |
 | --- | --- | --- |
 | #16 | `pr-conventions` | PR template and the `AGENTS.md` rules behind it. |
 | #17 | `g1-load-evidence` | Experiment 0005 and its data, plus the `verification.md` update. **`verification.md` is only current on that branch** — on `main`, and therefore on this branch, it still reads as though no 128-session workload has run. |
 | #18 | `chunk-batching` | This branch: the batching fix, its tests, and the session notes. |
-| #19 | `harness-descriptor-limit` | Records `ulimit -n` per run; documents what the 128-session cases need. |
+| #19 | `harness-descriptor-limit` | **Merged** as `b6f6ddd`. Records `ulimit -n` per run; documents what the 128-session cases need. |
 
 ### Where the 128-session evidence actually stands
 
