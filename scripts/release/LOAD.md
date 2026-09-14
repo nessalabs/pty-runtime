@@ -42,6 +42,15 @@ and lands separately. Until it does, treat the failure mode and the 65535
 figure as an operational note from an unretained run rather than as citable
 evidence: no source identity, workload or raw results are committed for it here.
 
+Archive a completed run with `python3 scripts/release/archive.py --input
+/absolute/evidence/load-full --output docs/experiments/data/NNNN/<platform>.json`.
+Do not assemble the artifact by hand. ADR 0004 asks the integrated results to
+carry latency distributions and resource peaks and cleanup; Experiment 0005 was
+built by hand, kept only a closing census and a filtered event list, and its
+resource claims had to be withdrawn because nothing behind them survived. The
+script states its own retention policy in the artifact under `retention`, and
+`scripts/tests/test_load_archive.py` pins it.
+
 The fixture accepts `--staging-slots N` (default 256, range 1–1,048,576) to
 sweep each projected session's parser-output queue through the existing public
 projection option. This leaves runtime defaults, global limits and control-request
