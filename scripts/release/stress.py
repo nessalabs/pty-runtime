@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import platform
 import queue
+import resource
 import shutil
 import tempfile
 import threading
@@ -101,7 +102,10 @@ def main():
         def record(value):
             output.write(json.dumps(value) + '\n')
             output.flush()
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
         record({'event': 'identity', 'platform': platform.platform(), 'machine': platform.machine(),
+                'descriptor_limit': {'soft': soft_limit, 'hard': hard_limit,
+                                     'unlimited': soft_limit == resource.RLIM_INFINITY},
                 'source_head': source, 'diff_sha256': hashlib.sha256(dirty).hexdigest(),
                 'source_inventory_sha256': digest.hexdigest(),
                 'binary_sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
