@@ -22,11 +22,15 @@ FINAL_CENSUS_PHASE = 'closed'
 def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
     command = [str(binary)]
     for key, value in config.items():
+        # The fixture spells every flag with hyphens. Sending an underscore
+        # meant it fell back to its default, and a four-point sweep measured
+        # one point four times before anyone noticed.
+        flag = '--' + key.replace('_', '-')
         if isinstance(value, bool):
             if value:
-                command.append('--' + key)
+                command.append(flag)
         else:
-            command += ['--' + key, str(value)]
+            command += [flag, str(value)]
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1,
                                env={**os.environ, 'PTY_RELEASE_CENSUS': '1'})

@@ -22,6 +22,39 @@ impl Config {
                 .find(|pair| pair[0] == name)
                 .map_or_else(|| fallback.to_owned(), |pair| pair[1].clone())
         };
+        // Every name the fixture understands. An argument outside this set is a
+        // misconfigured run, not a harmless extra: `value` falls back to the
+        // default when it does not find a name, so a misspelling silently
+        // measures something other than what was asked for. A staging-slot
+        // sweep was run four times at four settings and all four were the
+        // default, because the driver sent `--staging_slots`.
+        const NAMES: [&str; 13] = [
+            "--mode",
+            "--sessions",
+            "--active",
+            "--seconds",
+            "--warmup",
+            "--rate",
+            "--producer-bytes",
+            "--staging-slots",
+            "--chunk",
+            "--observers",
+            "--cols",
+            "--rows",
+            "--raw",
+        ];
+        // No skip for argv[0]: a program path does not begin with `--`, so the
+        // filter passes over it either way, and the test helper supplies none.
+        if let Some(unknown) = args
+            .iter()
+            .find(|argument| argument.starts_with("--") && !NAMES.contains(&argument.as_str()))
+        {
+            return Err(std::io::Error::other(format!(
+                "unrecognised fixture argument {unknown}; a run that silently used defaults \
+                 instead would not be the run that was requested"
+            ))
+            .into());
+        }
         let result = Self {
             mode: value("--mode", "attached"),
             sessions: value("--sessions", "64").parse()?,
@@ -114,6 +147,19 @@ mod tests {
             );
         }
         assert!(parse(&["--staging-slots", "32"]).is_ok());
+    }
+
+    /// A misspelled flag must fail rather than quietly measure the default.
+    #[test]
+    fn an_unrecognised_argument_is_refused_rather_than_ignored() {
+        assert!(
+            parse(&["--staging_slots", "16"]).is_err(),
+            "an underscore spelling must not silently run at the default"
+        );
+        assert!(parse(&["--stagingslots", "16"]).is_err());
+        assert!(parse(&["--unknown"]).is_err());
+        // The values themselves are not names and must stay unaffected.
+        assert!(parse(&["--mode", "saturation", "--rate", "0"]).is_ok());
     }
 
     #[test]
