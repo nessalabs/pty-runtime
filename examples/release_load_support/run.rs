@@ -158,6 +158,7 @@ pub async fn execute(config: Config) -> Result<()> {
 /// observer, deliberately: retention is capped at 1 MiB per session, so an
 /// observer cannot supply the whole history, while the payload is a pure
 /// function of offset and producer and can.
+#[cfg(feature = "ghostty")]
 async fn reference_state(population: &Population, config: &Config) -> Result<()> {
     use pty_runtime::ports::ITerminalFactory;
     use pty_runtime::terminal::{TerminalConfig, TerminalSize};
@@ -209,4 +210,14 @@ async fn reference_state(population: &Population, config: &Config) -> Result<()>
         child.total
     );
     Ok(())
+}
+
+/// Without the engine there is nothing to compare against, and quietly skipping
+/// would let a `reference` run report success while checking nothing.
+#[cfg(not(feature = "ghostty"))]
+async fn reference_state(_population: &Population, _config: &Config) -> Result<()> {
+    Err(std::io::Error::other(
+        "the reference mode compares against a Ghostty engine and needs that feature",
+    )
+    .into())
 }
