@@ -71,7 +71,12 @@ impl Config {
             raw: args.iter().any(|arg| arg == "--raw"),
         };
         if result.sessions == 0
-            || result.sessions > 128
+            // ADR 0002 asks for 500 sessions qualified "on a host with sufficient
+            // PTY/process capacity", and notes the macOS host's system-wide PTY
+            // limit of 511 as the reason that is not everywhere. The cap is the
+            // fixture's own, so it has to allow what the ADR asks for; whether a
+            // given host can actually carry it is what the run finds out.
+            || result.sessions > 512
             || result.active > result.sessions
             || result.seconds == 0
             || result.producer_bytes == 0

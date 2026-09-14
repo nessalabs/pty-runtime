@@ -27,7 +27,7 @@ def cases(smoke=False):
         add(f'grid-{cols}x{rows}', cols=cols, rows=rows)
     add('idle-64', mode='idle', active=0, rate=0, raw=True, observers=0)
     for raw in (True, False):
-        for count in (1, 32, 128):
+        for count in (1, 32, 128, 500):
             add(f'resources-{"raw" if raw else "projected"}-{count}', mode='idle',
                 sessions=count, active=0, rate=0, raw=raw, observers=0)
     if smoke:

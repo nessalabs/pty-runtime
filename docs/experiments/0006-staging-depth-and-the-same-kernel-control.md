@@ -259,6 +259,44 @@ reference rate — not saturation, not the small-chunk cases, and not after a pa
 or restore. Equality is checked once, at the end of the measurement phase,
 rather than continuously.
 
+## Part 6: 500 sessions, and the ceiling that stops them being projected
+
+ADR 0002 asks for 500 sessions "qualified on a host with sufficient PTY/process
+capacity", and explains why that had not happened: the macOS host reports a
+system-wide PTY limit of 511 which must also serve everything else. The Linux
+box reports **4096**, so it is the host that requirement describes. The fixture
+capped itself at 128 sessions, so the cap was raised to 512 — the fixture must
+allow what the ADR asks for; whether a host can carry it is what a run finds
+out.
+
+**Raw, 500 sessions: passes.** One trial, 60 seconds after warm-up,
+`ulimit -n 65535`:
+
+| | |
+| --- | --- |
+| Processes at steady state | **1,501** |
+| Resident memory | 3,021 MiB |
+| Descriptors | 14,508 |
+| Threads | 2,507 |
+| Idle CPU | **0.53 %** against a 1.0 % target |
+| After close | tree of 1, **zero zombies** |
+
+**Projected, 500 sessions: refused, before a single session starts**, with
+`Error: Projection(Capacity)`. That is not a defect and not a host limit. Each
+projected session reserves 8 MiB of native memory, and `ProjectionLimits`
+defaults `resident_bytes` to 1 GiB — which permits exactly **128** projected
+sessions.
+
+That number is the matrix's own 128-session ceiling, arrived at independently.
+The bounded matrix stops where the default resident quota stops, which is worth
+knowing: 128 was not a cautious guess, it is what the shipped defaults allow.
+
+Raising it is a decision rather than a fix. 500 projected sessions would reserve
+about 3.9 GiB before any output is parsed, and the refusal is already the
+behaviour the runtime promises — a typed, immediate `Capacity` rather than a
+degraded run. What this experiment establishes is the capacity claim for the raw
+path at 500, and the exact reason the projected path does not reach it.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
