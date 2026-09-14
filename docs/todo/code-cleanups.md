@@ -23,9 +23,13 @@ batching patch applied: **15 of 20 passed**, all five failures confined to
 | `attached` | 5/5 pass | 200-300 | not measured |
 | `128-active` | 5/5 fail | - | - |
 
-So the 0.1 ms `chunk-64` figure now carries five-repeat full-duration weight,
-not one trial. `chunk-1` is the worst surviving case at 5.5-6.0 ms; still inside
-target, but it is the one to watch.
+**These two figures were later corrected.** This run was on kernel `6.8.0-136`
+while the baseline it is compared against was on `6.8.0-117`.
+[Experiment 0006](../experiments/0006-staging-depth-and-the-same-kernel-control.md)
+re-ran them on the baseline's own kernel: `chunk-64` is **0.8-0.9 ms**, not
+0.1 ms, and `chunk-1` is **7.7-9.1 ms**, not 5.5-6.0. The improvement is
+unchanged in kind — still 280-fold and inside target on all five trials — but
+the numbers above were optimistic by roughly eight times.
 
 **Named cause of the `128-active` failure: the host descriptor limit.** Every
 trial died at the `runtime` checkpoint — inside `Population::new`, while
@@ -67,10 +71,14 @@ redaction instinct is right, the diagnosability is not.
 with the after-numbers, the `128-active` host-limit finding and the corrected
 failure signature.
 
-**`capacity-projected` is not fixed.** Re-run with batching at five repeats:
-`ProjectedOutput` 255-331 ms against 20 ms, `ResizeDispatch` 235-286 ms against
-100 ms, all five trials. Batching roughly halves the figure and does not bring
-it near target. It helps the paced small-chunk cases; saturation is untouched.
+**`capacity-projected` is explained, not fixed by batching.** Batching roughly
+halves it and does not bring it near target — it helps the paced small-chunk
+cases and leaves saturation. Experiment 0006 found the cause: the tail is the
+per-session staging queue's residence time, about 0.83 ms per slot. At the
+shipped default of 256 slots it is 271-289 ms; at 16 it is **18.4-19.4 ms and
+passes 5/5**, with throughput unchanged, control round-trip twelve times better,
+and replay eviction falling from 1.46 GiB to zero. Whether to change the default
+is a product decision that evidence does not make.
 
 **Reported p99 above 102.4 ms is a maximum, not a percentile.** The diagnostics
 histogram (`crates/application/src/diagnostics/histogram.rs`) is 1025 buckets of
