@@ -91,12 +91,14 @@ What closing each gate now requires, concretely: for **G1**, bringing
 `chunk-1` — or recording an explicit overload outcome that identifies the
 rejected operation where the workload is genuinely past capacity — plus the
 and completing the macOS matrix, which lost 15 of 130 trials **for a
-reason the artifact does not record**. Its `dominant` gap is now closed: the
-case that had lost all five macOS trials passes 5/5 on macOS arm64 with
-`ProjectedOutput` p99 0.20-0.30 ms against a 20 ms target, holding 10.0 MiB/s,
-and **three to four censuses per trial recorded a vanished process** — the exact
-race that had been fatal, now survived. The remaining 10 lost trials are in
-other cases and have not been re-run. For **G2**, G1 first, then real-child
+reason the artifact does not record**. **That matrix is now complete.** All six cases that lost
+trials were re-run on macOS arm64 at five trials each: **30 trials, none lost**,
+while more than sixty censuses recorded a process vanishing — the same race, no
+longer fatal. `dominant` has macOS evidence for the first time. One result is
+not a pass: `rate-40MiB` misses `ProjectedOutput` at 81 ms against a 20 ms
+target, which with the single miss in Experiment 0005 makes **two independent
+macOS-only occurrences**, so it is no longer well described as noise and is
+undiagnosed. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). For **G2**, G1 first, then real-child
 coverage of the READY-gated path, then an integrated result artifact under
 `docs/experiments` in the shape ADR 0004 specifies. Neither is a large amount of
 writing; both are runs nobody has made.

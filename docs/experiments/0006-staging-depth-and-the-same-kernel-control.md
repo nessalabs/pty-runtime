@@ -383,6 +383,50 @@ a gate passes. What it changes is that the question can now be answered from the
 artifact instead of from the source, which is what "explicit outcome" has to
 mean if it means anything.
 
+## Part 9: the macOS matrix, completed
+
+Experiment 0005 lost 15 of 130 macOS trials to the census raising when a
+sampled process exited, and left `dominant` with no macOS evidence at all. With
+that fixed, the six cases that had lost trials were re-run on macOS arm64,
+five trials each:
+
+| Case | Trials | Passed | Censuses that saw a process vanish | Latency misses |
+| --- | ---: | ---: | ---: | --- |
+| `dominant` | 5 | **5** | 3–4 per trial | none |
+| `capacity-projected` | 5 | **5** | 15 | ProjectedOutput 76–78 ms |
+| `capacity-raw` | 5 | **5** | 11 | none |
+| `rate-20MiB` | 5 | **5** | 16 | none |
+| `rate-40MiB` | 5 | **5** | 17 | **ProjectedOutput 81 ms** |
+| `stalled-sink` | 5 | **5** | 17 | none |
+
+**Thirty trials, none lost, while the race fired more than sixty times.** That
+is the point: the census still meets processes that have exited, at the same
+rate as before. It simply records them now instead of discarding the sample.
+This is the fix demonstrated under load on the platform that lost the trials,
+rather than against a synthetic exit.
+
+### `rate-40MiB` has now reproduced, and that changes its reading
+
+Experiment 0005 recorded a single `rate-40MiB` miss on macOS, absent from
+Linux, and this record described it as having "did not reproduce" — true then,
+and it implied noise. It has now missed again on fresh trials, at 81 ms against
+a 20 ms target. **Two independent occurrences, macOS only, none on Linux**, is
+no longer well described as noise. It is undiagnosed and looks
+platform-specific, which is a different open question from the one this
+experiment closed.
+
+`capacity-projected`'s 76–78 ms is the saturation behaviour described in Part 2
+and is expected rather than new.
+
+### A build that could not run the case
+
+`stalled-sink` failed all five trials on the first attempt, with
+`stalled-sink requires --features event-stream` — a binary built with `ghostty`
+alone, against a `LOAD.md` that specifies `event-stream` for this matrix. The
+fixture refused loudly rather than running something else, which is the
+behaviour added in Part 5's companion change; re-run with the documented
+features it passes 5 of 5.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
