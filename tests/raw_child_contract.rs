@@ -189,11 +189,16 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
         redacted_environment(&output)
     );
     // 3. The override won. Compared as a parsed assignment rather than as raw
-    //    bytes, so a line-ending difference is not mistaken for a leak.
-    assert_eq!(
-        assignments,
-        ["PTY_SYNTHETIC_FLAG=final-override"],
-        "override not applied at the exec boundary"
+    //    bytes, so a line-ending difference is not mistaken for a leak — and
+    //    with `assert!` rather than `assert_eq!`, because the latter debug-
+    //    prints both sides on failure and the left side is the value this test
+    //    exists to keep out of a CI log. Reaching here means the name was
+    //    right, so the only thing left to report is that the value was not.
+    assert!(
+        assignments == ["PTY_SYNTHETIC_FLAG=final-override"],
+        "the expected variable is present but carries a different value, \
+         which is withheld: {}",
+        redacted_environment(&output)
     );
     owner.shutdown();
 }

@@ -120,6 +120,67 @@ class Retention(unittest.TestCase):
         self.assertEqual(artifact['identity_divergent_trials'], [])
         self.assertEqual(artifact['trials'][0]['run']['configuration'], {'sessions': 1})
 
+    def test_a_missing_trial_file_fails_rather_than_shrinking_the_evidence(self):
+        """An artifact must not look complete while holding fewer trials."""
+        root = Path(self.directory)
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True, 'path': 'gone.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit):
+            archive.main()
+
+    def test_an_unreadable_line_fails_rather_than_being_dropped(self):
+        root = Path(self.directory)
+        (root / 'trial.jsonl').write_text(json.dumps(identity()) + '\nnot json at all\n')
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True, 'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(ValueError):
+            archive.main()
+
+    def test_a_trial_without_an_identity_is_refused(self):
+        """Measurements that cannot be attributed to a revision are not evidence."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [{'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True, 'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit):
+            archive.main()
+
+    def test_a_divergent_identity_names_the_trial_it_came_from(self):
+        root = Path(self.directory)
+        write(root, 'a.jsonl', [identity()])
+        write(root, 'b.jsonl', [identity(source_head='different')])
+        (root / 'summary.json').write_text(json.dumps({'results': [
+            {'case': 'attached', 'trial': 1, 'passed': True, 'path': 'a.jsonl'},
+            {'case': 'attached', 'trial': 2, 'passed': True, 'path': 'b.jsonl'}]}))
+        out = root / 'a.json'
+        sys.argv = ['archive', '--input', str(root), '--output', str(out)]
+        archive.main()
+        divergent = json.loads(out.read_text())['identity_divergent_trials']
+        self.assertEqual(len(divergent), 1)
+        self.assertEqual(divergent[0]['trial'], 2)
+        self.assertEqual(divergent[0]['file'], 'b.jsonl')
+        self.assertEqual(divergent[0]['identity']['source_head'], 'different')
+
+    def test_proportional_memory_survives_in_the_series(self):
+        """Per-process rows are dropped for periodic samples; PSS lives only here."""
+        rows = [{'pid': 1, 'rss_bytes': 100, 'pss_bytes': 60, 'fds': 3, 'threads': 2,
+                 'cpu_seconds': 1.0}]
+        artifact = self.build('attached', [identity(), census(1.0, 'periodic', rows)])
+        self.assertEqual(artifact['trials'][0]['resource_series'][0]['pss_bytes'], 60)
+
+    def test_cleanup_evidence_from_a_failed_trial_is_kept(self):
+        artifact = self.build('attached', [
+            identity(),
+            {'event': 'trial_failure', 'error': 'boom'},
+            {'event': 'trial_failure_process', 'exit_code': 101, 'killed_by_driver': False},
+            {'event': 'trial_cleanup_failure', 'stream': 'stdin', 'error': 'EBADF'}])
+        detail = artifact['trials'][0]['failure_detail']
+        self.assertEqual([row['event'] for row in detail],
+                         ['trial_failure_process', 'trial_cleanup_failure'])
+
     def test_a_failed_trial_keeps_its_failure_and_stderr(self):
         artifact = self.build('attached', [
             identity(),

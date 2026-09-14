@@ -11,6 +11,22 @@ import time
 from probe import Session
 
 
+def resident_costs(pids):
+    """Measure a population that is supposed to be wholly alive.
+
+    `process_costs` reports exits rather than raising, because the load census
+    samples a population that is legitimately churning. These callers are the
+    opposite case: they hold a fixed set of helpers open for the whole sample,
+    so a process leaving means the measurement is describing something other
+    than what it claims, and the totals built from it would be quietly wrong.
+    """
+    rows, vanished = process_costs(pids)
+    if vanished:
+        raise ProcessLookupError(
+            f'processes exited during a fixed-population sample: {vanished}')
+    return rows
+
+
 def process_costs(pids):
     """Measure each process, returning `(rows, vanished)`.
 
@@ -43,8 +59,17 @@ def process_costs(pids):
                 vanished.append(pid)
         return rows, vanished
     selector = ','.join(map(str, pids))
-    output = subprocess.run(['ps', '-p', selector, '-o', 'pid=,rss=,time='],
-                            capture_output=True, text=True).stdout
+    listing = subprocess.run(['ps', '-p', selector, '-o', 'pid=,rss=,time='],
+                             capture_output=True, text=True)
+    # `ps` exits non-zero when *none* of the pids exist, which is a real answer,
+    # and also when it fails outright. Those must not look alike: a failed `ps`
+    # with an empty listing would otherwise report every live process as having
+    # vanished. Only an empty listing paired with no complaint is believed.
+    if listing.returncode != 0 and listing.stderr.strip():
+        raise ProcessLookupError(
+            f'ps process census pids={pids} exit={listing.returncode} '
+            f'stderr={listing.stderr!r}')
+    output = listing.stdout
     inventory = subprocess.run(['lsof', '-Fpf', '-p', selector], capture_output=True, text=True)
     if inventory.returncode != 0 and not inventory.stdout.strip():
         # No output at all is the collector failing, not a process exiting.
@@ -84,10 +109,10 @@ def measure(helper, count, seconds):
             _, guardian, sentinel, _ = session.admitted()
             pids.extend([guardian, sentinel])
         launch_seconds = time.monotonic() - launch
-        before = process_costs(pids)
+        before = resident_costs(pids)
         sample_start = time.monotonic()
         time.sleep(seconds)
-        after = process_costs(pids)
+        after = resident_costs(pids)
         elapsed = time.monotonic() - sample_start
         cpu = sum(row['cpu_seconds'] for row in after) - sum(row['cpu_seconds'] for row in before)
         return {'sessions': count, 'persistent_helpers': len(pids), 'launch_seconds': launch_seconds,
@@ -106,7 +131,7 @@ def measure_adapter(adapter, count, seconds):
                                stdout=subprocess.PIPE, text=True)
     try:
         assert process.stdout.readline().strip() == f'baseline {process.pid}'
-        baseline = process_costs([process.pid])[0]
+        baseline = resident_costs([process.pid])[0]
         launch = time.monotonic()
         process.stdin.write('start\n')
         process.stdin.flush()
@@ -120,10 +145,10 @@ def measure_adapter(adapter, count, seconds):
         helpers = [pid for workload in workloads for pid in [parents[workload], parents[parents[workload]]]]
         assert len(set(helpers)) == 2 * count
         pids = [process.pid, *helpers, *workloads]
-        before = process_costs(pids)
+        before = resident_costs(pids)
         started = time.monotonic()
         time.sleep(seconds)
-        after = process_costs(pids)
+        after = resident_costs(pids)
         elapsed = time.monotonic() - started
         costs = {row['pid']: row for row in after}
         result = {'sessions': count, 'persistent_helpers': len(helpers), 'launch_seconds': launch_seconds,
@@ -133,7 +158,7 @@ def measure_adapter(adapter, count, seconds):
         process.stdin.write('close\n')
         process.stdin.flush()
         assert process.stdout.readline().strip() == 'closed'
-        result['owner_after_shutdown'] = process_costs([process.pid])[0]
+        result['owner_after_shutdown'] = resident_costs([process.pid])[0]
         process.stdin.close()
         assert process.wait(timeout=10) == 0
         return result

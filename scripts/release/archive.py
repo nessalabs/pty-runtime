@@ -40,14 +40,21 @@ def totals(sample):
             'phase': sample.get('phase'),
             'tree_processes': sample.get('tree_processes'),
             'measured_processes': len(rows),
-            'rss_bytes': total('rss_bytes'), 'fds': total('fds'),
+            'rss_bytes': total('rss_bytes'),
+            # Linux records proportional set size so shared pages are not
+            # counted once per process. Dropping it here would lose the only
+            # series that supports proportional-memory analysis, because the
+            # per-process rows it comes from are not kept for every sample.
+            'pss_bytes': total('pss_bytes'),
+            'fds': total('fds'),
             'threads': total('threads'), 'cpu_seconds': total('cpu_seconds'),
             'zombies': len(sample.get('zombies') or []),
             'unavailable_pids': len(sample.get('unavailable_pids') or [])}
 
 
 def summarize(path, keep_process_rows):
-    trial = {'file': path.name, 'identity': None, 'run': None, 'latency_targets': [],
+    trial = {'file': path.name, 'identity': None, 'run': None, 'failure_detail': [],
+             'latency_targets': [],
              'latency': [], 'resource_series': [], 'budget_peaks': {},
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
              'cpu_interval': None, 'producer_start_skew': None,
@@ -57,8 +64,10 @@ def summarize(path, keep_process_rows):
     for line in path.read_text().splitlines():
         try:
             event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
+        except json.JSONDecodeError as error:
+            # Skipping a line here would quietly shrink the evidence while the
+            # artifact still reported the run as complete.
+            raise ValueError(f'{path.name}: unreadable line: {error}') from error
         kind = event.get('event')
         if kind == 'identity':
             # Split once here: the shared half is hoisted to the artifact and the
@@ -107,6 +116,11 @@ def summarize(path, keep_process_rows):
             trial[kind] = event
         elif kind == 'trial_failure':
             trial['failure'] = event
+        elif kind in ('trial_failure_process', 'trial_cleanup_failure'):
+            # A trial that never reaches its closing census has no other record
+            # of how its child ended or whether its pipes closed. That is
+            # precisely the trial whose cleanup a reader most needs.
+            trial.setdefault('failure_detail', []).append(event)
         elif kind == 'stderr':
             trial['stderr'].append(event.get('text'))
     if delivered:
@@ -127,16 +141,28 @@ def main():
     for row in summary['results']:
         path = args.input / row['path']
         if not path.exists():
-            continue
+            # The summary still lists it, so skipping would produce an artifact
+            # that looks complete while holding fewer trials than the run it
+            # claims to describe.
+            raise SystemExit(f'{row["path"]} is named by summary.json but missing; '
+                             f'the run is incomplete and archiving it would hide that')
         keep = any(row['case'].startswith(prefix) for prefix in args.full_process_rows)
         trial = summarize(path, keep)
+        if trial['identity'] is None:
+            raise SystemExit(f'{row["path"]} carries no identity record; '
+                             f'its measurements cannot be attributed to a revision')
         trial['case'] = row['case']
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']
         trials.append(trial)
     shared = [trial.pop('identity') for trial in trials]
     common = shared[0] if shared else {}
-    divergent = [row for row in shared[1:] if row != common]
+    # Carry the trial's coordinates with it: a bare list of differing identities
+    # says a divergence happened without saying which measurements it affected,
+    # which is the only thing a reader needs from it.
+    divergent = [{'case': trial['case'], 'trial': trial['trial'], 'file': trial['file'],
+                  'identity': identity}
+                 for trial, identity in zip(trials, shared) if identity != common]
     artifact = {
         'summary': summary,
         'identity': common,
