@@ -297,6 +297,60 @@ behaviour the runtime promises — a typed, immediate `Capacity` rather than a
 degraded run. What this experiment establishes is the capacity claim for the raw
 path at 500, and the exact reason the projected path does not reach it.
 
+## Part 7: what a long run is actually for
+
+ADR 0002 asks the 12-hour soak for "stable resource plateaus after warm-up, no
+accumulating children/descriptors/workers". Nothing here had ever tested how
+much of that a shorter run can answer, so the question "why twelve hours" had
+only a reasoned answer. This is the measured one.
+
+A 55-minute `attached` trial, 327 periodic samples, analysed with
+`scripts/release/accumulation.py`. The extrapolation stretch is **1.09×** — an
+hour projected from 55 minutes — where a 60-second trial projects at 60× and
+its per-hour figures are not evidence of anything.
+
+| Resource | Growth over 55 min | Per hour | Verdict |
+| --- | ---: | ---: | --- |
+| Descriptors | +0.2 | 0.2/h | flat — 1,864 to 1,873, peak 1,881 |
+| Threads | 0.0 | 0.0/h | flat |
+| Processes | 0.0 | 0.0/h | flat |
+| Resident memory | +113 KiB | 124 KiB/h | real, immaterial |
+
+**Nothing accumulates.** The memory slope is statistically real — significance
+3.6, comfortably past the threshold — and still **0.0286 % per hour** against a
+424 MiB working set. Projected across the full twelve hours that is **1.5 MiB,
+0.34 %**. This is exactly the separation the tool exists to make: a slope can be
+certain and irrelevant at once, so it is reported as "moving but too little to
+matter" rather than as a leak.
+
+### The part that was got wrong
+
+The argument had been that a soak's only remaining job is catching a slope whose
+onset is later than a short window — a narrow risk, easy to discount.
+
+The first attempt at this run **died after 91 seconds**, on a `PermissionError`
+reading `/proc`. The census walks a `ps` snapshot, this fixture spawns a
+transient cancel probe every second, and over a long run the kernel hands one of
+those numbers to a process that is not ours. Reading its memory is then
+correctly refused. Every 60-second trial in the matrix passes over it.
+
+So a long run does not only measure slopes more accurately. **It reaches states a
+short one cannot** — pid reuse, counter rollover, the results of sustained churn
+— and those arrive as outright failures rather than as gradients. That is a
+stronger case for a soak than the slope argument, and it came from the runtime
+rather than from reasoning about it.
+
+### What this means for the cadence decision
+
+Leak detection is now cheap: about an hour, with the slope check, bounds
+accumulation with a trustworthy extrapolation. The twelve-hour run earns its
+place on the *durability* class of failure — the kind that found the census
+defect above — rather than on finding leaks. That is a schedulable trade with
+numbers attached, rather than a number nobody could justify.
+
+It does not make the soak redundant, and this experiment does not claim a
+twelve-hour result. A 55-minute window cannot see an onset at hour six.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.
