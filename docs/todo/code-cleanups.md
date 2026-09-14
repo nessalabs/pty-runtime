@@ -114,8 +114,16 @@ collector failing rather than a process ending. Verified against the real race
 on Linux: with a child exiting between calls, the survivor is still measured and
 the dead pid is named.
 
+**Verified on macOS itself**, against real `ps` and `lsof` rather than mocks —
+with a child exiting between calls, the survivor is still measured and the dead
+pid is named, where the previous code raised and discarded both:
+
+    both alive -> [31630, 31631] vanished []
+    one exited -> [31630] vanished [31631]
+
 **Still open:** the macOS matrix has not been re-run, so `dominant` still has no
-macOS evidence. The fix removes the cause; only a run produces the evidence.
+macOS evidence. The cause is fixed and now proven fixed on the platform where it
+occurred; only a run produces the evidence, and that needs a quiet macOS host.
 
 ## Raw-child flake: diagnosable
 
