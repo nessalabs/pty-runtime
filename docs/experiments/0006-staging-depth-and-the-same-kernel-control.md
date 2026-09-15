@@ -176,7 +176,7 @@ the measurement phase and keeps producing. Five trials:
 | --- | --- |
 | Observers released | 64, at 30.0 s, every trial |
 | Accepted throughput after they left | **10.0 MiB/s** — the offered rate, unchanged |
-| `ProjectedOutput` p99 | 0.7–0.8 ms against a 20 ms target, passing |
+| `ProjectedOutput` p99 | 0.6–0.8 ms against a 20 ms target, passing |
 | Replay gap seen by a later attach | 684.1 MiB, **exactly accounted** in all five |
 | Final process tree / zombies | 1 / 0 |
 
@@ -256,9 +256,9 @@ compares that engine's view against `session.projected_view()`.
 
 | Trial | Bytes compared | Feed time | Grid | Views equal | Replay gap |
 | --- | ---: | ---: | --- | --- | ---: |
-| 1 | 43.8 MiB | 0.24 s | 80×24 | **yes** | 0 |
+| 1 | 43.8 MiB | 0.23 s | 80×24 | **yes** | 0 |
 | 2 | 43.8 MiB | 0.22 s | 80×24 | **yes** | 0 |
-| 3 | 43.8 MiB | 0.23 s | 80×24 | **yes** | 0 |
+| 3 | 43.8 MiB | 0.22 s | 80×24 | **yes** | 0 |
 
 It is affordable because ADR 0002's offered rate is *combined* across producers,
 so one producer's stream is about 44 MiB rather than the ~600 MiB the population
@@ -286,10 +286,10 @@ out.
 | | |
 | --- | --- |
 | Processes at steady state | **1,501** |
-| Resident memory | 3,222.6 MiB |
+| Resident memory | 3,220.2 MiB |
 | Descriptors | 14,508 |
 | Threads | 2,507 |
-| Idle CPU | **0.56 %** against a 1.0 % target |
+| Idle CPU | **0.54 %** against a 1.0 % target |
 | After close | tree of 1, **zero zombies** |
 
 **Projected, 500 sessions: refused, before a single session starts**, with
@@ -324,7 +324,7 @@ accumulating children/descriptors/workers". Nothing here had ever tested how
 much of that a shorter run can answer, so the question "why twelve hours" had
 only a reasoned answer. This is the measured one.
 
-A 55-minute `attached` trial, 639 periodic samples inside the measurement
+A 55-minute `attached` trial, 632 periodic samples inside the measurement
 window, analysed with `scripts/release/accumulation.py`. The extrapolation
 stretch is **1.09×** — an hour projected from 55 minutes — where a 60-second
 trial projects at 60× and its per-hour figures are not evidence of anything.
@@ -337,33 +337,37 @@ where the two disagree, both are given.
 
 | Resource | Growth over 55 min | Per hour | Verdict |
 | --- | ---: | ---: | --- |
-| Descriptors | −0.11 | −0.12/h | flat — 1,864 throughout, peak 1,873 |
-| Threads | −0.01 | −0.01/h | flat — 327, peak 328 |
-| Processes | −0.02 | −0.02/h | flat — 193, peak 197 |
-| Resident memory | +69.4 KiB | 75.7 KiB/h | real, immaterial |
+| Descriptors | +0.07 | +0.08/h | flat — 1,864 throughout, peak 1,873 |
+| Threads | +0.01 | +0.01/h | flat — 327, peak 328 |
+| Processes | +0.0007 | +0.0007/h | flat — 193, peak 197 |
+| Resident memory | +45.8 KiB | 50.0 KiB/h | real, immaterial |
 
 **Nothing accumulates.** The memory slope is statistically real — significance
-**20.6** — and still **0.0166 % per hour** against a 445 MiB working set.
-Projected across the full twelve hours that is **0.89 MiB, 0.20 %**. This is
+**15.6** — and still **0.0108 % per hour** against a 451 MiB working set.
+Projected across the full twelve hours that is **0.59 MiB, 0.13 %**. This is
 exactly the separation the tool exists to make: a slope can be certain and
 irrelevant at once, so it is reported as "moving but too little to matter"
 rather than as a leak.
 
 **The two bases disagree on memory, and the fixed population is the sharper
 one.** Over the whole-tree totals the same slope is *not* distinguishable from
-zero at all — significance 0.49, verdict "flat" — because the transient probe
+zero at all — significance 0.62, verdict "flat" — because the transient probe
 churning through the tree adds and removes a few hundred kilobytes at a time and
-buries a 69 KiB drift in the noise. Restricting the fit to a population that
+buries a 46 KiB drift in the noise. Restricting the fit to a population that
 does not change resolves it. The cohort was added to stop turnover **masking**
 growth; on this run it also stops turnover masking a slope that is real and
 harmless, which is the same effect pointing the other way.
 
-An earlier version of this section reported +113 KiB, 124 KiB/h and 0.0286 %/h
-at significance 3.6 against a 424 MiB base, from a run whose artifact predates
-the cohort retention and whose raw output no longer exists. Those figures rested
-on the whole-tree totals guarded only by a process *count*, which cannot tell a
-costly process leaving and a cheap one arriving from nothing happening. They are
-superseded rather than corrected: this is a different run of the same case.
+Two earlier runs of this case are superseded rather than corrected, because each
+is a different run rather than a different arithmetic: +113 KiB at 0.0286 %/h
+(significance 3.6, 424 MiB base), from an artifact predating the cohort entirely;
+and +69.4 KiB at 0.0166 %/h (significance 20.6, 445 MiB base), from a cohort
+keyed on pid alone. The first rested on whole-tree totals guarded only by a
+process *count*, which cannot tell a costly process leaving and a cheap one
+arriving from nothing happening. The second could not tell a recycled pid from
+the process that held the number before it. The figures above are from a cohort
+keyed on `(pid, start_ticks)`. All three agree on the conclusion, and on the
+order of magnitude: under a megabyte over twelve hours.
 
 ### The part that was got wrong
 
@@ -409,14 +413,14 @@ One trial each, counters named:
 | Case | Admission rejections | Backpressure events | Observer gaps | Gap bytes | Any operation refused or delayed | `ProjectedOutput` p99 |
 | --- | ---: | ---: | ---: | ---: | --- | ---: |
 | `attached` | 0 | 0 | 0 | 0 | **no** | 0.7 ms, passes |
-| `capacity-projected` | 0 | **5,868,638** | — | **0.86 GiB** | **yes** | fails |
+| `capacity-projected` | 0 | **5,843,224** | — | **0.86 GiB** | **yes** | fails |
 
 The case that meets its target emits no overload signal at all; the case that
 misses emits millions of backpressure events and 0.86 GiB of exactly-accounted
 replay loss. The signal and the failure coincide precisely.
 
-These counters are run-to-run quantities, not constants: an earlier run of the
-same case recorded 5,645,046 and 1.27 GB. The figures above are the ones in the
+These counters are run-to-run quantities, not constants: earlier runs of the
+same case recorded 5,645,046 and 1.27 GiB, and 5,868,638 and 0.86 GiB. The figures above are the ones in the
 committed artifact, which is the only version of them that can be checked.
 
 **The crux is that admission rejections are zero.** Nothing is *rejected* under
@@ -504,8 +508,8 @@ evidence. Three trials on the box, with it retained:
 | Trial | Sink calls | Held in flight | Largest payload | `ProjectedOutput` p99 | Replay gap |
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 1 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
-| 2 | 1 | **1** | 4,130 B | 0.6 ms | 0 |
-| 3 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
+| 2 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
+| 3 | 1 | **1** | 4,130 B | 0.6 ms | 0 |
 
 Exactly one publication is held, its payload stays within one chunk rather than
 growing without bound, and the projected path meets its target while the
@@ -520,6 +524,11 @@ rather than a guess, and three policies are represented here:
 | Artifact | Version | Why |
 | --- | ---: | --- |
 | `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **7** | re-run on the box with the identity-checked collector |
+
+Every figure quoted from a version-7 artifact was re-read from it after the
+re-run rather than carried over; several moved by a fraction of a percent, as
+independent runs of the same case do, and each is now the number in the
+committed file.
 | `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
 | `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
 
