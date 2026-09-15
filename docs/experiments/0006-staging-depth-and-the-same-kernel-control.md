@@ -324,31 +324,53 @@ accumulating children/descriptors/workers". Nothing here had ever tested how
 much of that a shorter run can answer, so the question "why twelve hours" had
 only a reasoned answer. This is the measured one.
 
-A 55-minute `attached` trial, 327 periodic samples, analysed with
-`scripts/release/accumulation.py`. The extrapolation stretch is **1.09×** — an
-hour projected from 55 minutes — where a 60-second trial projects at 60× and
-its per-hour figures are not evidence of anything.
+A 55-minute `attached` trial, 639 periodic samples inside the measurement
+window, analysed with `scripts/release/accumulation.py`. The extrapolation
+stretch is **1.09×** — an hour projected from 55 minutes — where a 60-second
+trial projects at 60× and its per-hour figures are not evidence of anything.
+
+Each row is fitted twice: over the **cohort** of 193 processes measurable in
+every one of those censuses, whose population is identical between samples by
+construction, and over the whole-tree totals, which are the only basis that can
+see a leak in the process churn itself. The cohort figures are the ones below;
+where the two disagree, both are given.
 
 | Resource | Growth over 55 min | Per hour | Verdict |
 | --- | ---: | ---: | --- |
-| Descriptors | +0.2 | 0.2/h | flat — 1,864 to 1,873, peak 1,881 |
-| Threads | 0.0 | 0.0/h | flat |
-| Processes | 0.0 | 0.0/h | flat |
-| Resident memory | +113 KiB | 124 KiB/h | real, immaterial |
+| Descriptors | −0.11 | −0.12/h | flat — 1,864 throughout, peak 1,873 |
+| Threads | −0.01 | −0.01/h | flat — 327, peak 328 |
+| Processes | −0.02 | −0.02/h | flat — 193, peak 197 |
+| Resident memory | +69.4 KiB | 75.7 KiB/h | real, immaterial |
 
 **Nothing accumulates.** The memory slope is statistically real — significance
-3.6, comfortably past the threshold — and still **0.0286 % per hour** against a
-424 MiB working set. Projected across the full twelve hours that is **1.5 MiB,
-0.34 %**. This is exactly the separation the tool exists to make: a slope can be
-certain and irrelevant at once, so it is reported as "moving but too little to
-matter" rather than as a leak.
+**20.6** — and still **0.0166 % per hour** against a 445 MiB working set.
+Projected across the full twelve hours that is **0.89 MiB, 0.20 %**. This is
+exactly the separation the tool exists to make: a slope can be certain and
+irrelevant at once, so it is reported as "moving but too little to matter"
+rather than as a leak.
+
+**The two bases disagree on memory, and the fixed population is the sharper
+one.** Over the whole-tree totals the same slope is *not* distinguishable from
+zero at all — significance 0.49, verdict "flat" — because the transient probe
+churning through the tree adds and removes a few hundred kilobytes at a time and
+buries a 69 KiB drift in the noise. Restricting the fit to a population that
+does not change resolves it. The cohort was added to stop turnover **masking**
+growth; on this run it also stops turnover masking a slope that is real and
+harmless, which is the same effect pointing the other way.
+
+An earlier version of this section reported +113 KiB, 124 KiB/h and 0.0286 %/h
+at significance 3.6 against a 424 MiB base, from a run whose artifact predates
+the cohort retention and whose raw output no longer exists. Those figures rested
+on the whole-tree totals guarded only by a process *count*, which cannot tell a
+costly process leaving and a cheap one arriving from nothing happening. They are
+superseded rather than corrected: this is a different run of the same case.
 
 ### The part that was got wrong
 
 The argument had been that a soak's only remaining job is catching a slope whose
 onset is later than a short window — a narrow risk, easy to discount.
 
-The first attempt at this run **died after 91 seconds**, on a `PermissionError`
+The first attempt at the original run **died after 91 seconds**, on a `PermissionError`
 reading `/proc`. The census walks a `ps` snapshot, this fixture spawns a
 transient cancel probe every second, and over a long run the kernel hands one of
 those numbers to a process that is not ours. Reading its memory is then
@@ -471,19 +493,29 @@ features it passes 5 of 5.
 
 ## A note on the artifacts themselves
 
-Four of the ten artifacts here were built by an earlier retention policy and
-hold less than the rest: `same-kernel`, `soak-55min`, `staging-sweep` and
-`depth-by-workload`. They predate the archiver keeping checkpoint records, final
-budget values, and the per-case outcome events, and their raw runs were lost
-when the box stopped, so they cannot be rebuilt.
+Artifacts carry `retention_version`, so which policy produced one is a field
+rather than a guess, and three policies are represented here:
 
-**This does not affect any figure cited above from them.** Parts 1, 2 and 7 rest
-on latency targets and resource series, which those artifacts do retain. What
+| Artifact | Version | Why |
+| --- | ---: | --- |
+| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min` | **4** | rebuilt from raw output that still exists |
+| `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
+| `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
+
+Version 4 adds the stable-process cohort described in Part 7. Version 3 added
+per-case outcome events, checkpoint records and final budget values. The
+unstamped three have none of those.
+
+**This does not affect any figure cited above from them.** Parts 1 and 2 rest on
+latency targets, throughput and ledger totals, which those artifacts do retain,
+and every figure in them was re-read from the artifact for this revision. What
 they cannot support is the allocation-peak and logical-cleanup analysis the
 newer policy preserves — so that analysis is not attempted from them.
 
-Artifacts now carry `retention_version`, so which policy produced one is a field
-rather than a guess. The six rebuilt here are version 2.
+`macos-arm64-rerun` at version 3 carries no cohort series, so Part 9's
+resource claims rest on the whole-tree totals with the process-count guard.
+`accumulation.py` reports nothing accumulating in any of its 30 trials on that
+basis; the sharper basis is not available for it.
 
 ## Limitations
 

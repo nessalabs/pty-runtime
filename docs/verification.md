@@ -32,7 +32,8 @@ to discover in the artifact.
   see a leak living in the process churn itself — because a count-only
   comparability check cannot tell a costly process leaving and a cheap one
   arriving from nothing happening. Over 55 minutes it reports descriptors,
-  threads and processes flat and memory drifting 0.0286 %/hour; see
+  threads and processes flat and memory drifting 0.0166 %/hour — 0.89 MiB if
+  held for twelve hours; see
   [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md).
 - Prefer real process and terminal fixtures over mocks.
 - Do **not** commit gate logs or load dumps into the repo. Re-run when needed.
