@@ -176,7 +176,7 @@ the measurement phase and keeps producing. Five trials:
 | --- | --- |
 | Observers released | 64, at 30.0 s, every trial |
 | Accepted throughput after they left | **10.0 MiB/s** — the offered rate, unchanged |
-| `ProjectedOutput` p99 | 0.7 ms against a 20 ms target, passing |
+| `ProjectedOutput` p99 | 0.7–0.8 ms against a 20 ms target, passing |
 | Replay gap seen by a later attach | 684.1 MiB, **exactly accounted** in all five |
 | Final process tree / zombies | 1 / 0 |
 
@@ -256,9 +256,9 @@ compares that engine's view against `session.projected_view()`.
 
 | Trial | Bytes compared | Feed time | Grid | Views equal | Replay gap |
 | --- | ---: | ---: | --- | --- | ---: |
-| 1 | 43.8 MiB | 0.25 s | 80×24 | **yes** | 0 |
-| 2 | 43.8 MiB | 0.27 s | 80×24 | **yes** | 0 |
-| 3 | 43.8 MiB | 0.25 s | 80×24 | **yes** | 0 |
+| 1 | 43.8 MiB | 0.24 s | 80×24 | **yes** | 0 |
+| 2 | 43.8 MiB | 0.22 s | 80×24 | **yes** | 0 |
+| 3 | 43.8 MiB | 0.23 s | 80×24 | **yes** | 0 |
 
 It is affordable because ADR 0002's offered rate is *combined* across producers,
 so one producer's stream is about 44 MiB rather than the ~600 MiB the population
@@ -417,13 +417,13 @@ five trials each:
 | Case | Trials | Passed | Censuses that saw a process vanish | Latency misses |
 | --- | ---: | ---: | ---: | --- |
 | `dominant` | 5 | **5** | 3–4 per trial | none |
-| `capacity-projected` | 5 | **5** | 15 | ProjectedOutput 76–78 ms |
+| `capacity-projected` | 5 | **5** | 15 | ProjectedOutput 75.7–83.5 ms |
 | `capacity-raw` | 5 | **5** | 11 | none |
 | `rate-20MiB` | 5 | **5** | 16 | none |
 | `rate-40MiB` | 5 | **5** | 17 | **ProjectedOutput 81 ms** |
 | `stalled-sink` | 5 | **5** | 17 | none |
 
-**Thirty trials, none lost, while the race fired more than sixty times.** That
+**Thirty trials, none lost, while the race fired 93 times.** That
 is the point: the census still meets processes that have exited, at the same
 rate as before. It simply records them now instead of discarding the sample.
 This is the fix demonstrated under load on the platform that lost the trials,
@@ -457,8 +457,8 @@ bounds" limitation already covers. It is not proven — nothing here isolates
 contention — but "two occurrences, therefore not noise" counted events without
 looking at their distribution, and the distribution is the evidence.
 
-`capacity-projected`'s 76–78 ms is the saturation behaviour described in Part 2
-and is expected rather than new.
+`capacity-projected`'s 75.7–83.5 ms is the saturation behaviour described in
+Part 2 and is expected rather than new.
 
 ### A build that could not run the case
 
