@@ -120,7 +120,9 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
             if starts:
                 record(dict(event='producer_start_skew', nanoseconds=max(starts)-min(starts), count=len(starts)))
             if config['active'] > 0:
-                for boundary, ceiling in [('InputDispatch', 20000), ('RawOutput', 20000), ('ProjectedOutput', 20000), ('ResizeDispatch', 100000), ('CancelDispatch', 100000)]:
+                # ADR 0002's limits live in reporting.LATENCY_CEILINGS_US so the
+                # archiver can check that a trial was judged against them.
+                for boundary, ceiling in reporting.LATENCY_CEILINGS_US.items():
                     if boundary == 'ProjectedOutput' and config['raw']:
                         continue
                     value = latencies.get(boundary, {})
@@ -136,10 +138,12 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
             record(cpu)
             if config['mode'] == 'idle':
                 owner = cpu['categories']['owner']
-                record(dict(event='idle_cpu_target', target_core_percent=1.0,
+                record(dict(event='idle_cpu_target',
+                            target_core_percent=reporting.IDLE_CPU_CEILING_PERCENT,
                             measured_core_percent=owner['core_percent'],
                             measurement_complete=owner['core_percent'] is not None,
-                            passed=reporting.measurement_verdict(owner['core_percent'], 1.0),
+                            passed=reporting.measurement_verdict(
+                                owner['core_percent'], reporting.IDLE_CPU_CEILING_PERCENT),
                             acceptance_duration=config['seconds'] >= 60 and not smoke))
             record(dict(event='trial_result', passed=True, seconds=time.monotonic()-started,
                         full_duration_trial=not smoke and config['seconds'] >= 60,

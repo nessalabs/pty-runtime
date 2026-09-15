@@ -34,7 +34,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 9
+RETENTION_VERSION = 10
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -54,6 +54,32 @@ REQUIRED_RUN = ('configuration', 'command', 'repeat', 'binary_sha256')
 # a case's configuration is what the case *is*, so a trial carrying a different
 # value is a different workload wearing the case's name.
 OVERRIDABLE = ('seconds', 'staging_slots')
+
+# A key being present is not attribution. These say what a usable value looks
+# like, because a record whose platform is "" and whose hashes are null passed
+# the completeness check while attributing the measurements to nothing.
+def _hash(value):
+    return isinstance(value, str) and len(value) == 64 and all(
+        character in '0123456789abcdef' for character in value)
+
+
+def _text(value):
+    return isinstance(value, str) and value.strip() != ''
+
+
+IDENTITY_SHAPE = {'platform': _text, 'machine': _text, 'source_head': _text,
+                  'diff_sha256': _hash,
+                  'descriptor_limit': lambda v: isinstance(v, dict) and 'soft' in v}
+RUN_SHAPE = {'binary_sha256': _hash,
+             'configuration': lambda v: isinstance(v, dict) and bool(v),
+             'command': lambda v: isinstance(v, list) and bool(v),
+             'repeat': lambda v: isinstance(v, int) and v >= 1}
+
+# What each case exists to produce. A passing trial without it is a label
+# claiming an outcome the artifact cannot show: a `reference` trial with no
+# reference_state archived as successful proof of a comparison that never ran.
+DEFINING_OUTCOME = {'reference': 'reference_state', 'detaching': 'observers_detached',
+                    'stalled-sink': 'stalled_sink'}
 
 # Records a trial emits exactly once, or not at all. Assigning any of these
 # twice loses the first, which is how contradictory evidence hides inside a file
@@ -151,7 +177,8 @@ def summarize(path, keep_process_rows):
              'trial_result': None, 'failure': None, 'stderr': [],
              'census_full': [], 'ledger_totals': None, 'resource_cohort': None,
              'terminal_records': 0, 'stalled_sink': None, 'runtime_options': None,
-             'producers': [], 'operation_failures': [], 'record_counts': {}}
+             'start': None, 'producers': [], 'operation_failures': [],
+             'record_counts': {}}
     gap = delivered = verified = 0
     censuses = []
     for line in path.read_text().splitlines():
@@ -239,7 +266,13 @@ def summarize(path, keep_process_rows):
                       'stalled_sink',
                       # One per trial: the runtime configuration the numbers
                       # were produced under.
-                      'runtime_options'):
+                      'runtime_options',
+                      # The fixture's own account of what it is running,
+                      # including the defaults the matrix does not state -
+                      # `projection_staging_slots_per_session` above all, which
+                      # is the quantity Experiment 0006 exists to sweep and
+                      # which no retained configuration recorded.
+                      'start'):
             if kind == 'trial_result':
                 trial['terminal_records'] += 1
             trial[kind] = event
@@ -321,6 +354,11 @@ def recomputed_summary(summary, trials):
         # A target record states both a measurement and a verdict, and nothing
         # compared them: one observing 224 ms against a 20 ms ceiling while
         # claiming `passed: true` was rolled up as a pass and published.
+        unqualified = reporting.unqualified_ceilings(latency, idle)
+        if unqualified:
+            raise SystemExit(
+                f'{row["path"]} judges targets against ceilings ADR 0002 did not set: '
+                f'{unqualified}; the bar is not the run\'s to choose')
         contradicted = reporting.disagreeing_targets(latency, idle)
         if contradicted:
             raise SystemExit(
@@ -397,13 +435,22 @@ def main():
         if trial['identity'] is None:
             raise SystemExit(f'{row["path"]} carries no identity record; '
                              f'its measurements cannot be attributed to a revision')
+        run = trial['run'] or {}
         missing = ([field for field in REQUIRED_IDENTITY if field not in trial['identity']]
-                   + [field for field in REQUIRED_RUN if field not in (trial['run'] or {})])
+                   + [field for field in REQUIRED_RUN if field not in run])
         if missing:
             raise SystemExit(
                 f'{row["path"]} carries an identity record missing {missing}; an '
                 f'identity-shaped event is not attribution, and a missing field is '
                 f'not checked by anything that compares it')
+        unusable = ({field: trial['identity'][field] for field, ok in IDENTITY_SHAPE.items()
+                     if not ok(trial['identity'][field])}
+                    | {field: run[field] for field, ok in RUN_SHAPE.items() if not ok(run[field])})
+        if unusable:
+            raise SystemExit(
+                f'{row["path"]} carries identity fields that attribute nothing: '
+                f'{unusable}; a present key with an empty value is not a revision, '
+                f'a platform or a binary')
         repeated = {kind: count for kind, count in trial['record_counts'].items() if count > 1}
         if repeated:
             raise SystemExit(
@@ -465,6 +512,28 @@ def main():
             raise SystemExit(
                 f'{row["path"]} is labelled `{row["case"]}` but ran a different workload '
                 f'{differs}; only {list(OVERRIDABLE)} may be overridden')
+        # A passing trial has to carry what its case exists to produce.
+        outcome = DEFINING_OUTCOME.get(row['case'])
+        if row['passed'] and outcome and trial.get(outcome) is None:
+            raise SystemExit(
+                f'{row["path"]} passed as `{row["case"]}` without a {outcome} record; '
+                f'the label claims an outcome the artifact cannot show')
+        # The fixture reports the depth it actually ran at, and the matrix
+        # configuration does not state it: a changed fixture default would move
+        # every projected measurement here and nothing would record it.
+        if trial['start'] is not None:
+            effective = trial['start'].get('projection_staging_slots_per_session')
+            # Falling back to whatever the fixture reported would have made this
+            # check vacuous for exactly the runs that do not state a depth,
+            # which is every default one. The harness's record of the fixture
+            # default is the thing to compare against.
+            requested = ran.get('staging_slots', matrix.FIXTURE_DEFAULTS['staging_slots'])
+            expected = 'null' if ran.get('raw') else str(requested)
+            if str(effective) != str(expected):
+                raise SystemExit(
+                    f'{row["path"]} ran at staging depth {effective!r} while its '
+                    f'configuration says {expected!r}; the depth is what these '
+                    f'measurements are of')
         trial['case'] = row['case']
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']
@@ -552,6 +621,14 @@ def main():
                                'measurement window - a fixed population, so its series is '
                                'comparable between samples where the whole-tree totals are '
                                'not; the cohort size is under each trial as resource_cohort',
+            'effective_configuration': 'the fixture\'s own start record is kept, because the '
+                                       'matrix configuration does not state the defaults it '
+                                       'runs at - the per-session staging depth above all - '
+                                       'and the depth it reports is checked against the '
+                                       'configuration the trial was archived under',
+            'defining_outcomes': 'a passing trial must carry the record its case exists to '
+                                 'produce: reference_state, observers_detached or '
+                                 'stalled_sink',
             'summary_verdicts': 'recomputed from the retained target records and refused if '
                                 'they disagree; all_trials_passed, the target rollup and a '
                                 'claimed full_matrix_executed are checked, not copied, and the '

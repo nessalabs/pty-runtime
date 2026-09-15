@@ -15,6 +15,17 @@ MIB = 1024 * 1024
 # pass bit from a result into noise.
 HOST_DEPENDENT = ('resources-raw-500', 'resources-projected-500')
 
+# The fixture's own defaults for the options the matrix does not state.
+#
+# `staging_slots` is the per-session parser-output queue depth, and it is the
+# quantity Experiment 0006 exists to sweep - yet a default run recorded it
+# nowhere, because the matrix does not pass it and the retained configuration
+# therefore does not mention it. Stated here so the archiver has something to
+# check the fixture's reported depth against; if the fixture's default changes,
+# every projected measurement moves and the archiver refuses the run rather
+# than publishing it as though nothing had.
+FIXTURE_DEFAULTS = {'staging_slots': 256, 'producer_bytes': 8589934592}
+
 
 def default_selection(smoke=False):
     """The bounded matrix: every case except the host-dependent ones."""

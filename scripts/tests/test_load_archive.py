@@ -22,12 +22,18 @@ def write(root, name, events):
     (root / name).write_text('\n'.join(json.dumps(event) for event in events) + '\n')
 
 
+def defining(case):
+    """The record a passing trial of this case must carry, if it has one."""
+    kind = archive.DEFINING_OUTCOME.get(case)
+    return [{'event': kind}] if kind else []
+
+
 def identity(case='attached', **extra):
     # A complete record: the archiver requires the fields that make a trial
     # attributable, because an identity-shaped event is not attribution - and
     # the configuration a case's label implies, because it checks that too.
     return {'event': 'identity', 'platform': 'Linux', 'machine': 'x86_64',
-            'source_head': 'abc', 'diff_sha256': 'd', 'binary_sha256': 'b',
+            'source_head': 'abc', 'diff_sha256': 'd' * 64, 'binary_sha256': 'b' * 64,
             'descriptor_limit': {'soft': 65535, 'hard': 65535, 'unlimited': False},
             'source_inventory': [{'path': f'f{n}', 'sha256': 'x'} for n in range(300)],
             'configuration': archive.matrix.cases()[case],
@@ -320,7 +326,8 @@ class Retention(unittest.TestCase):
         results = []
         for index, case in enumerate(archive.matrix.default_selection()):
             name = f'{case}-1.jsonl'
-            write(root, name, [identity(case), {'event': 'trial_result', 'passed': True}])
+            write(root, name, [identity(case), *defining(case),
+                               {'event': 'trial_result', 'passed': True}])
             results.append({'case': case, 'trial': 1, 'passed': True, 'path': name})
         (root / 'summary.json').write_text(json.dumps(
             {'results': results, 'full_matrix_executed': True, 'repeats': 5, 'smoke': False}))
@@ -360,6 +367,7 @@ class Retention(unittest.TestCase):
                 # what it is not is the matrix.
                 write(root, name, [identity(case, configuration={**config, 'seconds': 1},
                                             repeat=trial),
+                                   *defining(case),
                                    {'event': 'trial_result', 'passed': True}])
                 results.append({'case': case, 'trial': trial, 'passed': True, 'path': name})
         (root / 'summary.json').write_text(json.dumps(
@@ -572,6 +580,99 @@ class Retention(unittest.TestCase):
         sys.argv = ['archive', '--input', str(root), '--output', str(out)]
         archive.main()
         self.assertEqual(json.loads(out.read_text())['trials'][0]['case'], 'attached')
+
+    def test_a_trial_cannot_raise_its_own_ceiling(self):
+        """224 ms observed, ceiling moved to 999 ms, internally consistent."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity(),
+            {'event': 'latency', 'boundary': 'ProjectedOutput', 'successes': 10,
+             'failures': 0, 'unavailable': 0, 'p50_us': 100, 'p95_us': 200,
+             'p99_us': 224000, 'max_us': 224000, 'bucket_width_us': 100, 'buckets': [1]},
+            {'event': 'latency_target', 'boundary': 'ProjectedOutput', 'passed': True,
+             'measurement_complete': True, 'observed_p99_us': 224000,
+             'target_p99_us': 999999, 'failures': 0, 'unavailable': 0},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('ADR 0002 did not set', str(raised.exception))
+
+    def test_a_present_key_with_an_empty_value_attributes_nothing(self):
+        for field, value in [('platform', ''), ('source_head', '   '),
+                             ('diff_sha256', None), ('machine', None)]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                write(root, 'trial.jsonl', [identity(**{field: value}),
+                                            {'event': 'trial_result', 'passed': True}])
+                (root / 'summary.json').write_text(json.dumps(
+                    {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                                  'path': 'trial.jsonl'}]}))
+                sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+                with self.assertRaises(SystemExit, msg=field) as raised:
+                    archive.main()
+                self.assertIn('attribute nothing', str(raised.exception))
+
+    def test_a_passing_case_without_its_defining_outcome_is_refused(self):
+        """A `reference` trial that never compared anything, archived as proof."""
+        for case, outcome in archive.DEFINING_OUTCOME.items():
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                write(root, 'trial.jsonl', [identity(case),
+                                            {'event': 'trial_result', 'passed': True}])
+                (root / 'summary.json').write_text(json.dumps(
+                    {'results': [{'case': case, 'trial': 1, 'passed': True,
+                                  'path': 'trial.jsonl'}]}))
+                sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+                with self.assertRaises(SystemExit, msg=case) as raised:
+                    archive.main()
+                self.assertIn(outcome, str(raised.exception))
+
+    def test_a_failed_trial_is_not_asked_for_an_outcome_it_never_reached(self):
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity('reference'),
+                                    {'event': 'trial_failure', 'error': 'boom'}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'reference', 'trial': 1, 'passed': False,
+                          'path': 'trial.jsonl'}]}))
+        out = root / 'a.json'
+        sys.argv = ['archive', '--input', str(root), '--output', str(out)]
+        archive.main()
+        self.assertIsNone(json.loads(out.read_text())['trials'][0]['reference_state'])
+
+    def test_the_depth_a_trial_actually_ran_at_must_match_its_configuration(self):
+        """The matrix configuration does not state the fixture's default depth."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity(),
+            {'event': 'start', 'pid': 1, 'projection_staging_slots_per_session': 64},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('staging depth', str(raised.exception))
+
+    def test_the_effective_depth_is_retained_when_it_matches(self):
+        config = {**archive.matrix.cases()['attached'], 'staging_slots': 16}
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity(configuration=config),
+            {'event': 'start', 'pid': 1, 'projection_staging_slots_per_session': 16},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        out = root / 'a.json'
+        sys.argv = ['archive', '--input', str(root), '--output', str(out)]
+        archive.main()
+        start = json.loads(out.read_text())['trials'][0]['start']
+        self.assertEqual(start['projection_staging_slots_per_session'], 16)
 
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.

@@ -79,13 +79,18 @@ each is a rule this repository already had:
 - **G2's gate depends on G1.** ADR 0001 §2 ends "Native build work can start
   early, but its integration gate depends on the process/byte contract." G1 does
   not pass, so G2 cannot be signed however its own clauses read.
-- **No integrated result artifact exists.** ADR 0004 requires results saved under
-  `docs/experiments` per gate — source and dependency pins, toolchain and OS,
-  limits and workload, commands, seeds and duration, failures and timeouts,
-  latency distributions, resource peaks and cleanup — and says "Implementation
-  completion requires these results, not just a test plan." `docs/experiments`
-  holds 0001–0003 and no integrated gate record. A table of test names and a
-  local gate run whose output was not preserved is a test plan.
+- **No integrated result artifact covers a full matrix.** ADR 0004 requires
+  results saved under `docs/experiments` per gate — source and dependency pins,
+  toolchain and OS, limits and workload, commands, seeds and duration, failures
+  and timeouts, latency distributions, resource peaks and cleanup — and says
+  "Implementation completion requires these results, not just a test plan."
+  **Artifacts in that shape now exist**: Experiments 0005 and 0006 commit them,
+  built by `scripts/release/archive.py`, which defines the retention in code and
+  refuses a run whose summary its own trials do not support. What none of them
+  is, is a *full* matrix at five repeats on a qualified host: 0006's are
+  case-selected runs answering particular questions. A table of test names and a
+  local gate run whose output was not preserved was a test plan; these are
+  evidence of less than the whole gate.
 - **One G2 clause is mock-only.** See READY/history restoration below.
 
 G1 fails for its own reason: six of seven behaviours are proven against real
@@ -107,9 +112,10 @@ Experiment 0005. The other four trials of that case sit at 0.3-0.7 ms with the
 offered rate held throughout, on a host running at 180-260 % owner CPU, so this
 remains most consistent with the host contention that section already records
 rather than with a platform defect. Linux has never missed it. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). For **G2**, G1 first, then real-child
-coverage of the READY-gated path, then an integrated result artifact under
-`docs/experiments` in the shape ADR 0004 specifies. Neither is a large amount of
-writing; both are runs nobody has made.
+coverage of the READY-gated path, then a *full-matrix* result artifact under
+`docs/experiments` — the shape ADR 0004 specifies now exists and is committed,
+what is missing is a complete run at five repeats on a qualified host. Neither
+is a large amount of writing; both are runs nobody has made.
 
 Audited at `d714e01`, macOS 26.6 / Darwin 25.6.0 arm64, rustc 1.98.1, Zig 0.16.0,
 Ghostty pinned at `82232ecde55405559dec29c5466cb9e39938cb41`.

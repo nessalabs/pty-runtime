@@ -3,6 +3,17 @@ import json
 
 LATENCY_BOUNDARIES = ('InputDispatch', 'RawOutput', 'ProjectedOutput', 'ResizeDispatch', 'CancelDispatch')
 
+# ADR 0002's qualification limits, in one place so the driver that judges
+# against them and the archiver that checks the judgement cannot drift apart.
+#
+# A target record carries its own ceiling, and recomputing the verdict from that
+# ceiling only proves the record is internally consistent: a trial observing
+# 224 ms could raise its ceiling to 999 ms and pass its own arithmetic. The
+# ceiling is not the run's to choose.
+LATENCY_CEILINGS_US = {'InputDispatch': 20000, 'RawOutput': 20000, 'ProjectedOutput': 20000,
+                       'ResizeDispatch': 100000, 'CancelDispatch': 100000}
+IDLE_CPU_CEILING_PERCENT = 1.0
+
 
 def verdict(values):
     if False in values:
@@ -43,6 +54,20 @@ def recompute_target(event, ceiling_key, observed_key):
         return None
     return measurement_verdict(event.get(observed_key), event.get(ceiling_key),
                                event.get('failures', 0), event.get('unavailable', 0))
+
+
+def unqualified_ceilings(latency, idle):
+    """Target records judged against a ceiling ADR 0002 did not set."""
+    wrong = {}
+    for name, event in sorted(latency.items()):
+        expected = LATENCY_CEILINGS_US.get(name)
+        if expected is not None and event.get('target_p99_us') != expected:
+            wrong[name] = {'recorded_ceiling_us': event.get('target_p99_us'),
+                           'adr_0002_ceiling_us': expected}
+    if idle and idle.get('target_core_percent') != IDLE_CPU_CEILING_PERCENT:
+        wrong['idle_cpu'] = {'recorded_ceiling_percent': idle.get('target_core_percent'),
+                             'adr_0002_ceiling_percent': IDLE_CPU_CEILING_PERCENT}
+    return wrong
 
 
 def disagreeing_targets(latency, idle):
