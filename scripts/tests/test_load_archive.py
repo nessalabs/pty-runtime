@@ -181,6 +181,32 @@ class Retention(unittest.TestCase):
         self.assertEqual([row['event'] for row in detail],
                          ['trial_failure_process', 'trial_cleanup_failure'])
 
+    def test_the_outcome_each_case_exists_to_produce_is_kept_whole(self):
+        """These were dropped, so Experiment 0006 cited data its artifact lacked."""
+        artifact = self.build('dominant', [
+            identity(),
+            {'event': 'fairness', 'phase': 1, 'active_producers': 16, 'min_bytes': 4,
+             'median_bytes': 4, 'max_bytes': 540, 'starved_producers': 0},
+            {'event': 'reference_state', 'producer': 0, 'bytes_compared': 45939130,
+             'equal': True, 'grid': '80x24'},
+            {'event': 'overload_outcome', 'input_admission_rejections': 0,
+             'output_backpressure_events': 5645046, 'observer_gap_bytes': 1265675432},
+            {'event': 'observers_detached', 'released': 64, 'elapsed_seconds': 30.0}])
+        trial = artifact['trials'][0]
+        self.assertEqual(trial['fairness'][0]['max_bytes'], 540)
+        self.assertEqual(trial['fairness'][0]['starved_producers'], 0)
+        self.assertTrue(trial['reference_state']['equal'])
+        self.assertEqual(trial['reference_state']['bytes_compared'], 45939130)
+        self.assertEqual(trial['overload_outcome']['output_backpressure_events'], 5645046)
+        self.assertEqual(trial['observers_detached']['released'], 64)
+
+    def test_fairness_is_kept_per_phase_rather_than_last_one_wins(self):
+        artifact = self.build('attached', [
+            identity(),
+            {'event': 'fairness', 'phase': 0, 'min_bytes': 1},
+            {'event': 'fairness', 'phase': 1, 'min_bytes': 2}])
+        self.assertEqual([row['phase'] for row in artifact['trials'][0]['fairness']], [0, 1])
+
     def test_a_failed_trial_keeps_its_failure_and_stderr(self):
         artifact = self.build('attached', [
             identity(),

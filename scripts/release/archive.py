@@ -54,7 +54,8 @@ def totals(sample):
 
 def summarize(path, keep_process_rows):
     trial = {'file': path.name, 'identity': None, 'run': None, 'failure_detail': [],
-             'latency_targets': [],
+             'fairness': [], 'reference_state': None, 'overload_outcome': None,
+             'observers_detached': None, 'latency_targets': [],
              'latency': [], 'resource_series': [], 'budget_peaks': {},
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
              'cpu_interval': None, 'producer_start_skew': None,
@@ -112,8 +113,16 @@ def summarize(path, keep_process_rows):
             delivered += event.get('total_bytes', 0)
             verified += event.get('verified_bytes', 0)
         elif kind in ('aggregate', 'throughput', 'fixture_rtt', 'cpu_interval',
-                      'producer_start_skew', 'trial_result'):
+                      'producer_start_skew', 'trial_result',
+                      # The outcomes each case exists to produce. Omitting these
+                      # made the artifact silently unable to support the very
+                      # claims the experiment cites it for - the same failure
+                      # this script was written to stop.
+                      'reference_state', 'overload_outcome', 'observers_detached'):
             trial[kind] = event
+        elif kind == 'fairness':
+            # One per phase, so a list rather than a single value.
+            trial.setdefault('fairness', []).append(event)
         elif kind == 'trial_failure':
             trial['failure'] = event
         elif kind in ('trial_failure_process', 'trial_cleanup_failure'):
@@ -182,6 +191,9 @@ def main():
             'identity': 'hoisted to the artifact once; fields that vary per trial are '
                         'under each trial as `run`, and any trial whose shared half differed '
                         'is listed in `identity_divergent_trials` rather than silently merged',
+            'case_outcomes': 'fairness, reference_state, overload_outcome and '
+                             'observers_detached are kept whole: they are what their '
+                             'cases exist to produce, and a summary of them is not evidence',
             'not_retained': 'per-producer ledger rows (totalled), individual budget records, '
                             'and per-process rows for non-resource cases outside the closing census',
         },

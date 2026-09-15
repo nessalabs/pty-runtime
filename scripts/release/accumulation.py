@@ -152,12 +152,22 @@ def main():
                                        if row['accumulating'] is None]})
     accumulating = [row for row in findings if row['accumulating']]
     undecided = [row for row in findings if row['undecided']]
+    # An empty selection is not a flat resource profile. Neither is a trial with
+    # too few samples to fit. Anything using this as a gate would otherwise read
+    # "no evidence" as "no accumulation", which is the one mistake a check like
+    # this must not make.
+    verdict = 0 if findings and not accumulating and not undecided else (
+        1 if accumulating else 2)
     print(json.dumps({'warmup_seconds': args.warmup_seconds,
                       'significance_threshold': SIGNIFICANCE,
                       'floors_within_window': {k: list(v) for k, v in FLOORS.items()},
                       'trials': findings,
                       'trials_accumulating': len(accumulating),
                       'trials_undecided': len(undecided),
+                      'exit_status': {'0': 'every selected metric decided and flat',
+                                      '1': 'something accumulates',
+                                      '2': 'insufficient evidence: an undecided metric, '
+                                           'or a selection that matched no trial'}[str(verdict)],
                       'scope': 'A flat verdict bounds accumulation over the observed '
                                'window at the floor; it does not prove a twelve-hour '
                                'plateau, and a short window cannot see a slope whose '
@@ -165,7 +175,7 @@ def main():
                                'extrapolations and are marked untrustworthy beyond a '
                                'tenfold stretch.'},
                      indent=2, sort_keys=True))
-    raise SystemExit(1 if accumulating else 0)
+    raise SystemExit(verdict)
 
 
 if __name__ == '__main__':

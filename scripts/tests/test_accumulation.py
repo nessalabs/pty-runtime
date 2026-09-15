@@ -90,6 +90,30 @@ class Accumulation(unittest.TestCase):
         result = accumulation.assess(rows, 0, 'rss_bytes', accumulation.FLOORS['rss_bytes'])
         self.assertTrue(result['accumulating'])
 
+    def test_no_evidence_does_not_exit_as_though_nothing_accumulated(self):
+        """A gate must not read an empty artifact as a flat resource profile."""
+        import sys
+        for trials in ([], [{'case': 'idle-64', 'trial': 1, 'resource_series': series([10, 11])}]):
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'a.json'
+                path.write_text(json.dumps({'trials': trials}))
+                sys.argv = ['accumulation', '--artifact', str(path), '--warmup-seconds', '0']
+                with self.assertRaises(SystemExit) as raised:
+                    accumulation.main()
+                self.assertEqual(raised.exception.code, 2, 'insufficient evidence is not a pass')
+
+    def test_a_decided_flat_run_still_exits_zero(self):
+        import sys
+        artifact = {'trials': [{'case': 'idle-64', 'trial': 1,
+                                'resource_series': series([10] * 40)}]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'a.json'
+            path.write_text(json.dumps(artifact))
+            sys.argv = ['accumulation', '--artifact', str(path), '--warmup-seconds', '0']
+            with self.assertRaises(SystemExit) as raised:
+                accumulation.main()
+            self.assertEqual(raised.exception.code, 0)
+
     def test_the_exit_code_reports_a_leak_so_a_run_can_gate_on_it(self):
         artifact = {'trials': [
             {'case': 'idle-64', 'trial': 1,
