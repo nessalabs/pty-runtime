@@ -314,6 +314,66 @@ class Retention(unittest.TestCase):
             archive.main()
         self.assertIn('fewer distinct trials', str(raised.exception))
 
+    def test_two_verdicts_for_one_boundary_are_refused(self):
+        """Building the map kept the last record while the artifact kept both."""
+        root = Path(self.directory)
+        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
+        write(root, 'trial.jsonl', [
+            identity(configuration=config),
+            {'event': 'latency_target', 'boundary': 'InputDispatch', 'passed': False,
+             'measurement_complete': True},
+            {'event': 'latency_target', 'boundary': 'InputDispatch', 'passed': True,
+             'measurement_complete': True},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('InputDispatch', str(raised.exception))
+
+    def test_a_full_matrix_claim_requires_the_matrix_workload(self):
+        """`--seconds 1` runs every case five times and is not the matrix."""
+        root = Path(self.directory)
+        results = []
+        for case, config in archive.matrix.cases().items():
+            if case in archive.matrix.HOST_DEPENDENT:
+                continue
+            for trial in range(1, 6):
+                name = f'{case}-{trial}.jsonl'
+                write(root, name, [identity(configuration={**config, 'seconds': 1}),
+                                   {'event': 'trial_result', 'passed': True}])
+                results.append({'case': case, 'trial': trial, 'passed': True, 'path': name})
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': results, 'full_matrix_executed': True, 'repeats': 5, 'smoke': False}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('did not run the matrix workload', str(raised.exception))
+
+    def test_the_per_pty_progress_and_blocking_report_is_retained(self):
+        """ADR 0004 asks for it per PTY, and nothing else can reconstruct it."""
+        events = [identity(),
+                  {'event': 'producer_done', 'producer': 0, 'phase': 1,
+                   'write_blocked_ns': 42, 'max_backpressure_wait_ns': 7, 'write_calls': 9},
+                  {'event': 'producer_writes', 'producer': 0, 'phase': 1,
+                   'eagain_count': 3, 'partial_write_count': 1},
+                  {'event': 'producer_end', 'producer': 0, 'phase': 1, 'elapsed_ns': 5},
+                  {'event': 'stalled_sink', 'calls': 1, 'inflight': 1,
+                   'max_payload_bytes': 4096},
+                  {'event': 'runtime_options', 'value': 'opts'},
+                  {'event': 'operation_failure', 'operation': 'resize_projected'}]
+        artifact = self.build('stalled-sink', events)
+        trial = artifact['trials'][0]
+        kinds = [row['event'] for row in trial['producers']]
+        self.assertEqual(sorted(kinds),
+                         ['producer_done', 'producer_end', 'producer_writes'])
+        self.assertEqual(trial['producers'][0]['write_blocked_ns'], 42)
+        self.assertEqual(trial['stalled_sink']['max_payload_bytes'], 4096)
+        self.assertEqual(trial['runtime_options']['value'], 'opts')
+        self.assertEqual(len(trial['operation_failures']), 1)
+
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.
 

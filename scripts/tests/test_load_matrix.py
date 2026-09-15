@@ -8,6 +8,7 @@ and exit non-zero everywhere, so a real regression and a structurally impossible
 case looked identical from outside.
 """
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -42,6 +43,39 @@ class DefaultSelection(unittest.TestCase):
         """LOAD.md calls 500-session qualification host-dependent and outside it."""
         for name in matrix.default_selection():
             self.assertLessEqual(matrix.cases()[name]['sessions'], 128, name)
+
+
+class FullMatrixClaim(unittest.TestCase):
+    """`full_matrix_executed` is a claim about the matrix, not about case names.
+
+    `--seconds 1` runs every default case five times. LOAD.md defines the matrix
+    as 60-second post-warmup trials and the driver's own help says a different
+    duration answers a different question, so the flag has to notice.
+    """
+
+    def run_driver(self, *extra):
+        import subprocess
+        import sys
+        import tempfile
+        root = Path(__file__).resolve().parents[1] / 'release'
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory) / 'run'
+            # --list exits before executing, so this exercises the flag's inputs
+            # without running a matrix.
+            result = subprocess.run(
+                [sys.executable, 'load.py', '--list', *extra],
+                cwd=root, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+    def test_a_duration_override_changes_the_case_it_would_run(self):
+        plain = self.run_driver()
+        overridden = self.run_driver('--seconds', '1')
+        name = plain['default_selection'][0]
+        self.assertEqual(plain['cases'][name]['seconds'], 60)
+        self.assertEqual(overridden['cases'][name]['seconds'], 1)
+        self.assertNotEqual(plain['cases'][name], overridden['cases'][name],
+                            'the flag is computed from exactly this comparison')
 
 
 if __name__ == '__main__':

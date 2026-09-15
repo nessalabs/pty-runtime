@@ -193,6 +193,10 @@ def main():
     parser.add_argument('--list', action='store_true')
     args = parser.parse_args()
     cases = matrix.cases(args.smoke)
+    # What the matrix is, before any override. `full_matrix_executed` is a claim
+    # about this, not about having run every case name five times: `--seconds 1`
+    # does that and is not the matrix.
+    defined = matrix.cases(args.smoke)
     if args.seconds is not None:
         if args.seconds < 1:
             parser.error('a measurement duration must be at least one second')
@@ -235,7 +239,9 @@ def main():
                 results.append(dict(case=name, trial=repeat+1, passed=passed, path=output.name,
                                     **reporting.trial_targets(output, cases[name])))
     summary = dict(smoke=args.smoke, repeats=repeats, results=results,
-                   full_matrix_executed=not args.smoke and repeats >= 5 and set(default) <= set(selected),
+                   full_matrix_executed=not args.smoke and repeats >= 5
+                                        and set(default) <= set(selected)
+                                        and all(cases[name] == defined[name] for name in default),
                    all_trials_passed=all(row['passed'] for row in results),
                    all_trials_passed_scope='execution_and_correctness_accounting_only',
                    target_rollup=reporting.rollup(results),

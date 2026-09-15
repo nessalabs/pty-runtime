@@ -34,7 +34,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 5
+RETENTION_VERSION = 6
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -116,7 +116,8 @@ def summarize(path, keep_process_rows):
              'cpu_interval': None, 'producer_start_skew': None,
              'trial_result': None, 'failure': None, 'stderr': [],
              'census_full': [], 'ledger_totals': None, 'resource_cohort': None,
-             'terminal_records': 0}
+             'terminal_records': 0, 'stalled_sink': None, 'runtime_options': None,
+             'producers': [], 'operation_failures': []}
     gap = delivered = verified = 0
     censuses = []
     for line in path.read_text().splitlines():
@@ -187,10 +188,31 @@ def summarize(path, keep_process_rows):
                       # made the artifact silently unable to support the very
                       # claims the experiment cites it for - the same failure
                       # this script was written to stop.
-                      'reference_state', 'overload_outcome', 'observers_detached'):
+                      'reference_state', 'overload_outcome', 'observers_detached',
+                      # `stalled-sink` is the only case that proves a slow
+                      # publisher is held to one in-flight publication with a
+                      # bounded payload, and its whole proof is in this one
+                      # record. Omitting it left those trials archived with
+                      # nothing a reader could audit the case against.
+                      'stalled_sink',
+                      # One per trial: the runtime configuration the numbers
+                      # were produced under.
+                      'runtime_options'):
             if kind == 'trial_result':
                 trial['terminal_records'] += 1
             trial[kind] = event
+        elif kind in ('producer_done', 'producer_end', 'producer_writes'):
+            # ADR 0004 asks for per-PTY progress and blocking, and LOAD.md says
+            # these are retained. They were not: aggregate throughput and the
+            # fairness extrema cannot reconstruct which PTY blocked, for how
+            # long, across how many write calls, or how often a write went
+            # short. One row per producer per phase is the report itself, so it
+            # is kept rather than summarised.
+            trial['producers'].append(event)
+        elif kind == 'operation_failure':
+            # Rare by construction and worthless in aggregate: a resize or
+            # cancel that failed is exactly the record a reader needs whole.
+            trial['operation_failures'].append(event)
         elif kind == 'checkpoint':
             # Requested live and peak Rust allocations, allocation counts, live
             # readers and reader scratch, at baseline, the measurement
@@ -237,6 +259,21 @@ def recomputed_summary(summary, trials):
             raise SystemExit(
                 f'{row["path"]} records no configuration, so the target verdicts '
                 f'summary.json publishes for it cannot be checked against anything')
+        # Building the map silently kept the last record per boundary while the
+        # artifact retained them all, so a boundary recorded `passed: false` and
+        # then `passed: true` recomputed as passing against evidence that holds
+        # a failure. A boundary is judged once per trial, as is idle CPU.
+        boundaries = [event['boundary'] for event in trial['latency_targets']]
+        repeated = sorted({name for name in boundaries if boundaries.count(name) > 1})
+        if repeated:
+            raise SystemExit(
+                f'{row["path"]} records more than one latency target for {repeated}; '
+                f'a boundary is judged once, and which record describes it cannot be '
+                f'decided here')
+        if len(trial['targets']) > 1:
+            raise SystemExit(
+                f'{row["path"]} records {len(trial["targets"])} idle CPU targets; '
+                f'a trial is judged once')
         latency = {event['boundary']: event for event in trial['latency_targets']}
         idle = trial['targets'][-1] if trial['targets'] else {}
         targets = reporting.targets_from_events(latency, idle, configuration)
@@ -344,6 +381,7 @@ def main():
         executed = {}
         for trial in trials:
             executed.setdefault(trial['case'], set()).add(trial['trial'])
+        defined = matrix.cases(summary.get('smoke', False))
         expected = set(matrix.default_selection(summary.get('smoke', False)))
         short = {case: len(executed.get(case, ())) for case in sorted(expected)
                  if len(executed.get(case, ())) < repeats}
@@ -352,6 +390,24 @@ def main():
                 f'summary.json claims full_matrix_executed while smoke={summary.get("smoke")}, '
                 f'repeats={repeats}, and these default cases carry fewer distinct trials '
                 f'than that: {short or "none"}')
+        # Counting the trials was still not the claim. `--seconds 1` runs every
+        # default case five times and is not the matrix: LOAD.md defines it as
+        # 60-second post-warmup trials, and the driver's own help says a
+        # different duration answers a different question. The workload each
+        # trial actually ran is retained, so compare it.
+        altered = {}
+        for trial in trials:
+            if trial['case'] not in expected:
+                continue
+            ran = trial['run']['configuration']
+            changed = {key: (value, ran.get(key)) for key, value in defined[trial['case']].items()
+                       if ran.get(key) != value}
+            if changed:
+                altered[f'{trial["case"]}-{trial["trial"]}'] = changed
+        if altered:
+            raise SystemExit(
+                f'summary.json claims full_matrix_executed, but these trials did not run '
+                f'the matrix workload: {altered}')
     shared = [trial.pop('identity') for trial in trials]
     common = shared[0] if shared else {}
     # Carry the trial's coordinates with it: a bare list of differing identities
@@ -391,11 +447,18 @@ def main():
             'identity': 'hoisted to the artifact once; fields that vary per trial are '
                         'under each trial as `run`, and any trial whose shared half differed '
                         'is listed in `identity_divergent_trials` rather than silently merged',
-            'case_outcomes': 'fairness, reference_state, overload_outcome and '
+            'case_outcomes': 'fairness, reference_state, overload_outcome, stalled_sink and '
                              'observers_detached are kept whole: they are what their '
                              'cases exist to produce, and a summary of them is not evidence',
-            'not_retained': 'per-producer ledger rows (totalled), individual budget records, '
-                            'and per-process rows for non-resource cases outside the closing census',
+            'per_producer': 'producer_done, producer_end and producer_writes are kept whole, '
+                            'one row per producer per phase - bytes, blocked-write duration, '
+                            'maximum backpressure wait, write calls, EAGAIN and partial-write '
+                            'counts. This is ADR 0004\'s per-PTY progress and blocking report, '
+                            'which nothing else in the artifact can reconstruct',
+            'operation_failures': 'kept whole; rare by construction and meaningless in aggregate',
+            'not_retained': 'per-producer ledger rows (totalled), producer_start records, '
+                            'individual budget records, and per-process rows for non-resource '
+                            'cases outside the closing census',
         },
         'trials': trials,
     }
