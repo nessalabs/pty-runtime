@@ -254,6 +254,19 @@ the next failure will name which of the three claims broke rather than printing
 nothing, which is what made the original six undiagnosable — so the next
 occurrence should be worth more than all six previous ones combined.
 
+## The stalled-sink outcome was reported twice: fixed
+
+Found by the archiver's own new check, on the first run after it was added. The
+fixture printed `stalled_sink` at the end of the measurement phase and again
+inside `stop()`, so every trial carried two accounts of one measurement and any
+reader keyed on the event name silently kept whichever came last — the exact
+shape that had just been reported three times over as identity, terminal and
+latency-target records.
+
+The values are identical, so no published figure moves; the artifact committed
+before the check existed simply kept the second copy. `stop()` now re-asserts
+the clause without reporting it.
+
 ## Resource measurements were not retained: fixed
 
 Experiment 0005's artifact was assembled by hand and kept only a closing census
