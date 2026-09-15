@@ -56,10 +56,26 @@ and neither holds. Parking cannot become eligible: the fixture sets
 The census race is a Python-side `ProcessLookupError` recorded as
 `trial_failure`, a different layer from a Rust error out of `main`.
 
-**The path instrumentation added on this branch did not fire**, because no path
-call failed. It is still worth keeping — a negative control confirms the label
-reaches `main` — but it produced no evidence here and should not be described
-as having diagnosed anything.
+**The path instrumentation has since fired, and named the call.** It was
+recorded here as having produced no evidence. That is no longer true. On a box
+resumed from a snapshot it reported:
+
+    Error: Custom { kind: Other, error: "spawn current_dir s64: No such file or
+    directory (os error 2)" }
+
+`std::env::current_dir()` returning `ENOENT` — the fixture's working directory
+becoming invalid while it ran. A Python process in the same shell died with
+`FileNotFoundError` during `import` at the same moment, which is the identical
+cause seen from a different process, so it is the environment rather than the
+fixture.
+
+**That is the best candidate yet for this item's original `Os { code: 2, kind:
+NotFound }`**, and it fits better than any of the four hypotheses ruled out
+above: it is an unlabelled `NotFound` out of `main`, it needs no path race, and
+it explains why re-running on a settled host never reproduced it. It is not
+proof — the original run's environment cannot be re-examined — but the label
+that makes such a report readable is the thing this instrumentation was added
+for, and it did its job the first time the condition recurred.
 
 **Residual, and the reason this item is not simply deleted:** `ProcessError::Io`
 is a payload-free variant, so the errno never reaches the operator. `EMFILE`
