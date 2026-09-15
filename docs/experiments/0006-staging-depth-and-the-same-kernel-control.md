@@ -533,7 +533,7 @@ rather than a guess, and three policies are represented here:
 
 | Artifact | Version | Why |
 | --- | ---: | --- |
-| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **7** | re-run on the box with the identity-checked collector |
+| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **8** | re-run on the box with the identity-checked collector |
 
 Every figure quoted from a version-7 artifact was re-read from it after the
 re-run rather than carried over; several moved by a fraction of a percent, as
@@ -542,7 +542,10 @@ committed file.
 | `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
 | `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
 
-Version 7 names processes by incarnation rather than by pid. Census rows carry
+Version 8 recomputes every target verdict from the measurement it was drawn
+from, refusing a record whose stated pass bit its own numbers do not support,
+and requires an identity record to carry the fields that make a trial
+attributable. Version 7 names processes by incarnation rather than by pid. Census rows carry
 `start_ticks` and `ppid`, the collector refuses a process whose identity changed
 mid-read, and the cohort is keyed on `(pid, start_ticks)` — so a recycled number
 leaves the cohort instead of contributing its new occupant's memory under the
