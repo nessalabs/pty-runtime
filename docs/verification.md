@@ -157,7 +157,7 @@ comparison under load** now also passes: one session's full 43.8 MiB stream is
 replayed into an independent engine after a measurement phase under pressure and
 the views are equal, on all three trials. An **explicit overload outcome** is now reported
 rather than inferred: the runtime's own counters are emitted per trial, and the
-saturating case shows 5,645,046 output-backpressure events and 1.27 GB of
+saturating case shows 5,868,638 output-backpressure events and 0.86 GB of
 exactly-accounted observer gap where the passing case shows zero of both.
 **Input admission rejections are zero**, which is the crux — nothing is
 *rejected*; operations are delayed losslessly and replay is evicted with exact

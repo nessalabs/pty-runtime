@@ -367,11 +367,15 @@ One trial each, counters named:
 | Case | Admission rejections | Backpressure events | Observer gaps | Gap bytes | Any operation refused or delayed | `ProjectedOutput` p99 |
 | --- | ---: | ---: | ---: | ---: | --- | ---: |
 | `attached` | 0 | 0 | 0 | 0 | **no** | 0.7 ms, passes |
-| `capacity-projected` | 0 | **5,645,046** | 3,167 | **1.27 GB** | **yes** | 245.5 ms, fails |
+| `capacity-projected` | 0 | **5,868,638** | — | **0.86 GB** | **yes** | fails |
 
 The case that meets its target emits no overload signal at all; the case that
-misses emits millions of backpressure events and a gigabyte of exactly-accounted
-replay loss. The signal and the failure coincide precisely.
+misses emits millions of backpressure events and most of a gigabyte of
+exactly-accounted replay loss. The signal and the failure coincide precisely.
+
+These counters are run-to-run quantities, not constants: an earlier run of the
+same case recorded 5,645,046 and 1.27 GB. The figures above are the ones in the
+committed artifact, which is the only version of them that can be checked.
 
 **The crux is that admission rejections are zero.** Nothing is *rejected* under
 saturation. Operations are delayed losslessly, and replay is evicted with an
