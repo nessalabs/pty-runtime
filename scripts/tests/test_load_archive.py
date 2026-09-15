@@ -40,8 +40,13 @@ def proc(pid, rss, fds, threads=2, cpu=1.0):
 
 
 class Retention(unittest.TestCase):
-    def build(self, case, events):
+    def build(self, case, events, terminal=True):
         root = Path(self.directory)
+        # The archiver refuses a trial with no terminal record, so supply one
+        # unless the test is about its absence.
+        kinds = {event.get('event') for event in events}
+        if terminal and not kinds & {'trial_result', 'trial_failure'}:
+            events = events + [{'event': 'trial_result', 'passed': True}]
         write(root, 'trial.jsonl', events)
         (root / 'summary.json').write_text(json.dumps(
             {'results': [{'case': case, 'trial': 1, 'passed': True, 'path': 'trial.jsonl'}]}))
@@ -99,7 +104,8 @@ class Retention(unittest.TestCase):
             {'event': 'budget', 'phase': 'under_load', 'name': 'views', 'used': used, 'limit': 64}
             for used in (1, 63, 7)]
         peaks = self.build('attached', events)['trials'][0]['budget_peaks']
-        self.assertEqual(peaks['views'], {'used_peak': 63, 'limit': 64, 'samples': 3})
+        self.assertEqual(peaks['views'], {'used_peak': 63, 'limit': 64, 'samples': 3,
+                                          'final_used': 7, 'final_phase': 'under_load'})
 
     def test_the_latency_distribution_is_trimmed_but_not_lost(self):
         buckets = [0, 0, 5, 9, 0, 0, 0, 2]
@@ -150,8 +156,9 @@ class Retention(unittest.TestCase):
 
     def test_a_divergent_identity_names_the_trial_it_came_from(self):
         root = Path(self.directory)
-        write(root, 'a.jsonl', [identity()])
-        write(root, 'b.jsonl', [identity(source_head='different')])
+        done = {'event': 'trial_result', 'passed': True}
+        write(root, 'a.jsonl', [identity(), done])
+        write(root, 'b.jsonl', [identity(source_head='different'), done])
         (root / 'summary.json').write_text(json.dumps({'results': [
             {'case': 'attached', 'trial': 1, 'passed': True, 'path': 'a.jsonl'},
             {'case': 'attached', 'trial': 2, 'passed': True, 'path': 'b.jsonl'}]}))
@@ -206,6 +213,29 @@ class Retention(unittest.TestCase):
             {'event': 'fairness', 'phase': 0, 'min_bytes': 1},
             {'event': 'fairness', 'phase': 1, 'min_bytes': 2}])
         self.assertEqual([row['phase'] for row in artifact['trials'][0]['fairness']], [0, 1])
+
+    def test_a_file_truncated_at_a_line_boundary_is_refused(self):
+        """It parses cleanly and ends early, so the other two checks miss it."""
+        with self.assertRaises(SystemExit):
+            self.build('attached', [identity(), census(1.0, 'periodic', [])], terminal=False)
+
+    def test_final_budget_values_survive_alongside_the_peak(self):
+        """The peak proves the pressure; the last value proves it was given back."""
+        events = [identity()] + [
+            {'event': 'budget', 'phase': phase, 'name': 'views', 'used': used, 'limit': 64}
+            for phase, used in (('under_load', 63), ('settled', 7), ('forgotten', 0))]
+        peaks = self.build('attached', events)['trials'][0]['budget_peaks']['views']
+        self.assertEqual(peaks['used_peak'], 63)
+        self.assertEqual(peaks['final_used'], 0)
+        self.assertEqual(peaks['final_phase'], 'forgotten')
+
+    def test_checkpoint_records_are_retained(self):
+        artifact = self.build('attached', [
+            identity(),
+            {'event': 'checkpoint', 'phase': 'baseline', 'requested_live_bytes': 10},
+            {'event': 'checkpoint', 'phase': 'closed', 'requested_live_bytes': 10}])
+        kept = artifact['trials'][0]['checkpoints']
+        self.assertEqual([row['phase'] for row in kept], ['baseline', 'closed'])
 
     def test_a_failed_trial_keeps_its_failure_and_stderr(self):
         artifact = self.build('attached', [

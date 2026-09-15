@@ -54,7 +54,8 @@ def totals(sample):
 
 def summarize(path, keep_process_rows):
     trial = {'file': path.name, 'identity': None, 'run': None, 'failure_detail': [],
-             'fairness': [], 'reference_state': None, 'overload_outcome': None,
+             'checkpoints': [], 'fairness': [], 'reference_state': None,
+             'overload_outcome': None,
              'observers_detached': None, 'latency_targets': [],
              'latency': [], 'resource_series': [], 'budget_peaks': {},
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
@@ -105,9 +106,16 @@ def summarize(path, keep_process_rows):
         elif kind == 'budget':
             key = event['name']
             peak = trial['budget_peaks'].setdefault(
-                key, {'used_peak': 0, 'limit': event['limit'], 'samples': 0})
+                key, {'used_peak': 0, 'limit': event['limit'], 'samples': 0,
+                      'final_used': None, 'final_phase': None})
             peak['used_peak'] = max(peak['used_peak'], event['used'])
             peak['samples'] += 1
+            # The peak proves what the pressure reached; the last value proves
+            # the logical resources were given back. The fixture asserts every
+            # budget is zero at `forgotten`, and keeping only peaks discarded
+            # that proof while keeping the pressure it is paired with.
+            peak['final_used'] = event['used']
+            peak['final_phase'] = event.get('phase')
         elif kind == 'ledger':
             gap += event.get('gap_bytes', 0)
             delivered += event.get('total_bytes', 0)
@@ -120,6 +128,12 @@ def summarize(path, keep_process_rows):
                       # this script was written to stop.
                       'reference_state', 'overload_outcome', 'observers_detached'):
             trial[kind] = event
+        elif kind == 'checkpoint':
+            # Requested live and peak Rust allocations, allocation counts, live
+            # readers and reader scratch, at baseline, the measurement
+            # boundaries and shutdown. Without these the artifact cannot show
+            # allocation peaks or a return to baseline.
+            trial.setdefault('checkpoints', []).append(event)
         elif kind == 'fairness':
             # One per phase, so a list rather than a single value.
             trial.setdefault('fairness', []).append(event)
@@ -160,6 +174,15 @@ def main():
         if trial['identity'] is None:
             raise SystemExit(f'{row["path"]} carries no identity record; '
                              f'its measurements cannot be attributed to a revision')
+        # A file truncated at a line boundary parses cleanly and ends early, so
+        # neither the missing-file nor the malformed-line check sees it. Without
+        # this the trial would inherit `passed` from the summary while holding
+        # no result at all.
+        if trial['trial_result'] is None and trial['failure'] is None:
+            raise SystemExit(
+                f'{row["path"]} ends without a trial_result or a trial_failure; '
+                f'summary.json records passed={row["passed"]} for it, which nothing '
+                f'in the file supports')
         trial['case'] = row['case']
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']

@@ -74,6 +74,25 @@ def measurement_window(series, warmup_seconds):
     return first + warmup_seconds, float('inf'), 'warm-up offset'
 
 
+def population_is_comparable(points):
+    """Whether the totals were taken over a stable set of processes.
+
+    A census that loses a process reports totals over the survivors. That is
+    harmless when the same number is lost every time - a constant omission
+    shifts every point equally and leaves the slope alone - and ruinous when the
+    number grows, because the totals then fall for a reason that has nothing to
+    do with the resource being measured, and a real leak can be masked as flat.
+
+    In the 55-minute soak 326 of 327 samples were degraded, always by the same
+    four transient probe processes, with the measured count 193 in 325 of them.
+    That is the harmless case, and this is how it is told from the other one.
+    """
+    fit = slope(points)
+    if fit is None:
+        return None, fit
+    return fit['significance'] < SIGNIFICANCE, fit
+
+
 def assess(series, warmup_seconds, metric, floor):
     """Judge one metric's series. `floor` is the growth per hour worth caring about."""
     opened, closed, how = measurement_window(series, warmup_seconds)
@@ -82,10 +101,28 @@ def assess(series, warmup_seconds, metric, floor):
               for row in series
               if row.get(metric) is not None
               and opened <= row['monotonic_seconds'] <= closed]
+    started_at = min((row['monotonic_seconds'] for row in series), default=0)
+    counted = [(row['monotonic_seconds'] - started_at, row['measured_processes'])
+               for row in series
+               if row.get('measured_processes') is not None
+               and opened <= row['monotonic_seconds'] <= closed]
+    degraded = sum(1 for row in series
+                   if opened <= row['monotonic_seconds'] <= closed
+                   and row.get('unavailable_pids'))
+    comparable, population = population_is_comparable(counted)
     fit = slope(points)
     if fit is None:
         return {'metric': metric, 'verdict': 'insufficient data', 'window': how,
-                'samples': len(points), 'accumulating': None}
+                'samples': len(points), 'accumulating': None,
+                'degraded_samples': degraded}
+    if comparable is False:
+        # The population these totals cover is itself moving, so a change in
+        # them says nothing about the resource. Refusing is the only safe answer.
+        return {'metric': metric, 'verdict': 'unusable: the measured population moved',
+                'window': how, 'samples': fit['samples'], 'accumulating': None,
+                'degraded_samples': degraded,
+                'measured_process_slope_per_hour': population['per_second'] * 3600,
+                'measured_process_significance': population['significance']}
     per_hour = fit['per_second'] * 3600
     observed = fit['seconds_observed']
     # Judged inside the data. Extrapolating a noisy metric from sixty seconds to
@@ -106,6 +143,8 @@ def assess(series, warmup_seconds, metric, floor):
             'window': how,
             'significance': fit['significance'], 'samples': fit['samples'],
             'seconds_observed': observed, 'mean': fit['mean'],
+            'degraded_samples': degraded,
+            'measured_population_stable': comparable,
             'statistically_distinguishable_from_zero': significant,
             'large_enough_to_matter': material,
             # Both, or it is not a finding. A certain slope of nothing is not a
@@ -168,6 +207,10 @@ def main():
                                       '1': 'something accumulates',
                                       '2': 'insufficient evidence: an undecided metric, '
                                            'or a selection that matched no trial'}[str(verdict)],
+                      'degraded_samples': 'A census that loses a process totals the '
+                                          'survivors. That is reported per metric, and a '
+                                          'metric whose measured population is itself '
+                                          'moving is refused rather than fitted.',
                       'scope': 'A flat verdict bounds accumulation over the observed '
                                'window at the floor; it does not prove a twelve-hour '
                                'plateau, and a short window cannot see a slope whose '

@@ -113,14 +113,32 @@ fn merged_stdout_stderr_preserves_binary_bytes_through_public_observer() {
 /// final line.
 fn redacted_environment(output: &[u8]) -> String {
     let text = String::from_utf8_lossy(output);
-    let names: Vec<&str> = text
-        .split('\n')
-        .map(|line| line.trim_end_matches('\r'))
-        .filter(|line| !line.is_empty())
-        .map(|line| line.split('=').next().unwrap_or(""))
-        .collect();
+    // A Unix environment value may contain a newline, so a line without `=` is
+    // a continuation of the previous value, not a variable. Printing it would
+    // put part of a multiline secret into a CI log — the exact thing this
+    // function exists to prevent. Continuations are counted, never echoed, and
+    // a "name" is only reported when it looks like one.
+    let mut names: Vec<&str> = Vec::new();
+    let mut continuations = 0usize;
+    for line in text.split('\n').map(|line| line.trim_end_matches('\r')) {
+        if line.is_empty() {
+            continue;
+        }
+        match line.split_once('=') {
+            Some((name, _))
+                if !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_') =>
+            {
+                names.push(name)
+            }
+            _ => continuations += 1,
+        }
+    }
     format!(
-        "{} bytes, {} assignment(s), names {:?}, final line terminated: {}, \
+        "{} bytes, {} assignment(s), names {:?}, {continuations} unnamed line(s) \
+         withheld, final line terminated: {}, \
          valid utf-8: {} (values withheld deliberately; a short byte count with \
          an unterminated line is a truncated read, an extra name is a leak)",
         output.len(),
