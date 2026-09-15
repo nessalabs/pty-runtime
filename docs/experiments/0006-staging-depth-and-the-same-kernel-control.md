@@ -577,6 +577,12 @@ newer policy preserves — so that analysis is not attempted from them.
 
 `macos-arm64-rerun` at version 3 carries no cohort series, so Part 9's
 resource claims rest on the whole-tree totals with the process-count guard.
+**Its five `stalled-sink` trials also carry no `stalled_sink` record**, because
+version 3 did not retain one: they passed, and the artifact cannot show the
+in-flight bound the case exists to prove. A run archived today would be refused
+for exactly that. The Linux `stalled-sink` artifact does carry it; the macOS raw
+output is gone and cannot be rebuilt, so this one stays as the weaker record it
+is rather than being quietly re-labelled.
 `accumulation.py` reports nothing accumulating in any of its 30 trials on that
 basis; the sharper basis is not available for it.
 
