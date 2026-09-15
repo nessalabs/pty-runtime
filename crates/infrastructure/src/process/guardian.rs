@@ -229,7 +229,12 @@ impl Guardian {
                 }
             }
             Kind::StartFailed if !self.admitted => {
-                self.start_error = Some(super::error(std::io::Error::from_raw_os_error(
+                // The workload's own `Command::spawn`, reported across the
+                // protocol. It is a creation site like any other - the helper
+                // is not polling anything - so `EAGAIN` here is a process limit
+                // rather than "not ready", and classifying it with the general
+                // mapper left `RLIMIT_NPROC` reading as unclassified I/O.
+                self.start_error = Some(super::creation_error(std::io::Error::from_raw_os_error(
                     frame.values[0],
                 )));
             }

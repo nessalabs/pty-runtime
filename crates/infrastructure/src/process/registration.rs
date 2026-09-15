@@ -45,7 +45,7 @@ pub(super) fn start(
         .name("pty-reader".into())
         .stack_size(request.limits.reader_stack_bytes)
         .spawn(move || io::reader(reader_host, reader_rx, reader_session, events))
-        .map_err(super::error)?;
+        .map_err(super::creation_error)?;
     let mut process = OwnedProcess::new(
         guardian,
         request.admission,

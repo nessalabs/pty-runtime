@@ -37,13 +37,10 @@ def tree(owner):
 
 def sample(owner, started, phase):
     members = tree(owner)
-    costs = []
-    vanished = []
-    for pid in members:
-        try:
-            costs.extend(process_costs([pid]))
-        except (FileNotFoundError, ProcessLookupError, AssertionError, subprocess.CalledProcessError):
-            vanished.append(pid)
+    # One batched collection, tolerating exit per process: sampling each pid
+    # separately pays lsof once per process, and a process ending mid-sample is
+    # ordinary rather than a reason to lose the others.
+    costs, vanished = process_costs(sorted(members))
     return {'event': 'resources', 'elapsed_seconds': time.monotonic() - started,
             'phase': phase, 'processes': costs, 'vanished_during_sample': vanished,
             'zombies': [pid for pid, state in members.items() if state.startswith('Z')],
