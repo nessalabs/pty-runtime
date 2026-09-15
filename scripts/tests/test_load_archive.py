@@ -162,7 +162,7 @@ class Retention(unittest.TestCase):
         root = Path(self.directory)
         done = {'event': 'trial_result', 'passed': True}
         write(root, 'a.jsonl', [identity(), done])
-        write(root, 'b.jsonl', [identity(source_head='different'), done])
+        write(root, 'b.jsonl', [identity(source_head='different', repeat=2), done])
         (root / 'summary.json').write_text(json.dumps({'results': [
             {'case': 'attached', 'trial': 1, 'passed': True, 'path': 'a.jsonl'},
             {'case': 'attached', 'trial': 2, 'passed': True, 'path': 'b.jsonl'}]}))
@@ -286,7 +286,7 @@ class Retention(unittest.TestCase):
         sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
         with self.assertRaises(SystemExit) as raised:
             archive.main()
-        self.assertIn('2 terminal records', str(raised.exception))
+        self.assertIn("{'trial_result': 2}", str(raised.exception))
 
     def test_one_trial_output_cannot_stand_in_for_several_trials(self):
         root = Path(self.directory)
@@ -342,7 +342,8 @@ class Retention(unittest.TestCase):
                 continue
             for trial in range(1, 6):
                 name = f'{case}-{trial}.jsonl'
-                write(root, name, [identity(configuration={**config, 'seconds': 1}),
+                write(root, name, [identity(configuration={**config, 'seconds': 1},
+                                            repeat=trial),
                                    {'event': 'trial_result', 'passed': True}])
                 results.append({'case': case, 'trial': trial, 'passed': True, 'path': name})
         (root / 'summary.json').write_text(json.dumps(
@@ -373,6 +374,68 @@ class Retention(unittest.TestCase):
         self.assertEqual(trial['stalled_sink']['max_payload_bytes'], 4096)
         self.assertEqual(trial['runtime_options']['value'], 'opts')
         self.assertEqual(len(trial['operation_failures']), 1)
+
+    def test_every_once_per_trial_record_is_refused_twice_not_only_the_named_ones(self):
+        """One bug reported three times as three fields, so it is checked as one."""
+        for kind, extra in [('identity', {}),
+                            ('throughput', {'accepted_bytes': 1}),
+                            ('fixture_rtt', {'p99_us': 1}),
+                            ('reference_state', {'equal': True}),
+                            ('overload_outcome', {'observer_gaps': 0}),
+                            ('runtime_options', {'value': 'a'}),
+                            ('stalled_sink', {'calls': 1})]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                twice = [{'event': kind, **extra}, {'event': kind, **extra}]
+                events = ([identity()] if kind != 'identity' else []) + twice
+                write(root, 'trial.jsonl', events + [{'event': 'trial_result', 'passed': True}])
+                (root / 'summary.json').write_text(json.dumps(
+                    {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                                  'path': 'trial.jsonl'}]}))
+                sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+                with self.assertRaises(SystemExit, msg=kind) as raised:
+                    archive.main()
+                self.assertIn(kind, str(raised.exception))
+
+    def test_a_summary_coordinate_must_match_the_trial_it_points_at(self):
+        """Five files each saying `repeat 1` is one trial copied five times."""
+        root = Path(self.directory)
+        write(root, 'a.jsonl', [identity(repeat=1), {'event': 'trial_result', 'passed': True}])
+        write(root, 'b.jsonl', [identity(repeat=1), {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps({'results': [
+            {'case': 'attached', 'trial': 1, 'passed': True, 'path': 'a.jsonl'},
+            {'case': 'attached', 'trial': 2, 'passed': True, 'path': 'b.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('identifies itself as repeat 1', str(raised.exception))
+
+    def test_a_run_with_no_trials_is_not_a_passing_run(self):
+        """`all([])` is True, so an empty summary published a passing artifact."""
+        root = Path(self.directory)
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [], 'all_trials_passed': True}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('no trials', str(raised.exception))
+
+    def test_a_recycled_pid_leaves_the_cohort(self):
+        """A pid is a number the kernel reuses; the cohort is a set of processes."""
+        def row(pid, ticks, fds):
+            return {'pid': pid, 'start_ticks': ticks, 'rss_bytes': 10, 'fds': fds,
+                    'threads': 1, 'cpu_seconds': 1.0, 'pss_bytes': None}
+        events = [identity(),
+                  census(0.0, 'measurement_start', [row(1, 100, 5), row(2, 200, 40)]),
+                  # Same number, different process.
+                  census(5.0, 'periodic', [row(1, 100, 5), row(2, 999, 40)]),
+                  census(10.0, 'measurement_end', [row(1, 100, 5), row(2, 999, 40)])]
+        artifact = self.build('attached', events)
+        trial = artifact['trials'][0]
+        self.assertEqual(trial['resource_cohort']['cohort'], 1,
+                         'pid 2 is two different processes and belongs to neither cohort')
+        for entry in trial['resource_series']:
+            self.assertEqual(entry['cohort_fds'], 5)
 
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.

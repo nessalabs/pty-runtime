@@ -34,10 +34,18 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 6
+RETENTION_VERSION = 7
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
+
+# Records a trial emits exactly once, or not at all. Assigning any of these
+# twice loses the first, which is how contradictory evidence hides inside a file
+# that parses cleanly.
+SINGLE_VALUED = ('identity', 'aggregate', 'throughput', 'fixture_rtt', 'cpu_interval',
+                 'producer_start_skew', 'trial_result', 'trial_failure', 'reference_state',
+                 'overload_outcome', 'observers_detached', 'stalled_sink', 'runtime_options',
+                 'complete', 'start', 'idle_cpu_target')
 
 
 def totals(sample):
@@ -62,7 +70,17 @@ def totals(sample):
 
 
 def measured_pids(sample):
-    return {row['pid'] for row in (sample.get('processes') or []) if row.get('pid') is not None}
+    """The processes a census measured, named by incarnation where it can be.
+
+    A pid is a number the kernel reuses. Keyed on the number alone, a recycled
+    pid stays in the cohort and its new occupant's memory, descriptors and
+    threads are fitted as though they were the original's - which is the same
+    substitution the cohort exists to exclude, one level down. `start_ticks` is
+    None on collectors that cannot name an incarnation, and the key degrades to
+    the pid there rather than pretending otherwise.
+    """
+    return {(row['pid'], row.get('start_ticks'))
+            for row in (sample.get('processes') or []) if row.get('pid') is not None}
 
 
 def cohort_totals(samples, rows):
@@ -94,7 +112,7 @@ def cohort_totals(samples, rows):
     for index in inside:
         sample, row = samples[index], rows[index]
         members = [entry for entry in (sample.get('processes') or [])
-                   if entry.get('pid') in cohort]
+                   if (entry.get('pid'), entry.get('start_ticks')) in cohort]
         def total(field):
             values = [entry[field] for entry in members if entry.get(field) is not None]
             return sum(values) if values else None
@@ -117,7 +135,7 @@ def summarize(path, keep_process_rows):
              'trial_result': None, 'failure': None, 'stderr': [],
              'census_full': [], 'ledger_totals': None, 'resource_cohort': None,
              'terminal_records': 0, 'stalled_sink': None, 'runtime_options': None,
-             'producers': [], 'operation_failures': []}
+             'producers': [], 'operation_failures': [], 'record_counts': {}}
     gap = delivered = verified = 0
     censuses = []
     for line in path.read_text().splitlines():
@@ -128,6 +146,14 @@ def summarize(path, keep_process_rows):
             # artifact still reported the run as complete.
             raise ValueError(f'{path.name}: unreadable line: {error}') from error
         kind = event.get('event')
+        # Every field below that holds one record per trial was assigned rather
+        # than accumulated, so a second record of that kind silently replaced
+        # the first. That was reported three times - terminal records, latency
+        # targets, and now identity - each time as one field. It is one bug, so
+        # count them all and refuse any that appears twice, rather than waiting
+        # to be told about the next field.
+        if kind in SINGLE_VALUED:
+            trial['record_counts'][kind] = trial['record_counts'].get(kind, 0) + 1
         if kind == 'identity':
             # Split once here: the shared half is hoisted to the artifact and the
             # varying half stays per trial. Repeating a 311-file inventory and
@@ -291,6 +317,14 @@ def main():
                         help='case name prefixes whose per-process census rows are kept whole')
     args = parser.parse_args()
     summary = json.loads((args.input / 'summary.json').read_text())
+    # An archiver that publishes nothing as though it were something is the
+    # failure this script exists to prevent, and `all([])` is True: a summary
+    # with no results archived at exit 0 carrying zero trials and
+    # `all_trials_passed: true`.
+    if not summary.get('results'):
+        raise SystemExit(
+            'summary.json lists no trials; an artifact holding no evidence would '
+            'publish "every trial passed" over nothing')
     # One file per trial. Two rows pointing at the same output would archive as
     # two trials holding one trial's evidence, which inflates any count taken
     # from the summary - including the full-matrix claim below.
@@ -314,6 +348,22 @@ def main():
         if trial['identity'] is None:
             raise SystemExit(f'{row["path"]} carries no identity record; '
                              f'its measurements cannot be attributed to a revision')
+        repeated = {kind: count for kind, count in trial['record_counts'].items() if count > 1}
+        if repeated:
+            raise SystemExit(
+                f'{row["path"]} records {repeated} more than once; each of these '
+                f'describes the whole trial, so a second one contradicts the first '
+                f'and which is authoritative cannot be decided here')
+        # The summary's coordinate against the file's own. A run whose files each
+        # say `repeat 1` while the summary labels them 1 to 5 is one trial copied
+        # five times, and every count taken from the summary - including the
+        # full-matrix claim - is then counting labels rather than trials.
+        embedded = trial['run'].get('repeat')
+        if embedded is not None and embedded != row['trial']:
+            raise SystemExit(
+                f'{row["path"]} identifies itself as repeat {embedded} but summary.json '
+                f'lists it as trial {row["trial"]}; the coordinate and the evidence '
+                f'disagree')
         # A file truncated at a line boundary parses cleanly and ends early, so
         # neither the missing-file nor the malformed-line check sees it. Without
         # this the trial would inherit `passed` from the summary while holding
@@ -437,6 +487,14 @@ def main():
             'terminal_records': 'the number of trial_result or trial_failure records the file '
                                 'held; anything but exactly one is refused, so a later record '
                                 'cannot overwrite an earlier contradictory one',
+            'record_counts': 'how many of each once-per-trial record the file held. Any of them '
+                             'appearing twice is refused rather than assigned over, and the '
+                             'counts are kept so a reader can see the check had something to '
+                             'check. The summary coordinate is also matched against the trial\'s '
+                             'own recorded repeat',
+            'process_identity': 'census rows carry start_ticks and ppid where the collector can '
+                                'read them, and the cohort is keyed on (pid, start_ticks): a '
+                                'recycled pid is a different process and leaves the cohort',
             'process_rows': 'kept whole at measurement_end and at the closing census - steady '
                             'state and the quiescence that must follow it - and only for cases '
                             'named in full_process_rows, except the closing census which is '

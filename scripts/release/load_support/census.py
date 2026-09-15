@@ -44,20 +44,31 @@ def sample(owner, workloads, phase):
                 tree_processes=len(table), zombies=[pid for pid, (_, state) in table.items() if state.startswith('Z')])
 
 
+def identify(row):
+    """A process, not a number.
+
+    Subtracting one census from another by pid alone credits a recycled number's
+    new occupant with its predecessor's CPU, which on a long run is a negative
+    delta out of nowhere. Where the collector can name the incarnation, use it.
+    """
+    return (row['pid'], row.get('start_ticks'))
+
+
 def cpu_delta(before, after):
     seconds = after['monotonic_seconds'] - before['monotonic_seconds']
-    original = {row['pid']: row for row in before['processes']}
-    final = {row['pid']: row for row in after['processes']}
+    original = {identify(row): row for row in before['processes']}
+    final = {identify(row): row for row in after['processes']}
     result = {}
     for category in ('owner', 'workload_fixture', 'guardian_helper'):
-        rows = [row for row in after['processes'] if row['category'] == category and row['pid'] in original]
-        cpu = sum(row['cpu_seconds']-original[row['pid']]['cpu_seconds'] for row in rows) if rows else None
+        rows = [row for row in after['processes']
+                if row['category'] == category and identify(row) in original]
+        cpu = sum(row['cpu_seconds']-original[identify(row)]['cpu_seconds'] for row in rows) if rows else None
         result[category] = dict(cpu_seconds=cpu, core_percent=cpu/seconds*100 if cpu is not None else None,
                                 matched_processes=len(rows))
     return dict(event='cpu_interval', seconds=seconds, categories=result,
                 includes_census_overhead=True,
                 complete_process_tree_accounting=False,
                 measurement_scope='CPU deltas for PIDs present in both snapshots; processes created and exited between snapshots are unmeasured',
-                unmatched_before_pids=sorted(original.keys() - final.keys()),
-                unmatched_after_pids=sorted(final.keys() - original.keys()),
+                unmatched_before_pids=sorted(pid for pid, _ in original.keys() - final.keys()),
+                unmatched_after_pids=sorted(pid for pid, _ in final.keys() - original.keys()),
                 unavailable_pids=sorted(set(before.get('unavailable_pids', [])) | set(after.get('unavailable_pids', []))))

@@ -519,9 +519,16 @@ rather than a guess, and three policies are represented here:
 
 | Artifact | Version | Why |
 | --- | ---: | --- |
-| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **6** | rebuilt from raw output that still exists |
+| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **7** | re-run on the box with the identity-checked collector |
 | `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
 | `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
+
+Version 7 names processes by incarnation rather than by pid. Census rows carry
+`start_ticks` and `ppid`, the collector refuses a process whose identity changed
+mid-read, and the cohort is keyed on `(pid, start_ticks)` — so a recycled number
+leaves the cohort instead of contributing its new occupant's memory under the
+old one's name. It also counts every once-per-trial record and refuses any that
+appears twice.
 
 Version 6 keeps the per-PTY progress and blocking report — one row per producer
 per phase, carrying bytes, blocked-write duration, maximum backpressure wait,

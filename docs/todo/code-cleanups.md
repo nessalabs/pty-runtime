@@ -130,6 +130,21 @@ collector failing rather than a process ending. Verified against the real race
 on Linux: with a child exiting between calls, the survivor is still measured and
 the dead pid is named.
 
+**A pid is not a process, and the first fix only noticed half of that.** The
+Linux collector makes four separate `/proc` reads per process after a `ps`
+snapshot, and the kernel is free to recycle the number between any two of them.
+When the replacement belongs to somebody else the read is refused and the
+`PermissionError` handler catches it; when it belongs to *us* nothing is refused
+and the census reports the newcomer's memory, descriptors and threads as the
+runtime's — or splices the predecessor's CPU onto the successor's memory. The
+collector now reads `(ppid, starttime)` before and after everything else and
+marks the pid unavailable if they differ, and carries `start_ticks` so a later
+census can tell the same process from the same number. `cpu_delta` and the
+archiver's resource cohort are both keyed on the incarnation rather than on the
+number. Darwin cannot name an incarnation from this collector; its exposure is
+one `ps` and one `lsof` rather than four reads, and it is recorded as null
+rather than guessed.
+
 **Verified on macOS itself**, against real `ps` and `lsof` rather than mocks —
 with a child exiting between calls, the survivor is still measured and the dead
 pid is named, where the previous code raised and discarded both:

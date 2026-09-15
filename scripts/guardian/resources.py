@@ -27,6 +27,21 @@ def resident_costs(pids):
     return rows
 
 
+def incarnation_of(stat):
+    """`(ppid, starttime)` from the tail of /proc/<pid>/stat, past the comm field.
+
+    Splitting on the last `)` drops the pid and the parenthesised command, so
+    index 0 is field 3 (state), index 1 is field 4 (ppid) and index 19 is field
+    22 (starttime in clock ticks since boot). A pid is reused; a pid with the
+    same start time and parent, moments apart, is not.
+    """
+    return stat[1], stat[19]
+
+
+def incarnation(root):
+    return incarnation_of((root / 'stat').read_text().rsplit(')', 1)[1].split())
+
+
 def process_costs(pids):
     """Measure each process, returning `(rows, vanished)`.
 
@@ -43,16 +58,43 @@ def process_costs(pids):
         for pid in pids:
             root = Path('/proc') / str(pid)
             try:
-                stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
+                # Read the identity before and after everything else. A pid is
+                # not a process: this fixture spawns a transient probe every
+                # second, so over a long run the kernel hands one of those
+                # numbers to something new, and these are four separate reads
+                # with the kernel free to recycle the number between any two of
+                # them. When the replacement belongs to somebody else the read
+                # is refused and the handler below catches it; when it belongs
+                # to *us* nothing is refused, and the census quietly reports the
+                # newcomer's memory, descriptors and threads as the runtime's -
+                # or splices the predecessor's CPU onto the successor's memory.
+                #
+                # `(ppid, starttime)` names one incarnation. Same pid, same
+                # start time, same parent, before and after: one process.
+                before = incarnation(root)
                 memory = {}
                 for line in (root / 'smaps_rollup').read_text().splitlines():
                     key, _, value = line.partition(':')
                     if key in ('Rss', 'Pss'):
                         memory[key] = int(value.split()[0]) * 1024
+                descriptors = len(list((root / 'fd').iterdir()))
+                threads = len(list((root / 'task').iterdir()))
+                stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
+                if incarnation_of(stat) != before:
+                    # The number was recycled mid-census. These readings
+                    # describe two different processes, so they describe
+                    # neither.
+                    vanished.append(pid)
+                    continue
                 rows.append({'pid': pid, 'rss_bytes': memory['Rss'], 'pss_bytes': memory['Pss'],
                              'cpu_seconds': (int(stat[11]) + int(stat[12])) / os.sysconf('SC_CLK_TCK'),
-                             'fds': len(list((root / 'fd').iterdir())),
-                             'threads': len(list((root / 'task').iterdir()))})
+                             'fds': descriptors,
+                             'threads': threads,
+                             # Carried so a *later* census can tell the same
+                             # process from the same number. Without it a
+                             # recycled pid stays in any population keyed on pid
+                             # alone, which is what the resource cohort is.
+                             'start_ticks': int(stat[19]), 'ppid': int(stat[1])})
             except (FileNotFoundError, ProcessLookupError, KeyError, IndexError):
                 # /proc/<pid> disappearing, or emptying as the kernel tears it
                 # down, is how exit looks from here.
@@ -104,9 +146,14 @@ def process_costs(pids):
             # Present to ps, gone by the time lsof looked.
             continue
         minutes, seconds = elapsed.split(':')
+        # Darwin has no equivalent of /proc/<pid>/stat's start time here, so
+        # this collector cannot verify an incarnation and does not claim to.
+        # Its exposure is narrower - one `ps` and one `lsof`, not four reads per
+        # process - but it is not zero.
         rows.append({'pid': pid, 'rss_bytes': int(rss) * 1024, 'pss_bytes': None,
                      'cpu_seconds': int(minutes) * 60 + float(seconds),
-                     'fds': fds[pid], 'threads': None})
+                     'fds': fds[pid], 'threads': None,
+                     'start_ticks': None, 'ppid': None})
     return rows, sorted(set(pids) - {row['pid'] for row in rows})
 
 
