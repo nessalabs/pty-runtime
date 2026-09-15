@@ -162,6 +162,7 @@ def assess(series, warmup_seconds, metric, floor):
     counted = points('measured_processes')
     comparable, population = population_is_comparable(counted)
     measured = judge(points(metric), floor)
+    counts_the_population = metric in POPULATION_METRICS
 
     bases = {}
     if cohort is not None:
@@ -170,8 +171,13 @@ def assess(series, warmup_seconds, metric, floor):
             'population_basis': 'the same processes in every sample, by construction'}
     if measured is not None:
         bases['all_measured'] = {
-            **measured, 'population_comparable': comparable,
-            'population_basis': 'totals over the processes each census could measure',
+            **measured,
+            'population_comparable': True if counts_the_population else comparable,
+            'population_basis': (
+                'a direct count of the process tree, not a sum over the processes a '
+                'census could measure, so its own growth does not disqualify it'
+                if counts_the_population
+                else 'totals over the processes each census could measure'),
             'measured_process_slope_per_hour': population['per_second'] * 3600 if population else None,
             'measured_process_significance': population['significance'] if population else None}
     # `None` is "no count series to check", which is not evidence of movement.
@@ -207,6 +213,18 @@ FLOORS = {'fds': ('absolute', 1.0), 'threads': ('absolute', 1.0),
 # An hour projected from a minute is a sixtyfold extrapolation. Past this, the
 # per-hour figure is reported but is not evidence of anything.
 TRUSTWORTHY_EXTRAPOLATION = 10.0
+
+# Metrics that *are* the population rather than a sum taken over it.
+#
+# `tree_processes` is the census's own walk of the process tree, so it does not
+# depend on which processes could be measured, and the comparability gate must
+# not apply to it. Gating it was worse than redundant: accumulating children
+# raise the measured count and the tree count together, so the growth
+# disqualified itself and the tool answered "unusable: the measured population
+# moved" to precisely the leak ADR 0002 names it to find. There is no cohort
+# analogue either — a cohort has a fixed size by construction — so that verdict
+# left no basis at all.
+POPULATION_METRICS = ('tree_processes',)
 
 
 def main():

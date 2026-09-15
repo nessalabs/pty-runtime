@@ -498,13 +498,15 @@ rather than a guess, and three policies are represented here:
 
 | Artifact | Version | Why |
 | --- | ---: | --- |
-| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min` | **4** | rebuilt from raw output that still exists |
+| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min` | **5** | rebuilt from raw output that still exists |
 | `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
 | `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
 
-Version 4 adds the stable-process cohort described in Part 7. Version 3 added
-per-case outcome events, checkpoint records and final budget values. The
-unstamped three have none of those.
+Version 5 records how many terminal records each trial file held, so a later
+record cannot overwrite an earlier contradictory one unnoticed. Version 4 adds
+the stable-process cohort described in Part 7. Version 3 added per-case outcome
+events, checkpoint records and final budget values. The unstamped three have
+none of those.
 
 **This does not affect any figure cited above from them.** Parts 1 and 2 rest on
 latency targets, throughput and ledger totals, which those artifacts do retain,

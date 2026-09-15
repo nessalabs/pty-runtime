@@ -269,6 +269,51 @@ class Retention(unittest.TestCase):
             archive.main()
         self.assertIn('full_matrix_executed', str(raised.exception))
 
+    def test_two_terminal_records_of_the_same_kind_are_refused(self):
+        """A trial ends once.
+
+        Refusing only the *combination* of a result and a failure left two
+        records of the same kind overwriting each other, so `passed: false`
+        followed by `passed: true` published the second and hid the first.
+        """
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity(),
+                                    {'event': 'trial_result', 'passed': False},
+                                    {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('2 terminal records', str(raised.exception))
+
+    def test_one_trial_output_cannot_stand_in_for_several_trials(self):
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity(), {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': n, 'passed': True, 'path': 'trial.jsonl'}
+                         for n in (1, 2)]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('more than once', str(raised.exception))
+
+    def test_a_full_matrix_claim_counts_trials_not_case_labels(self):
+        """Every default case named once, `repeats: 5`, and 28 trials not 140."""
+        root = Path(self.directory)
+        results = []
+        for index, case in enumerate(archive.matrix.default_selection()):
+            name = f'{case}-1.jsonl'
+            write(root, name, [identity(), {'event': 'trial_result', 'passed': True}])
+            results.append({'case': case, 'trial': 1, 'passed': True, 'path': name})
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': results, 'full_matrix_executed': True, 'repeats': 5, 'smoke': False}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('fewer distinct trials', str(raised.exception))
+
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.
 

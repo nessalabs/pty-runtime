@@ -138,6 +138,29 @@ impl Config {
         {
             return Err(std::io::Error::other("idle requires --active 0 --rate 0").into());
         }
+        // These modes are *about* what an observer sees, so running one without
+        // an observer exercises nothing it claims to. `detaching` is the case
+        // that mattered: its drop is guarded on there being attachments to drop,
+        // so with none it emitted no `observers_detached` record, crossed no
+        // transition, and still passed — a trial labelled as testing the detach
+        // transition, proving that the transition was not tested.
+        if result.observers == 0
+            && matches!(
+                result.mode.as_str(),
+                "attached"
+                    | "detaching"
+                    | "reference"
+                    | "dominant"
+                    | "stalled-observer"
+                    | "stalled-sink"
+            )
+        {
+            return Err(std::io::Error::other(format!(
+                "{} is a claim about what an observer sees and needs at least one",
+                result.mode
+            ))
+            .into());
+        }
         if result.mode == "saturation" && (result.active == 0 || result.rate != 0) {
             return Err(
                 std::io::Error::other("saturation requires active producers and --rate 0").into(),
@@ -225,6 +248,45 @@ mod tests {
         assert!(parse(&["target/release/examples/release_load"]).is_err());
         assert!(parse(&["--raw"]).unwrap().raw);
         assert!(!parse(&[]).unwrap().raw);
+    }
+
+    /// A mode named for an observer must have one, or it proves nothing.
+    #[test]
+    fn an_observer_mode_without_an_observer_is_refused() {
+        for mode in [
+            "attached",
+            "detaching",
+            "reference",
+            "dominant",
+            "stalled-observer",
+            "stalled-sink",
+        ] {
+            assert!(
+                parse(&["--mode", mode, "--observers", "0"]).is_err(),
+                "{mode} with no observer exercises nothing it is named for"
+            );
+            assert!(
+                parse(&["--mode", mode, "--observers", "1"]).is_ok(),
+                "{mode}"
+            );
+        }
+        // `detached` forces zero attachments at run time and is the deliberate
+        // opposite case; the idle and resource cases have no observer by
+        // design.
+        assert!(parse(&["--mode", "detached", "--observers", "0"]).is_ok());
+        assert!(
+            parse(&[
+                "--mode",
+                "idle",
+                "--active",
+                "0",
+                "--rate",
+                "0",
+                "--observers",
+                "0"
+            ])
+            .is_ok()
+        );
     }
 
     #[test]

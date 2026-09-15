@@ -128,6 +128,33 @@ class Accumulation(unittest.TestCase):
         self.assertEqual(result['basis'], 'all_measured')
         self.assertTrue(result['accumulating'])
 
+    def test_accumulating_children_are_the_finding_not_a_reason_to_refuse(self):
+        """The leak ADR 0002 names, which the comparability gate used to swallow.
+
+        Persistent children raise the measured count and the tree count
+        together, so gating `tree_processes` on population movement made its own
+        growth disqualify it — and with no cohort analogue for a count, that
+        left no basis at all and a verdict of `null`.
+        """
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'tree_processes': 10 + index // 4,
+                 'measured_processes': 10 + index // 4}
+                for index in range(40)]
+        result = accumulation.assess(rows, 0, 'tree_processes',
+                                     accumulation.FLOORS['tree_processes'])
+        self.assertTrue(result['accumulating'], result['verdict'])
+        self.assertEqual(result['verdict'], 'accumulating')
+        self.assertGreater(result['growth_over_window'], 1)
+
+    def test_a_moving_population_still_disqualifies_sums_taken_over_it(self):
+        """The gate is right for totals; it was only wrong for the count itself."""
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'fds': 100, 'measured_processes': 10 + index // 4}
+                for index in range(40)]
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertIsNone(result['accumulating'])
+        self.assertIn('population moved', result['verdict'])
+
     def test_no_evidence_does_not_exit_as_though_nothing_accumulated(self):
         """A gate must not read an empty artifact as a flat resource profile."""
         import sys

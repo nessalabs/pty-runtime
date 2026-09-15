@@ -34,7 +34,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 4
+RETENTION_VERSION = 5
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -115,7 +115,8 @@ def summarize(path, keep_process_rows):
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
              'cpu_interval': None, 'producer_start_skew': None,
              'trial_result': None, 'failure': None, 'stderr': [],
-             'census_full': [], 'ledger_totals': None, 'resource_cohort': None}
+             'census_full': [], 'ledger_totals': None, 'resource_cohort': None,
+             'terminal_records': 0}
     gap = delivered = verified = 0
     censuses = []
     for line in path.read_text().splitlines():
@@ -187,6 +188,8 @@ def summarize(path, keep_process_rows):
                       # claims the experiment cites it for - the same failure
                       # this script was written to stop.
                       'reference_state', 'overload_outcome', 'observers_detached'):
+            if kind == 'trial_result':
+                trial['terminal_records'] += 1
             trial[kind] = event
         elif kind == 'checkpoint':
             # Requested live and peak Rust allocations, allocation counts, live
@@ -198,6 +201,10 @@ def summarize(path, keep_process_rows):
             # One per phase, so a list rather than a single value.
             trial.setdefault('fairness', []).append(event)
         elif kind == 'trial_failure':
+            # Counted as well as kept. Assigning here overwrote a previous
+            # terminal record, so a file holding `passed: false` followed by
+            # `passed: true` published the second and hid the first.
+            trial['terminal_records'] += 1
             trial['failure'] = event
         elif kind in ('trial_failure_process', 'trial_cleanup_failure'):
             # A trial that never reaches its closing census has no other record
@@ -247,6 +254,15 @@ def main():
                         help='case name prefixes whose per-process census rows are kept whole')
     args = parser.parse_args()
     summary = json.loads((args.input / 'summary.json').read_text())
+    # One file per trial. Two rows pointing at the same output would archive as
+    # two trials holding one trial's evidence, which inflates any count taken
+    # from the summary - including the full-matrix claim below.
+    paths = [row['path'] for row in summary['results']]
+    if len(set(paths)) != len(paths):
+        duplicated = sorted({path for path in paths if paths.count(path) > 1})
+        raise SystemExit(
+            f'summary.json lists the same trial output more than once: {duplicated}; '
+            f'the artifact would hold one trial\'s evidence under several trials')
     trials = []
     for row in summary['results']:
         path = args.input / row['path']
@@ -275,10 +291,16 @@ def main():
         # nothing compared the two. The file is the record; the summary is an
         # index of it, and an index that disagrees is the thing to catch.
         recorded = trial['trial_result']['passed'] if trial['trial_result'] else False
-        if trial['failure'] is not None and trial['trial_result'] is not None:
+        # Counted rather than merely typed. Refusing only the *combination* of a
+        # result and a failure left two records of the same kind overwriting
+        # each other, so `passed: false` followed by `passed: true` published the
+        # second and the artifact hid its own contradictory evidence. A trial
+        # ends once.
+        if trial['terminal_records'] != 1:
             raise SystemExit(
-                f'{row["path"]} carries both a trial_result and a trial_failure; '
-                f'which one describes the trial cannot be decided here')
+                f'{row["path"]} carries {trial["terminal_records"]} terminal records; '
+                f'a trial ends exactly once, and which of several describes it '
+                f'cannot be decided here')
         if recorded != row['passed']:
             raise SystemExit(
                 f'{row["path"]} records passed={recorded} but summary.json says '
@@ -313,13 +335,23 @@ def main():
         # Only a `true` is checked. A run that says it was not the full matrix
         # is not overclaiming, and refusing it would make an honest partial run
         # unarchivable.
-        executed = {trial['case'] for trial in trials}
+        #
+        # Case labels and the scalar `repeats` are not enough on their own: a
+        # summary naming every default case once, with `repeats: 5`, satisfied
+        # both and described 28 trials rather than 140. What the claim means is
+        # that each case was actually run `repeats` times, so count the trials.
+        repeats = summary.get('repeats', 0)
+        executed = {}
+        for trial in trials:
+            executed.setdefault(trial['case'], set()).add(trial['trial'])
         expected = set(matrix.default_selection(summary.get('smoke', False)))
-        if summary.get('smoke') or summary.get('repeats', 0) < 5 or expected - executed:
+        short = {case: len(executed.get(case, ())) for case in sorted(expected)
+                 if len(executed.get(case, ())) < repeats}
+        if summary.get('smoke') or repeats < 5 or short:
             raise SystemExit(
                 f'summary.json claims full_matrix_executed while smoke={summary.get("smoke")}, '
-                f'repeats={summary.get("repeats")} and missing cases '
-                f'{sorted(expected - executed)}')
+                f'repeats={repeats}, and these default cases carry fewer distinct trials '
+                f'than that: {short or "none"}')
     shared = [trial.pop('identity') for trial in trials]
     common = shared[0] if shared else {}
     # Carry the trial's coordinates with it: a bare list of differing identities
@@ -344,7 +376,11 @@ def main():
                                'not; the cohort size is under each trial as resource_cohort',
             'summary_verdicts': 'recomputed from the retained target records and refused if '
                                 'they disagree; all_trials_passed, the target rollup and a '
-                                'claimed full_matrix_executed are checked, not copied',
+                                'claimed full_matrix_executed are checked, not copied, and the '
+                                'full-matrix claim is counted in trials rather than case labels',
+            'terminal_records': 'the number of trial_result or trial_failure records the file '
+                                'held; anything but exactly one is refused, so a later record '
+                                'cannot overwrite an earlier contradictory one',
             'process_rows': 'kept whole at measurement_end and at the closing census - steady '
                             'state and the quiescence that must follow it - and only for cases '
                             'named in full_process_rows, except the closing census which is '
