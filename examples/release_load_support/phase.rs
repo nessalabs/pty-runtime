@@ -321,10 +321,19 @@ pub async fn run(
                 0.0
             },
             served.iter().filter(|bytes| **bytes == 0).count(),
-            if median > 0 && !others.is_empty() {
-                others[0] as f64 / median as f64
-            } else {
+            // Both operands come from the population this ratio describes. Using
+            // the full median here made the figure wrong precisely when the
+            // others are unequal — [1, 2, 3, 100] reported 1/3 rather than 1/2 —
+            // which is the case it exists to diagnose.
+            if others.is_empty() {
                 0.0
+            } else {
+                let others_median = others[others.len() / 2];
+                if others_median > 0 {
+                    others[0] as f64 / others_median as f64
+                } else {
+                    0.0
+                }
             }
         );
         assert!(

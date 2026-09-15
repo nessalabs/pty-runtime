@@ -30,7 +30,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 2
+RETENTION_VERSION = 3
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -60,7 +60,7 @@ def totals(sample):
 def summarize(path, keep_process_rows):
     trial = {'file': path.name, 'identity': None, 'run': None, 'failure_detail': [],
              'checkpoints': [], 'fairness': [], 'reference_state': None,
-             'overload_outcome': None,
+             'overload_outcome': None, 'targets': [],
              'observers_detached': None, 'latency_targets': [],
              'latency': [], 'resource_series': [], 'budget_peaks': {},
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
@@ -86,8 +86,12 @@ def summarize(path, keep_process_rows):
             trial['run'] = {key: event[key] for key in varying if key in event}
             trial['identity'] = {key: value for key, value in event.items()
                                  if key not in varying}
-        elif kind == 'latency_target':
-            trial['latency_targets'].append(event)
+        elif kind in ('latency_target', 'idle_cpu_target'):
+            # The idle cases are judged by idle_cpu_target exactly as the others
+            # are by latency_target. Keeping only the summary boolean meant the
+            # 500-session pass could not be checked without reconstructing it
+            # from cpu_interval and the driver's source.
+            trial['targets' if kind == 'idle_cpu_target' else 'latency_targets'].append(event)
         elif kind == 'latency':
             row = {key: event[key] for key in
                    ('boundary', 'successes', 'failures', 'unavailable',
@@ -188,6 +192,20 @@ def main():
                 f'{row["path"]} ends without a trial_result or a trial_failure; '
                 f'summary.json records passed={row["passed"]} for it, which nothing '
                 f'in the file supports')
+        # Presence was not enough: a file holding a trial_failure was still
+        # published as passing, because the pass bit came from the summary and
+        # nothing compared the two. The file is the record; the summary is an
+        # index of it, and an index that disagrees is the thing to catch.
+        recorded = trial['trial_result']['passed'] if trial['trial_result'] else False
+        if trial['failure'] is not None and trial['trial_result'] is not None:
+            raise SystemExit(
+                f'{row["path"]} carries both a trial_result and a trial_failure; '
+                f'which one describes the trial cannot be decided here')
+        if recorded != row['passed']:
+            raise SystemExit(
+                f'{row["path"]} records passed={recorded} but summary.json says '
+                f'passed={row["passed"]}; the artifact would publish a verdict its '
+                f'own trial data contradicts')
         trial['case'] = row['case']
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']

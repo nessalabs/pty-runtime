@@ -176,7 +176,7 @@ the measurement phase and keeps producing. Five trials:
 | --- | --- |
 | Observers released | 64, at 30.0 s, every trial |
 | Accepted throughput after they left | **10.0 MiB/s** — the offered rate, unchanged |
-| `ProjectedOutput` p99 | 0.60 ms against a 20 ms target, passing |
+| `ProjectedOutput` p99 | 0.7 ms against a 20 ms target, passing |
 | Replay gap seen by a later attach | 684.1 MiB, **exactly accounted** in all five |
 | Final process tree / zombies | 1 / 0 |
 
@@ -275,10 +275,10 @@ out.
 | | |
 | --- | --- |
 | Processes at steady state | **1,501** |
-| Resident memory | 3,021 MiB |
+| Resident memory | 3,222.6 MiB |
 | Descriptors | 14,508 |
 | Threads | 2,507 |
-| Idle CPU | **0.53 %** against a 1.0 % target |
+| Idle CPU | **0.56 %** against a 1.0 % target |
 | After close | tree of 1, **zero zombies** |
 
 **Projected, 500 sessions: refused, before a single session starts**, with
@@ -367,11 +367,11 @@ One trial each, counters named:
 | Case | Admission rejections | Backpressure events | Observer gaps | Gap bytes | Any operation refused or delayed | `ProjectedOutput` p99 |
 | --- | ---: | ---: | ---: | ---: | --- | ---: |
 | `attached` | 0 | 0 | 0 | 0 | **no** | 0.7 ms, passes |
-| `capacity-projected` | 0 | **5,868,638** | — | **0.86 GB** | **yes** | fails |
+| `capacity-projected` | 0 | **5,868,638** | — | **0.86 GiB** | **yes** | fails |
 
 The case that meets its target emits no overload signal at all; the case that
-misses emits millions of backpressure events and most of a gigabyte of
-exactly-accounted replay loss. The signal and the failure coincide precisely.
+misses emits millions of backpressure events and 0.86 GiB of exactly-accounted
+replay loss. The signal and the failure coincide precisely.
 
 These counters are run-to-run quantities, not constants: an earlier run of the
 same case recorded 5,645,046 and 1.27 GB. The figures above are the ones in the

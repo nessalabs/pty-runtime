@@ -40,7 +40,7 @@ def proc(pid, rss, fds, threads=2, cpu=1.0):
 
 
 class Retention(unittest.TestCase):
-    def build(self, case, events, terminal=True):
+    def build(self, case, events, terminal=True, passed=None):
         root = Path(self.directory)
         # The archiver refuses a trial with no terminal record, so supply one
         # unless the test is about its absence.
@@ -48,8 +48,11 @@ class Retention(unittest.TestCase):
         if terminal and not kinds & {'trial_result', 'trial_failure'}:
             events = events + [{'event': 'trial_result', 'passed': True}]
         write(root, 'trial.jsonl', events)
+        if passed is None:
+            # The summary must agree with the file; the archiver now checks.
+            passed = not any(event.get('event') == 'trial_failure' for event in events)
         (root / 'summary.json').write_text(json.dumps(
-            {'results': [{'case': case, 'trial': 1, 'passed': True, 'path': 'trial.jsonl'}]}))
+            {'results': [{'case': case, 'trial': 1, 'passed': passed, 'path': 'trial.jsonl'}]}))
         out = root / 'artifact.json'
         sys.argv = ['archive', '--input', str(root), '--output', str(out)]
         archive.main()
@@ -213,6 +216,12 @@ class Retention(unittest.TestCase):
             {'event': 'fairness', 'phase': 0, 'min_bytes': 1},
             {'event': 'fairness', 'phase': 1, 'min_bytes': 2}])
         self.assertEqual([row['phase'] for row in artifact['trials'][0]['fairness']], [0, 1])
+
+    def test_a_summary_that_disagrees_with_the_trial_is_refused(self):
+        """A file holding a failure was published as passing, from the summary."""
+        with self.assertRaises(SystemExit):
+            self.build('attached', [identity(), {'event': 'trial_failure', 'error': 'boom'}],
+                       passed=True)
 
     def test_a_file_truncated_at_a_line_boundary_is_refused(self):
         """It parses cleanly and ends early, so the other two checks miss it."""
