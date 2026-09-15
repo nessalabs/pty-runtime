@@ -93,37 +93,11 @@ def population_is_comparable(points):
     return fit['significance'] < SIGNIFICANCE, fit
 
 
-def assess(series, warmup_seconds, metric, floor):
-    """Judge one metric's series. `floor` is the growth per hour worth caring about."""
-    opened, closed, how = measurement_window(series, warmup_seconds)
-    started = min((row['monotonic_seconds'] for row in series), default=0)
-    points = [(row['monotonic_seconds'] - started, row[metric])
-              for row in series
-              if row.get(metric) is not None
-              and opened <= row['monotonic_seconds'] <= closed]
-    started_at = min((row['monotonic_seconds'] for row in series), default=0)
-    counted = [(row['monotonic_seconds'] - started_at, row['measured_processes'])
-               for row in series
-               if row.get('measured_processes') is not None
-               and opened <= row['monotonic_seconds'] <= closed]
-    degraded = sum(1 for row in series
-                   if opened <= row['monotonic_seconds'] <= closed
-                   and row.get('unavailable_pids'))
-    comparable, population = population_is_comparable(counted)
+def judge(points, floor):
+    """Fit one series and say whether it grows, and whether that growth matters."""
     fit = slope(points)
     if fit is None:
-        return {'metric': metric, 'verdict': 'insufficient data', 'window': how,
-                'samples': len(points), 'accumulating': None,
-                'degraded_samples': degraded}
-    if comparable is False:
-        # The population these totals cover is itself moving, so a change in
-        # them says nothing about the resource. Refusing is the only safe answer.
-        return {'metric': metric, 'verdict': 'unusable: the measured population moved',
-                'window': how, 'samples': fit['samples'], 'accumulating': None,
-                'degraded_samples': degraded,
-                'measured_process_slope_per_hour': population['per_second'] * 3600,
-                'measured_process_significance': population['significance']}
-    per_hour = fit['per_second'] * 3600
+        return None
     observed = fit['seconds_observed']
     # Judged inside the data. Extrapolating a noisy metric from sixty seconds to
     # an hour multiplies every wobble by sixty, which flagged four trials whose
@@ -134,17 +108,13 @@ def assess(series, warmup_seconds, metric, floor):
     significant = fit['significance'] >= SIGNIFICANCE
     material = abs(growth) >= threshold
     stretch = 3600.0 / observed if observed else float('inf')
-    return {'metric': metric,
-            'growth_over_window': growth, 'window_seconds': observed,
+    return {'growth_over_window': growth, 'window_seconds': observed,
             'threshold_over_window': threshold, 'threshold_kind': kind,
-            'per_hour_extrapolated': per_hour,
+            'per_hour_extrapolated': fit['per_second'] * 3600,
             'extrapolation_factor': stretch,
             'per_hour_is_trustworthy': stretch <= TRUSTWORTHY_EXTRAPOLATION,
-            'window': how,
             'significance': fit['significance'], 'samples': fit['samples'],
             'seconds_observed': observed, 'mean': fit['mean'],
-            'degraded_samples': degraded,
-            'measured_population_stable': comparable,
             'statistically_distinguishable_from_zero': significant,
             'large_enough_to_matter': material,
             # Both, or it is not a finding. A certain slope of nothing is not a
@@ -154,6 +124,76 @@ def assess(series, warmup_seconds, metric, floor):
                         else 'flat' if not significant
                         else 'moving but too little to matter' if not material
                         else 'decreasing')}
+
+
+def assess(series, warmup_seconds, metric, floor):
+    """Judge one metric's series. `floor` is the growth per hour worth caring about.
+
+    Two bases, because neither alone is safe.
+
+    `stable_cohort` totals only the processes present in every census of the
+    window, so the population behind consecutive points is identical by
+    construction. That closes the hole a count-only comparability check leaves
+    open: a costly process leaving while a cheap one arrives keeps
+    `measured_processes` perfectly flat and moves the totals anyway, which can
+    mask a real slope.
+
+    `all_measured` totals whatever each census could measure. It is the only
+    basis that can see a leak living in the churn itself, and it is trusted only
+    while the measured count is not itself moving.
+
+    A metric accumulates if either decidable basis says so.
+    """
+    opened, closed, how = measurement_window(series, warmup_seconds)
+    started = min((row['monotonic_seconds'] for row in series), default=0)
+    rows = [row for row in series if opened <= row['monotonic_seconds'] <= closed]
+    degraded = sum(1 for row in rows if row.get('unavailable_pids'))
+
+    def points(field):
+        return [(row['monotonic_seconds'] - started, row[field])
+                for row in rows if row.get(field) is not None]
+
+    sizes = {row['cohort_processes'] for row in rows
+             if row.get('cohort_processes') is not None}
+    # A cohort is an intersection, so its size is the same in every sample it
+    # covers. A varying size means these rows are not what this claims to read.
+    cohort = (judge(points('cohort_' + metric), floor)
+              if len(sizes) == 1 and next(iter(sizes)) > 0 else None)
+    counted = points('measured_processes')
+    comparable, population = population_is_comparable(counted)
+    measured = judge(points(metric), floor)
+
+    bases = {}
+    if cohort is not None:
+        bases['stable_cohort'] = {
+            **cohort, 'population_comparable': True, 'processes': next(iter(sizes)),
+            'population_basis': 'the same processes in every sample, by construction'}
+    if measured is not None:
+        bases['all_measured'] = {
+            **measured, 'population_comparable': comparable,
+            'population_basis': 'totals over the processes each census could measure',
+            'measured_process_slope_per_hour': population['per_second'] * 3600 if population else None,
+            'measured_process_significance': population['significance'] if population else None}
+    # `None` is "no count series to check", which is not evidence of movement.
+    decisive = [name for name, row in bases.items()
+                if row['population_comparable'] is not False]
+    common = {'metric': metric, 'window': how, 'degraded_samples': degraded,
+              'measured_population_stable': comparable, 'bases': bases}
+    if not decisive:
+        if not bases:
+            return {**common, 'verdict': 'insufficient data', 'accumulating': None,
+                    'samples': len(points(metric))}
+        return {**common, 'verdict': 'unusable: the measured population moved',
+                'accumulating': None, 'samples': bases['all_measured']['samples'],
+                'measured_process_slope_per_hour':
+                    bases['all_measured']['measured_process_slope_per_hour'],
+                'measured_process_significance':
+                    bases['all_measured']['measured_process_significance']}
+    name = 'stable_cohort' if 'stable_cohort' in decisive else 'all_measured'
+    accumulating = any(bases[basis]['accumulating'] for basis in decisive)
+    return {**common, **bases[name], 'basis': name, 'decisive_bases': decisive,
+            'accumulating': accumulating,
+            'verdict': 'accumulating' if accumulating else bases[name]['verdict']}
 
 
 # What counts as growth *within the observed window*, which is where the
@@ -211,6 +251,16 @@ def main():
                                           'survivors. That is reported per metric, and a '
                                           'metric whose measured population is itself '
                                           'moving is refused rather than fitted.',
+                      'bases': 'Each metric is fitted over a fixed cohort of processes '
+                               'present in every census of the window, and over the totals '
+                               'of whatever each census could measure. The cohort is '
+                               'comparable between samples by construction, so process '
+                               'turnover cannot mask a slope in it; the totals are the only '
+                               'basis that can see a leak in the churn itself, and are used '
+                               'only while the measured count is not itself moving. A '
+                               'metric accumulates if either decidable basis says so. '
+                               'Artifacts written before retention version 4 carry no '
+                               'cohort series, so only the totals basis is available.',
                       'scope': 'A flat verdict bounds accumulation over the observed '
                                'window at the floor; it does not prove a twelve-hour '
                                'plateau, and a short window cannot see a slope whose '

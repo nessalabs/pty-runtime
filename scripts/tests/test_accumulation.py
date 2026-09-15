@@ -90,6 +90,44 @@ class Accumulation(unittest.TestCase):
         result = accumulation.assess(rows, 0, 'rss_bytes', accumulation.FLOORS['rss_bytes'])
         self.assertTrue(result['accumulating'])
 
+    def test_turnover_that_keeps_the_count_flat_cannot_hide_a_leak(self):
+        """The hole a count-only comparability check leaves open.
+
+        A costly process leaves and a cheap one arrives, so `measured_processes`
+        never moves and the totals wander for a reason that is not the resource.
+        The cohort — the processes present in every census — is climbing.
+        """
+        rows = []
+        for index in range(40):
+            rows.append({'monotonic_seconds': index * 5.0,
+                         'measured_processes': 2,
+                         # Totals are flat: the cohort's growth is cancelled by a
+                         # different process being measured each time.
+                         'fds': 100,
+                         'cohort_processes': 1,
+                         'cohort_fds': 10 + index // 2})
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertTrue(result['accumulating'])
+        self.assertEqual(result['basis'], 'stable_cohort')
+        self.assertEqual(result['bases']['all_measured']['verdict'], 'flat',
+                         'the whole-tree totals really do look flat')
+
+    def test_a_leak_in_the_churn_is_still_caught_by_the_whole_tree_totals(self):
+        """The cohort cannot see a leak that lives outside it, so both are fitted."""
+        rows = [{'monotonic_seconds': index * 5.0, 'measured_processes': 2,
+                 'fds': 100 + index // 2, 'cohort_processes': 1, 'cohort_fds': 10}
+                for index in range(40)]
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertTrue(result['accumulating'])
+        self.assertEqual(result['bases']['stable_cohort']['verdict'], 'flat')
+
+    def test_an_artifact_without_a_cohort_still_uses_the_totals(self):
+        """Artifacts written before retention version 4 carry no cohort series."""
+        rows = series([10 + index // 2 for index in range(40)])
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertEqual(result['basis'], 'all_measured')
+        self.assertTrue(result['accumulating'])
+
     def test_no_evidence_does_not_exit_as_though_nothing_accumulated(self):
         """A gate must not read an empty artifact as a flat resource profile."""
         import sys

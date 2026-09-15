@@ -291,24 +291,48 @@ pub async fn run(
     // can apply ADR 0002's targets, and the one property asserted is the one
     // that needs no threshold to name: a session that was asked to produce, in
     // a phase that delivered bytes, must not have been served none of them.
-    let mut served: Vec<u64> = population
+    let active: Vec<(usize, u64)> = population
         .children
         .iter()
-        .filter(|child| (child.producer as u64) < config.active as u64)
-        .map(|child| child.window[2])
+        .filter(|child| child.producer < config.active)
+        .map(|child| (child.producer, child.window[2]))
         .collect();
+    let mut served: Vec<u64> = active.iter().map(|(_, bytes)| *bytes).collect();
     served.sort_unstable();
     if !served.is_empty() {
         let total: u64 = served.iter().sum();
         let median = served[served.len() / 2];
         let lowest = served[0];
         let highest = served[served.len() - 1];
-        // The flooding session in `dominant` is producer 0 by construction; the
-        // question is what the *others* got, so it is reported separately
-        // rather than averaged into them.
-        let others = &served[..served.len().saturating_sub(1)];
+        // The question this ratio answers is what the *non-dominant* producers
+        // got, so the dominant one is excluded by identity. `rate_for` gives
+        // producer 0 nine tenths of the offered rate in `dominant` mode and
+        // paces every producer alike in every other mode, so that index is who
+        // the flooder is and there is nobody to exclude elsewhere.
+        //
+        // Dropping the numerically largest instead was wrong exactly where this
+        // figure earns its place: if producer 0 underperforms enough not to be
+        // the largest, that drops an innocent producer and leaves the flooder
+        // in the population the ratio claims to describe.
+        let dominant = (config.mode == "dominant" && config.active > 1).then_some(0usize);
+        let excluding_dominant = dominant.and_then(|flooder| {
+            let mut others: Vec<u64> = active
+                .iter()
+                .filter(|(producer, _)| *producer != flooder)
+                .map(|(_, bytes)| *bytes)
+                .collect();
+            others.sort_unstable();
+            let middle = others.get(others.len() / 2).copied().unwrap_or(0);
+            // Both operands come from the population this ratio describes.
+            // Dividing by the full median made it wrong precisely when the
+            // others are unequal: [1, 2, 3, 100] reported 1/3 rather than 1/2.
+            (middle > 0).then(|| others[0] as f64 / middle as f64)
+        });
+        let number = |value: Option<f64>| {
+            value.map_or_else(|| "null".to_owned(), |ratio| format!("{ratio:.4}"))
+        };
         println!(
-            "{{\"event\":\"fairness\",\"phase\":{phase},\"active_producers\":{},\"phase_bytes\":{total},             \"min_bytes\":{lowest},\"median_bytes\":{median},\"max_bytes\":{highest},             \"min_over_median\":{:.4},\"max_over_median\":{:.4},\"starved_producers\":{},             \"excluding_largest_min_over_median\":{:.4}}}",
+            "{{\"event\":\"fairness\",\"phase\":{phase},\"active_producers\":{},\"phase_bytes\":{total},             \"min_bytes\":{lowest},\"median_bytes\":{median},\"max_bytes\":{highest},             \"min_over_median\":{:.4},\"max_over_median\":{:.4},\"starved_producers\":{},             \"dominant_producer\":{},\"excluding_dominant_min_over_median\":{}}}",
             served.len(),
             if median > 0 {
                 lowest as f64 / median as f64
@@ -321,20 +345,8 @@ pub async fn run(
                 0.0
             },
             served.iter().filter(|bytes| **bytes == 0).count(),
-            // Both operands come from the population this ratio describes. Using
-            // the full median here made the figure wrong precisely when the
-            // others are unequal — [1, 2, 3, 100] reported 1/3 rather than 1/2 —
-            // which is the case it exists to diagnose.
-            if others.is_empty() {
-                0.0
-            } else {
-                let others_median = others[others.len() / 2];
-                if others_median > 0 {
-                    others[0] as f64 / others_median as f64
-                } else {
-                    0.0
-                }
-            }
+            dominant.map_or_else(|| "null".to_owned(), |index| index.to_string()),
+            number(excluding_dominant)
         );
         assert!(
             total == 0 || lowest > 0,

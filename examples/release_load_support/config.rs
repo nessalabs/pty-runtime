@@ -16,19 +16,22 @@ pub struct Config {
     pub raw: bool,
 }
 impl Config {
+    /// Parse the fixture's own arguments. `args` excludes argv[0].
+    ///
+    /// Every token is consumed as a recognised option or as that option's
+    /// value, and anything left over is refused. A lenient parse is how a
+    /// measurement silently becomes a different measurement: a four-point
+    /// staging-slot sweep was run at four settings and all four were the
+    /// default, because the driver sent `--staging_slots` and a
+    /// scan-for-known-names parser simply did not find it.
+    ///
+    /// Scanning for `--` prefixes alone was not enough either. `release_load
+    /// staging-slots 16` has no unknown `--` token, so it ran at depth 256
+    /// while looking like a depth-16 run, and `--raw false` enabled raw mode
+    /// and dropped the `false` on the floor.
     pub fn parse(args: &[String]) -> Result<Self> {
-        let value = |name: &str, fallback: &str| -> String {
-            args.windows(2)
-                .find(|pair| pair[0] == name)
-                .map_or_else(|| fallback.to_owned(), |pair| pair[1].clone())
-        };
-        // Every name the fixture understands. An argument outside this set is a
-        // misconfigured run, not a harmless extra: `value` falls back to the
-        // default when it does not find a name, so a misspelling silently
-        // measures something other than what was asked for. A staging-slot
-        // sweep was run four times at four settings and all four were the
-        // default, because the driver sent `--staging_slots`.
-        const NAMES: [&str; 13] = [
+        // Names that take exactly one value, and names that take none.
+        const VALUED: [&str; 12] = [
             "--mode",
             "--sessions",
             "--active",
@@ -41,20 +44,50 @@ impl Config {
             "--observers",
             "--cols",
             "--rows",
-            "--raw",
         ];
-        // No skip for argv[0]: a program path does not begin with `--`, so the
-        // filter passes over it either way, and the test helper supplies none.
-        if let Some(unknown) = args
-            .iter()
-            .find(|argument| argument.starts_with("--") && !NAMES.contains(&argument.as_str()))
-        {
-            return Err(std::io::Error::other(format!(
-                "unrecognised fixture argument {unknown}; a run that silently used defaults \
-                 instead would not be the run that was requested"
-            ))
-            .into());
+        const FLAGS: [&str; 1] = ["--raw"];
+        let refuse = |message: String| -> Box<dyn std::error::Error + Send + Sync> {
+            std::io::Error::other(message).into()
+        };
+        let mut given: Vec<(&str, &str)> = Vec::new();
+        let mut raw = false;
+        let mut index = 0;
+        while index < args.len() {
+            let argument = args[index].as_str();
+            if let Some(name) = VALUED.iter().find(|name| **name == argument) {
+                let Some(value) = args.get(index + 1) else {
+                    return Err(refuse(format!(
+                        "{name} was given without a value; the run would otherwise \
+                         silently use the default"
+                    )));
+                };
+                if given.iter().any(|(seen, _)| seen == name) {
+                    return Err(refuse(format!(
+                        "{name} was given more than once; which one describes the \
+                         run cannot be decided here"
+                    )));
+                }
+                given.push((name, value.as_str()));
+                index += 2;
+            } else if FLAGS.contains(&argument) {
+                if raw {
+                    return Err(refuse("--raw was given more than once".to_owned()));
+                }
+                raw = true;
+                index += 1;
+            } else {
+                return Err(refuse(format!(
+                    "unrecognised fixture argument {argument}; a run that silently used \
+                     defaults instead would not be the run that was requested"
+                )));
+            }
         }
+        let value = |name: &str, fallback: &str| -> String {
+            given
+                .iter()
+                .find(|(key, _)| *key == name)
+                .map_or_else(|| fallback.to_owned(), |(_, value)| (*value).to_owned())
+        };
         let result = Self {
             mode: value("--mode", "attached"),
             sessions: value("--sessions", "64").parse()?,
@@ -68,7 +101,7 @@ impl Config {
             observers: value("--observers", "1").parse()?,
             cols: value("--cols", "80").parse()?,
             rows: value("--rows", "24").parse()?,
-            raw: args.iter().any(|arg| arg == "--raw"),
+            raw,
         };
         if result.sessions == 0
             // ADR 0002 asks for 500 sessions qualified "on a host with sufficient
@@ -167,6 +200,31 @@ mod tests {
         assert!(parse(&["--unknown"]).is_err());
         // The values themselves are not names and must stay unaffected.
         assert!(parse(&["--mode", "saturation", "--rate", "0"]).is_ok());
+    }
+
+    /// Checking only for unknown `--` tokens left the same silent-default hole
+    /// open one step further along: a token that is not an option at all, and a
+    /// value handed to an option that takes none.
+    #[test]
+    fn a_token_that_is_never_consumed_is_refused() {
+        assert!(
+            parse(&["staging-slots", "16"]).is_err(),
+            "a missing `--` must not run at the default while looking like a sweep point"
+        );
+        assert!(
+            parse(&["--raw", "false"]).is_err(),
+            "`--raw false` must not enable raw mode and discard the word that denied it"
+        );
+        assert!(parse(&["--mode"]).is_err(), "a name with no value");
+        assert!(parse(&["extra"]).is_err());
+        assert!(
+            parse(&["--seconds", "60", "--seconds", "3600"]).is_err(),
+            "two durations describe two different runs"
+        );
+        // argv[0] is dropped by the caller, so a path is a stray token here.
+        assert!(parse(&["target/release/examples/release_load"]).is_err());
+        assert!(parse(&["--raw"]).unwrap().raw);
+        assert!(!parse(&[]).unwrap().raw);
     }
 
     #[test]

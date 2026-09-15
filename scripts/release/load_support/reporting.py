@@ -28,6 +28,17 @@ def trial_targets(path, config):
                 latency[event['boundary']] = event
             elif event.get('event') == 'idle_cpu_target':
                 idle = event
+    return targets_from_events(latency, idle, config)
+
+
+def targets_from_events(latency, idle, config):
+    """The per-trial target verdicts, from the trial's own target records.
+
+    Split out of `trial_targets` so the archiver can recompute a summary row
+    from the records it retained and refuse a summary that disagrees with them,
+    rather than republishing whatever the driver wrote. One implementation, so
+    the check cannot drift from the thing it checks.
+    """
     expected = [name for name in LATENCY_BOUNDARIES
                 if not (name == 'ProjectedOutput' and config['raw'])] if config['active'] > 0 else []
     missing = [name for name in expected

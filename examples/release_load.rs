@@ -8,7 +8,10 @@ fn main() -> Result<()> {
     if args.get(1).map(String::as_str) == Some("--child") {
         return fixture::run(&args[2], args[3].parse()?);
     }
-    let config = Config::parse(&args)?;
+    // argv[0] is a program path, not an option, and the parser refuses every
+    // token it cannot consume — so it is dropped here rather than special-cased
+    // inside the parse.
+    let config = Config::parse(&args[1..])?;
     if !cfg!(feature = "ghostty") && !config.raw {
         return Err(std::io::Error::other("projected load requires Ghostty feature").into());
     }

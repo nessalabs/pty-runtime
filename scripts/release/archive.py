@@ -16,6 +16,10 @@ the artifact itself under `retention`.
 import argparse
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from load_support import matrix, reporting
 
 # Keeping the full 1025-bucket histogram for every boundary of every trial is
 # most of the artifact's size and almost all of it zeros. The occupied span
@@ -30,7 +34,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 3
+RETENTION_VERSION = 4
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -57,6 +61,51 @@ def totals(sample):
             'unavailable_pids': len(sample.get('unavailable_pids') or [])}
 
 
+def measured_pids(sample):
+    return {row['pid'] for row in (sample.get('processes') or []) if row.get('pid') is not None}
+
+
+def cohort_totals(samples, rows):
+    """Add a second series taken over one fixed set of processes.
+
+    Totals over "whatever was measurable this time" are not comparable between
+    samples. A census that loses a costly process and gains a cheap one leaves
+    the measured *count* perfectly flat while the totals move for a reason that
+    has nothing to do with the resource — so turnover can mask a real slope, and
+    a count-only comparability check cannot see it.
+
+    The cohort is the set of processes present in *every* census of the
+    measurement window, so its series is comparable by construction. It cannot
+    see a leak that lives in the churn itself, which is why the whole-tree
+    counts (`tree_processes`, `measured_processes`) are kept alongside it.
+    """
+    marks = {sample.get('phase'): sample.get('monotonic_seconds') for sample in samples}
+    opened, closed = marks.get('measurement_start'), marks.get('measurement_end')
+    if opened is None or closed is None:
+        # Without both markers there is no window, and an intersection over a
+        # trial's whole life is empty by construction: it ends with a tree of
+        # one. Saying so is better than publishing a cohort of nothing.
+        return {'cohort': None, 'reason': 'the run recorded no measurement window'}
+    inside = [index for index, sample in enumerate(samples)
+              if opened <= (sample.get('monotonic_seconds') or 0) <= closed]
+    if not inside:
+        return {'cohort': None, 'reason': 'no census fell inside the measurement window'}
+    cohort = set.intersection(*(measured_pids(samples[index]) for index in inside))
+    for index in inside:
+        sample, row = samples[index], rows[index]
+        members = [entry for entry in (sample.get('processes') or [])
+                   if entry.get('pid') in cohort]
+        def total(field):
+            values = [entry[field] for entry in members if entry.get(field) is not None]
+            return sum(values) if values else None
+        row['cohort_processes'] = len(members)
+        for field in ('rss_bytes', 'pss_bytes', 'fds', 'threads', 'cpu_seconds'):
+            row['cohort_' + field] = total(field)
+    return {'cohort': len(cohort), 'window_samples': len(inside),
+            'reason': None if cohort else
+                      'no process was measurable in every census of the window'}
+
+
 def summarize(path, keep_process_rows):
     trial = {'file': path.name, 'identity': None, 'run': None, 'failure_detail': [],
              'checkpoints': [], 'fairness': [], 'reference_state': None,
@@ -66,8 +115,9 @@ def summarize(path, keep_process_rows):
              'aggregate': None, 'throughput': None, 'fixture_rtt': None,
              'cpu_interval': None, 'producer_start_skew': None,
              'trial_result': None, 'failure': None, 'stderr': [],
-             'census_full': [], 'ledger_totals': None}
+             'census_full': [], 'ledger_totals': None, 'resource_cohort': None}
     gap = delivered = verified = 0
+    censuses = []
     for line in path.read_text().splitlines():
         try:
             event = json.loads(line)
@@ -103,6 +153,7 @@ def summarize(path, keep_process_rows):
             row['distribution'] = trim(buckets)
             trial['latency'].append(row)
         elif kind == 'physical_resources':
+            censuses.append(event)
             trial['resource_series'].append(totals(event))
             # Per-process rows answer two questions and no others: what the tree
             # looks like in steady state, and whether it emptied afterwards. At
@@ -158,7 +209,29 @@ def summarize(path, keep_process_rows):
     if delivered:
         trial['ledger_totals'] = {'gap_bytes': gap, 'total_bytes': delivered,
                                   'verified_bytes': verified}
+    trial['resource_cohort'] = cohort_totals(censuses, trial['resource_series'])
     return trial
+
+
+def recomputed_summary(summary, trials):
+    """The summary as the retained trial records themselves support it.
+
+    Checking each trial's own pass bit was not enough. Everything above a trial
+    - `all_trials_passed`, `full_matrix_executed`, and the target rollup - was
+    copied through unexamined, so a summary claiming a clean full matrix over
+    results that say otherwise archived without complaint. The summary is an
+    index of the trials; an index that disagrees with them is exactly the thing
+    an archiver must refuse to publish.
+    """
+    rows = []
+    for row, trial in zip(summary['results'], trials):
+        latency = {event['boundary']: event for event in trial['latency_targets']}
+        idle = trial['targets'][-1] if trial['targets'] else {}
+        rows.append({**row,
+                     **reporting.targets_from_events(latency, idle,
+                                                     trial['run']['configuration'])})
+    return rows, {'all_trials_passed': all(row['passed'] for row in rows),
+                  'target_rollup': reporting.rollup(rows)}
 
 
 def main():
@@ -210,6 +283,38 @@ def main():
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']
         trials.append(trial)
+    # Everything above the individual trial, checked against the trials rather
+    # than republished. A summary carrying a correctly recorded failed trial
+    # alongside `all_trials_passed: true`, or a target rollup that counts a
+    # verdict its own target records do not support, archived cleanly before
+    # this.
+    recomputed_rows, recomputed = recomputed_summary(summary, trials)
+    for row, expected in zip(summary['results'], recomputed_rows):
+        disagreement = {key: (row.get(key), value) for key, value in expected.items()
+                        if key in row and row[key] != value}
+        if disagreement:
+            raise SystemExit(
+                f'{row["path"]}: summary.json records target verdicts its own retained '
+                f'target records do not support: {disagreement}')
+    for key, value in recomputed.items():
+        # Only what the summary actually publishes is checked. A summary that
+        # never made the claim is not overclaiming.
+        if key in summary and summary[key] != value:
+            raise SystemExit(
+                f'summary.json records {key}={summary.get(key)!r} while the trials it '
+                f'indexes give {value!r}; the artifact would publish a verdict its own '
+                f'evidence contradicts')
+    if summary.get('full_matrix_executed'):
+        # Only a `true` is checked. A run that says it was not the full matrix
+        # is not overclaiming, and refusing it would make an honest partial run
+        # unarchivable.
+        executed = {trial['case'] for trial in trials}
+        expected = set(matrix.default_selection(summary.get('smoke', False)))
+        if summary.get('smoke') or summary.get('repeats', 0) < 5 or expected - executed:
+            raise SystemExit(
+                f'summary.json claims full_matrix_executed while smoke={summary.get("smoke")}, '
+                f'repeats={summary.get("repeats")} and missing cases '
+                f'{sorted(expected - executed)}')
     shared = [trial.pop('identity') for trial in trials]
     common = shared[0] if shared else {}
     # Carry the trial's coordinates with it: a bare list of differing identities
@@ -227,7 +332,14 @@ def main():
             'latency_distribution': 'full histogram trimmed to its occupied bucket span; '
                                     'bucket width, count, ceiling and overflow count retained',
             'resource_series': 'every periodic census reduced to tree totals over time, '
-                               'which is what shows accumulation',
+                               'which is what shows accumulation, plus totals over the '
+                               'cohort of processes measurable in every census of the '
+                               'measurement window - a fixed population, so its series is '
+                               'comparable between samples where the whole-tree totals are '
+                               'not; the cohort size is under each trial as resource_cohort',
+            'summary_verdicts': 'recomputed from the retained target records and refused if '
+                                'they disagree; all_trials_passed, the target rollup and a '
+                                'claimed full_matrix_executed are checked, not copied',
             'process_rows': 'kept whole at measurement_end and at the closing census - steady '
                             'state and the quiescence that must follow it - and only for cases '
                             'named in full_process_rows, except the closing census which is '

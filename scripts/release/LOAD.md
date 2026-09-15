@@ -26,6 +26,21 @@ trials do not fulfill the performance acceptance requirement. No existing output
 directory is overwritten. Full 500-session qualification remains host-dependent
 and is not included in this bounded 128-session matrix.
 
+**The two 500-session cases exist but are not selected by default.**
+`--list` reports them under `host_dependent`, and either runs when named:
+
+```
+python3 scripts/release/load.py --output /absolute/evidence/raw-500 --case resources-raw-500
+```
+
+`resources-raw-500` needs a host that can carry 1,501 processes and roughly
+14,500 descriptors. `resources-projected-500` cannot pass on any host at the
+shipped defaults — `ProjectionLimits` reserves 8 MiB of native memory per
+projected session against a 1 GiB `resident_bytes` quota, which admits exactly
+128 — so it is run to record that refusal, not to pass. Including either in the
+default selection made the documented command above exit non-zero on every host,
+which turns the run's own pass bit from a result into noise.
+
 **Raise the descriptor limit before running the 128-session cases.** Each session
 holds several descriptors, and a common `ulimit -n` of 1024 is not enough:
 `128-active` and `128-mixed` then fail inside session spawn, at the `runtime`

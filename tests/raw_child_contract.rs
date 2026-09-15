@@ -196,13 +196,22 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     // 2. Exactly one variable reached the child. A leak adds a name here, and
     //    the names are safe to report where the values are not.
     let assignments: Vec<&str> = text.lines().filter(|line| !line.is_empty()).collect();
+    //    A value may itself contain a newline, so a line without `=` is a
+    //    continuation of the previous value rather than a name. Taking the text
+    //    before `=` from one of those yielded the value fragment itself, which
+    //    `assert_eq!` would then debug-print into a CI log — the leak this
+    //    redaction exists to prevent, reintroduced by the assertion. Such lines
+    //    are counted under a placeholder, never carried, and the comparison uses
+    //    `assert!` so nothing is printed but the redacted report.
     let names: Vec<&str> = assignments
         .iter()
-        .map(|line| line.split('=').next().unwrap_or(""))
+        .map(|line| {
+            line.split_once('=')
+                .map_or("<continuation of a withheld value>", |(name, _)| name)
+        })
         .collect();
-    assert_eq!(
-        names,
-        ["PTY_SYNTHETIC_FLAG"],
+    assert!(
+        names == ["PTY_SYNTHETIC_FLAG"],
         "environment leak at the exec boundary: {}",
         redacted_environment(&output)
     );

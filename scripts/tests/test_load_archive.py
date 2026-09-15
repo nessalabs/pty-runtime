@@ -25,7 +25,8 @@ def write(root, name, events):
 def identity(**extra):
     return {'event': 'identity', 'platform': 'Linux', 'source_head': 'abc',
             'source_inventory': [{'path': f'f{n}', 'sha256': 'x'} for n in range(300)],
-            'configuration': {'sessions': 1}, 'repeat': 1, **extra}
+            'configuration': {'sessions': 1, 'active': 0, 'mode': 'attached', 'raw': False},
+            'repeat': 1, **extra}
 
 
 def census(at, phase, processes, **extra):
@@ -127,7 +128,7 @@ class Retention(unittest.TestCase):
         self.assertIn('source_inventory', artifact['identity'])
         self.assertNotIn('identity', artifact['trials'][0])
         self.assertEqual(artifact['identity_divergent_trials'], [])
-        self.assertEqual(artifact['trials'][0]['run']['configuration'], {'sessions': 1})
+        self.assertEqual(artifact['trials'][0]['run']['configuration']['sessions'], 1)
 
     def test_a_missing_trial_file_fails_rather_than_shrinking_the_evidence(self):
         """An artifact must not look complete while holding fewer trials."""
@@ -216,6 +217,83 @@ class Retention(unittest.TestCase):
             {'event': 'fairness', 'phase': 0, 'min_bytes': 1},
             {'event': 'fairness', 'phase': 1, 'min_bytes': 2}])
         self.assertEqual([row['phase'] for row in artifact['trials'][0]['fairness']], [0, 1])
+
+    def test_a_summary_verdict_above_the_trial_is_recomputed_not_copied(self):
+        """A correctly recorded failed trial under a clean summary verdict.
+
+        Each trial's own pass bit was checked; everything above it was copied
+        through, so `all_trials_passed: true` over a failing result archived
+        without complaint.
+        """
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity(), {'event': 'trial_failure', 'error': 'boom'}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': False,
+                          'path': 'trial.jsonl'}],
+             'all_trials_passed': True}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('all_trials_passed', str(raised.exception))
+
+    def test_a_target_rollup_its_own_records_do_not_support_is_refused(self):
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity(configuration={'sessions': 1, 'active': 0, 'mode': 'idle', 'raw': True}),
+            {'event': 'idle_cpu_target', 'passed': False, 'measurement_complete': True,
+             'acceptance_duration': True},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'idle-64', 'trial': 1, 'passed': True, 'path': 'trial.jsonl',
+                          'idle_cpu_target_applicable': True,
+                          'idle_cpu_target_passed': True,
+                          'idle_cpu_measurement_complete': True,
+                          'idle_cpu_acceptance_duration': True,
+                          'latency_targets_applicable': False,
+                          'latency_targets_passed': None,
+                          'latency_targets_missing': [],
+                          'latency_measurements_complete': None}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('idle_cpu_target_passed', str(raised.exception))
+
+    def test_a_claimed_full_matrix_must_actually_be_one(self):
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity(), {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True, 'path': 'trial.jsonl'}],
+             'full_matrix_executed': True, 'repeats': 1, 'smoke': False}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('full_matrix_executed', str(raised.exception))
+
+    def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
+        """Totals over "whatever was measurable" are not comparable between samples.
+
+        A costly process leaving while a cheap one arrives leaves the measured
+        count flat and moves the totals anyway, so a count-only comparability
+        check cannot tell the two apart.
+        """
+        events = [identity(),
+                  census(0.0, 'measurement_start', [proc(1, 100, 5), proc(2, 900, 40)]),
+                  census(5.0, 'periodic', [proc(1, 100, 5), proc(3, 900, 40)]),
+                  census(10.0, 'measurement_end', [proc(1, 100, 5), proc(4, 900, 40)])]
+        artifact = self.build('attached', events)
+        trial = artifact['trials'][0]
+        self.assertEqual(trial['resource_cohort']['cohort'], 1, 'only pid 1 survives every census')
+        for row in trial['resource_series']:
+            self.assertEqual(row['cohort_processes'], 1)
+            self.assertEqual(row['cohort_fds'], 5, 'the churning pid is excluded')
+            self.assertEqual(row['fds'], 45, 'the whole-tree total is kept alongside it')
+
+    def test_a_run_without_a_measurement_window_says_so_rather_than_inventing_a_cohort(self):
+        events = [identity(), census(0.0, 'periodic', [proc(1, 100, 5)])]
+        artifact = self.build('attached', events)
+        cohort = artifact['trials'][0]['resource_cohort']
+        self.assertIsNone(cohort['cohort'])
+        self.assertIn('measurement window', cohort['reason'])
 
     def test_a_summary_that_disagrees_with_the_trial_is_refused(self):
         """A file holding a failure was published as passing, from the summary."""
