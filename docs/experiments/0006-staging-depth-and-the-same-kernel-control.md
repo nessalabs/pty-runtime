@@ -221,6 +221,17 @@ asserted property is the one that needs no threshold to justify: a producer
 asked to produce, in a phase that delivered bytes, must not have been served
 none of them.
 
+**The flooder is excluded by identity, not by size.** The fixture also reports
+the min-over-median of the *non-dominant* producers alone, and that figure first
+dropped whichever producer happened to be largest. In the measured runs those
+are the same producer — `rate_for` gives producer 0 nine tenths of the offered
+rate, and it took 540.0 MiB of the 600 — so no number here changes. They stop
+being the same in the one case the figure exists to expose: producer 0
+underperforming enough not to be largest, where dropping the largest excludes an
+innocent producer and leaves the flooder inside the population the ratio claims
+to describe. It is reported as `null` in modes that have no dominant producer,
+rather than as a ratio of a population that does not exist.
+
 **What this does not measure.** The non-dominant producers are rate-limited, so
 4.0 MiB each is their offered rate being met rather than a contested share
 they had to win. It establishes that a flooding session does not prevent others
@@ -296,6 +307,15 @@ about 3.9 GiB before any output is parsed, and the refusal is already the
 behaviour the runtime promises — a typed, immediate `Capacity` rather than a
 degraded run. What this experiment establishes is the capacity claim for the raw
 path at 500, and the exact reason the projected path does not reach it.
+
+**Neither 500-session case belongs in the default matrix**, and both were
+briefly put there while this was being measured. The raw one needs a host with
+1,501 processes and ~14,500 descriptors; the projected one cannot pass anywhere
+on the shipped defaults, for the reason just given. Selecting them by default
+made the documented `load.py --output ...` command record a failed trial and
+exit non-zero on every host, which turns the run's own pass bit from a result
+into noise. They are now run by name — `--case resources-raw-500` — and `--list`
+reports them under `host_dependent`.
 
 ## Part 7: what a long run is actually for
 

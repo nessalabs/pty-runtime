@@ -206,6 +206,15 @@ find it, and used its default. A four-point sweep measured one point four times
 and produced a flat result that looked like a clean refutation. The fixture now
 refuses any argument outside the names it knows, and the driver hyphenates.
 
+**The first fix left the same hole open one step along.** Scanning for unknown
+`--` tokens says nothing about tokens that do not start with `--`, so
+`release_load staging-slots 16` still ran at depth 256 while looking like a
+depth-16 run, and `--raw false` enabled raw mode and dropped the word denying
+it. The parser now walks the argument stream and consumes every token as a
+recognised option or as that option's value; anything left over, a name given
+twice, or a name given no value is refused. `argv[0]` is dropped by the caller
+rather than special-cased inside the parse.
+
 ## `ProcessError::Io` carried no meaning: fixed
 
 `EMFILE`, `ENFILE`, `ENOMEM` and `ENOSPC` now classify as `Capacity` — the word

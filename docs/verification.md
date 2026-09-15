@@ -25,9 +25,15 @@ to discover in the artifact.
 - Run `python3 scripts/gate.py` (format, lint, tests, native build).
 - Ask whether resources accumulate with
   `python3 scripts/release/accumulation.py --artifact <artifact>`, which fits the
-  retained series and separates a slope that is real from one that matters. Over
-  55 minutes it reports descriptors, threads and processes flat and memory
-  drifting 0.0286 %/hour; see [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md).
+  retained series and separates a slope that is real from one that matters. It
+  fits each metric twice — over the cohort of processes measurable in *every*
+  census of the window, whose population is identical between samples by
+  construction, and over the whole-tree totals, which are the only basis that can
+  see a leak living in the process churn itself — because a count-only
+  comparability check cannot tell a costly process leaving and a cheap one
+  arriving from nothing happening. Over 55 minutes it reports descriptors,
+  threads and processes flat and memory drifting 0.0286 %/hour; see
+  [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md).
 - Prefer real process and terminal fixtures over mocks.
 - Do **not** commit gate logs or load dumps into the repo. Re-run when needed.
 - A green experiment does **not** mean “ready to ship.”

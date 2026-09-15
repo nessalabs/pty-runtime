@@ -223,15 +223,20 @@ def recomputed_summary(summary, trials):
     index of the trials; an index that disagrees with them is exactly the thing
     an archiver must refuse to publish.
     """
-    rows = []
+    rows, recomputed = [], []
     for row, trial in zip(summary['results'], trials):
+        configuration = (trial['run'] or {}).get('configuration')
+        if configuration is None:
+            raise SystemExit(
+                f'{row["path"]} records no configuration, so the target verdicts '
+                f'summary.json publishes for it cannot be checked against anything')
         latency = {event['boundary']: event for event in trial['latency_targets']}
         idle = trial['targets'][-1] if trial['targets'] else {}
-        rows.append({**row,
-                     **reporting.targets_from_events(latency, idle,
-                                                     trial['run']['configuration'])})
-    return rows, {'all_trials_passed': all(row['passed'] for row in rows),
-                  'target_rollup': reporting.rollup(rows)}
+        targets = reporting.targets_from_events(latency, idle, configuration)
+        recomputed.append(targets)
+        rows.append({**row, **targets})
+    return rows, recomputed, {'all_trials_passed': all(row['passed'] for row in rows),
+                              'target_rollup': reporting.rollup(rows)}
 
 
 def main():
@@ -288,8 +293,8 @@ def main():
     # alongside `all_trials_passed: true`, or a target rollup that counts a
     # verdict its own target records do not support, archived cleanly before
     # this.
-    recomputed_rows, recomputed = recomputed_summary(summary, trials)
-    for row, expected in zip(summary['results'], recomputed_rows):
+    _, recomputed_targets, recomputed = recomputed_summary(summary, trials)
+    for row, expected in zip(summary['results'], recomputed_targets):
         disagreement = {key: (row.get(key), value) for key, value in expected.items()
                         if key in row and row[key] != value}
         if disagreement:
