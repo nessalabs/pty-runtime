@@ -179,21 +179,33 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     assert_eq!(done.status.exit, Some(ExitStatus::Code(0)));
     assert_eq!(done.status.drain, Some(DrainOutcome::Eof));
 
-    // Three separate claims, asserted separately, because one combined byte
-    // comparison could fail for three unrelated reasons and said which only by
+    // Four separate claims, asserted separately, because one combined byte
+    // comparison could fail for four unrelated reasons and said which only by
     // being absent. Six failures under contention were undiagnosable for that
     // reason, one of them in CI on a documentation-only pull request.
     //
-    // 1. Delivery was complete. `env` terminates every assignment, so output
+    // 1. The child saw an environment at all. Nothing is *not* a short read:
+    //    `env` prints nothing and exits 0 when the environment is empty, so
+    //    zero bytes is a complete and correct report of an empty environment -
+    //    which is this test's failure, not its instrument's. Reporting it as a
+    //    truncated read sent the seventh investigation of this test after a
+    //    lost-output theory for hours; the two are told apart here instead.
+    let text = String::from_utf8_lossy(&output);
+    assert!(
+        !output.is_empty(),
+        "the child observed an empty environment, so the expected variable never \
+         reached it - delivery was complete and there was nothing to deliver: {}",
+        redacted_environment(&output)
+    );
+    // 2. Delivery was complete. `env` terminates every assignment, so output
     //    that does not end in a newline is a truncated read and nothing about
     //    the environment can be concluded from it.
-    let text = String::from_utf8_lossy(&output);
     assert!(
         text.ends_with('\n'),
         "truncated delivery, not an environment result: {}",
         redacted_environment(&output)
     );
-    // 2. Exactly one variable reached the child. A leak adds a name here, and
+    // 3. Exactly one variable reached the child. A leak adds a name here, and
     //    the names are safe to report where the values are not.
     let assignments: Vec<&str> = text.lines().filter(|line| !line.is_empty()).collect();
     //    A value may itself contain a newline, so a line without `=` is a
@@ -215,7 +227,7 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
         "environment leak at the exec boundary: {}",
         redacted_environment(&output)
     );
-    // 3. The override won. Compared as a parsed assignment rather than as raw
+    // 4. The override won. Compared as a parsed assignment rather than as raw
     //    bytes, so a line-ending difference is not mistaken for a leak — and
     //    with `assert!` rather than `assert_eq!`, because the latter debug-
     //    prints both sides on failure and the left side is the value this test

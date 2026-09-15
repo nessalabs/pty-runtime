@@ -162,6 +162,57 @@ that is the same race, occurring at the same rate, no longer fatal.
 `capacity-projected`, `rate-20MiB`, `capacity-raw` and `stalled-sink`, have not
 been re-run.
 
+## The seventh raw-child failure, and two mechanisms it was not
+
+**The failure finally said something**, because of the diagnostic added for the
+item below. CI, macOS, `76bd423`:
+
+    truncated delivery, not an environment result: 0 bytes, 0 assignment(s),
+    names [], 0 unnamed line(s) withheld, final line terminated: false,
+    valid utf-8: true
+
+Child exit 0, `DrainOutcome::Eof`, **zero bytes**. The same commit passed on a
+second macOS runner, so this is the historical flake and not the change under
+review.
+
+**What it is not, measured rather than reasoned.** Two mechanisms were proposed
+here and both are now ruled out, which is recorded because each looked
+convincing and one of them is a real kernel behaviour that will tempt the next
+reader.
+
+*Not a lost PTY buffer.* macOS really does discard a PTY's buffered output, but
+the trigger is **reaping** the child, not the child exiting — 200 rounds each,
+same 50 ms delay, isolated C probe:
+
+| | Rounds | Delivered | Lost |
+| --- | ---: | ---: | ---: |
+| Drain the master, then `waitpid` | 200 | **200** | 0 |
+| `waitpid`, then drain the master | 200 | 0 | **200** |
+
+*Not that, through the runtime either.* Delaying the reader's first poll by
+0, 2, 20, 100 and 500 ms — a temporary env-gated sleep in `read_loop`, reverted
+— the test passes every time. Whatever holds the tty alive in the real spawn
+path, a late reader does not lose the bytes. A first probe that reported
+200/200 loss did so because it reaped before draining and never modelled the
+runtime's ordering at all; it proved a kernel behaviour, not this failure.
+
+**What it most likely is, and why the report pointed the wrong way.**
+`env -i /usr/bin/env` prints **zero bytes** and exits 0. So the observed
+signature is exactly what a child with an *empty environment* produces: delivery
+was complete, and there was nothing to deliver. That is this test's own subject
+— `PTY_SYNTHETIC_FLAG=final-override` not reaching the child — rather than a
+transport fault.
+
+The diagnostic called it "truncated delivery" because its first claim was
+`ends_with('\n')`, and `""` does not end in a newline. **It mislabelled the one
+case it most needed to name**, and sent this investigation after a lost-output
+theory. The assertion is now split: nothing delivered is reported as an empty
+environment, and an unterminated final line is reported as a short read.
+
+**Still open:** why the variable intermittently fails to reach the child. The
+next occurrence will say which of the two it was, which is what six failures and
+then a seventh could not.
+
 ## Raw-child flake: diagnosable
 
 `raw_child_contract::empty_environment_is_exact_at_uninstrumented_exec_boundary`
@@ -171,9 +222,11 @@ failures, one of them in CI on a documentation-only pull request.
 
 It now reports variable **names**, byte count, and whether the final line was
 terminated, with values withheld. A short count with an unterminated line is a
-truncated read; an extra name is a leak.
+truncated read; an extra name is a leak. **The seventh failure carried a
+report**, which is the first time any of them did — see the section above for
+what it said, what it ruled out, and the one thing it got wrong.
 
-**The mechanism is still unfound, and four attempts to reproduce it failed.**
+**Four attempts to reproduce it failed.**
 On the Linux box, at `981a74a` plus this branch:
 
 | Attempt | Result |
