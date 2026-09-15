@@ -449,6 +449,22 @@ fixture refused loudly rather than running something else, which is the
 behaviour added in Part 5's companion change; re-run with the documented
 features it passes 5 of 5.
 
+## A note on the artifacts themselves
+
+Four of the ten artifacts here were built by an earlier retention policy and
+hold less than the rest: `same-kernel`, `soak-55min`, `staging-sweep` and
+`depth-by-workload`. They predate the archiver keeping checkpoint records, final
+budget values, and the per-case outcome events, and their raw runs were lost
+when the box stopped, so they cannot be rebuilt.
+
+**This does not affect any figure cited above from them.** Parts 1, 2 and 7 rest
+on latency targets and resource series, which those artifacts do retain. What
+they cannot support is the allocation-peak and logical-cleanup analysis the
+newer policy preserves — so that analysis is not attempted from them.
+
+Artifacts now carry `retention_version`, so which policy produced one is a field
+rather than a guess. The six rebuilt here are version 2.
+
 ## Limitations
 
 - **One host, one kernel, one sitting.** No macOS, no repetition across days.

@@ -27,6 +27,11 @@ def trim(buckets):
     return {'first_bucket': occupied[0], 'counts': buckets[occupied[0]:occupied[-1] + 1]}
 
 
+# Bumped whenever what is kept changes, and stamped into every artifact. An
+# artifact built by an older policy is not wrong, but it holds less, and a
+# reader comparing two of them needs to know which is which without guessing.
+RETENTION_VERSION = 2
+
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
 
@@ -196,6 +201,7 @@ def main():
                   'identity': identity}
                  for trial, identity in zip(trials, shared) if identity != common]
     artifact = {
+        'retention_version': RETENTION_VERSION,
         'summary': summary,
         'identity': common,
         'identity_divergent_trials': divergent,
