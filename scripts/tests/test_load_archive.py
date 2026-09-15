@@ -22,14 +22,15 @@ def write(root, name, events):
     (root / name).write_text('\n'.join(json.dumps(event) for event in events) + '\n')
 
 
-def identity(**extra):
+def identity(case='attached', **extra):
     # A complete record: the archiver requires the fields that make a trial
-    # attributable, because an identity-shaped event is not attribution.
+    # attributable, because an identity-shaped event is not attribution - and
+    # the configuration a case's label implies, because it checks that too.
     return {'event': 'identity', 'platform': 'Linux', 'machine': 'x86_64',
             'source_head': 'abc', 'diff_sha256': 'd', 'binary_sha256': 'b',
             'descriptor_limit': {'soft': 65535, 'hard': 65535, 'unlimited': False},
             'source_inventory': [{'path': f'f{n}', 'sha256': 'x'} for n in range(300)],
-            'configuration': {'sessions': 1, 'active': 0, 'mode': 'attached', 'raw': False},
+            'configuration': archive.matrix.cases()[case],
             'command': ['release_load'], 'repeat': 1, **extra}
 
 
@@ -47,6 +48,12 @@ def proc(pid, rss, fds, threads=2, cpu=1.0):
 class Retention(unittest.TestCase):
     def build(self, case, events, terminal=True, passed=None):
         root = Path(self.directory)
+        # The archiver checks the case label against the workload the trial
+        # retained, so a fixture has to carry the configuration its label
+        # implies. Tests about retention should not each restate it.
+        events = [{**event, 'configuration': archive.matrix.cases()[case]}
+                  if event.get('event') == 'identity' else event
+                  for event in events]
         # The archiver refuses a trial with no terminal record, so supply one
         # unless the test is about its absence.
         kinds = {event.get('event') for event in events}
@@ -132,7 +139,8 @@ class Retention(unittest.TestCase):
         self.assertIn('source_inventory', artifact['identity'])
         self.assertNotIn('identity', artifact['trials'][0])
         self.assertEqual(artifact['identity_divergent_trials'], [])
-        self.assertEqual(artifact['trials'][0]['run']['configuration']['sessions'], 1)
+        self.assertEqual(artifact['trials'][0]['run']['configuration'],
+                         archive.matrix.cases()['attached'])
 
     def test_a_missing_trial_file_fails_rather_than_shrinking_the_evidence(self):
         """An artifact must not look complete while holding fewer trials."""
@@ -243,7 +251,7 @@ class Retention(unittest.TestCase):
     def test_a_target_rollup_its_own_records_do_not_support_is_refused(self):
         root = Path(self.directory)
         write(root, 'trial.jsonl', [
-            identity(configuration={'sessions': 1, 'active': 0, 'mode': 'idle', 'raw': True}),
+            identity('idle-64'),
             # 2 % against a 1 % ceiling: the record's own numbers give False, so
             # the summary's True is the disagreement under test.
             {'event': 'idle_cpu_target', 'passed': False, 'measurement_complete': True,
@@ -312,7 +320,7 @@ class Retention(unittest.TestCase):
         results = []
         for index, case in enumerate(archive.matrix.default_selection()):
             name = f'{case}-1.jsonl'
-            write(root, name, [identity(), {'event': 'trial_result', 'passed': True}])
+            write(root, name, [identity(case), {'event': 'trial_result', 'passed': True}])
             results.append({'case': case, 'trial': 1, 'passed': True, 'path': name})
         (root / 'summary.json').write_text(json.dumps(
             {'results': results, 'full_matrix_executed': True, 'repeats': 5, 'smoke': False}))
@@ -324,9 +332,8 @@ class Retention(unittest.TestCase):
     def test_two_verdicts_for_one_boundary_are_refused(self):
         """Building the map kept the last record while the artifact kept both."""
         root = Path(self.directory)
-        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
         write(root, 'trial.jsonl', [
-            identity(configuration=config),
+            identity(),
             {'event': 'latency_target', 'boundary': 'InputDispatch', 'passed': False,
              'measurement_complete': True},
             {'event': 'latency_target', 'boundary': 'InputDispatch', 'passed': True,
@@ -349,7 +356,9 @@ class Retention(unittest.TestCase):
                 continue
             for trial in range(1, 6):
                 name = f'{case}-{trial}.jsonl'
-                write(root, name, [identity(configuration={**config, 'seconds': 1},
+                # `seconds` is an allowed override, so the case label stands;
+                # what it is not is the matrix.
+                write(root, name, [identity(case, configuration={**config, 'seconds': 1},
                                             repeat=trial),
                                    {'event': 'trial_result', 'passed': True}])
                 results.append({'case': case, 'trial': trial, 'passed': True, 'path': name})
@@ -447,9 +456,8 @@ class Retention(unittest.TestCase):
     def test_a_verdict_its_own_measurement_contradicts_is_refused(self):
         """224 ms against a 20 ms ceiling, recorded as passing."""
         root = Path(self.directory)
-        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
         write(root, 'trial.jsonl', [
-            identity(configuration=config),
+            identity(),
             {'event': 'latency_target', 'boundary': 'ProjectedOutput', 'passed': True,
              'measurement_complete': True, 'observed_p99_us': 224000,
              'target_p99_us': 20000, 'failures': 0, 'unavailable': 0},
@@ -466,9 +474,8 @@ class Retention(unittest.TestCase):
     def test_a_target_judged_against_a_p99_the_run_did_not_measure_is_refused(self):
         """The verdict's numbers must be the run's numbers, not a second set."""
         root = Path(self.directory)
-        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
         write(root, 'trial.jsonl', [
-            identity(configuration=config),
+            identity(),
             {'event': 'latency', 'boundary': 'ProjectedOutput', 'successes': 10,
              'failures': 0, 'unavailable': 0, 'p50_us': 100, 'p95_us': 200,
              'p99_us': 224000, 'max_us': 300000, 'bucket_width_us': 100, 'buckets': [1]},
@@ -504,6 +511,67 @@ class Retention(unittest.TestCase):
                 with self.assertRaises(SystemExit, msg=field) as raised:
                     archive.main()
                 self.assertIn(field, str(raised.exception))
+
+    def test_a_target_with_no_retained_measurement_is_refused(self):
+        """Every target passing over an artifact holding no distribution at all."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity(),
+            {'event': 'latency_target', 'boundary': 'ProjectedOutput', 'passed': True,
+             'measurement_complete': True, 'observed_p99_us': 900,
+             'target_p99_us': 20000, 'failures': 0, 'unavailable': 0},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('retaining no latency measurement', str(raised.exception))
+
+    def test_two_measurements_for_one_boundary_are_refused(self):
+        root = Path(self.directory)
+        def measured(p99):
+            return {'event': 'latency', 'boundary': 'ProjectedOutput', 'successes': 10,
+                    'failures': 0, 'unavailable': 0, 'p50_us': 100, 'p95_us': 200,
+                    'p99_us': p99, 'max_us': p99, 'bucket_width_us': 100, 'buckets': [1]}
+        write(root, 'trial.jsonl', [identity(), measured(900), measured(224000),
+                                    {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('measured once per trial', str(raised.exception))
+
+    def test_a_case_label_must_match_the_workload_the_trial_ran(self):
+        """An idle raw trial archived cleanly as `reference`."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity('idle-64'),
+                                    {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'reference', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('ran a different workload', str(raised.exception))
+
+    def test_the_documented_overrides_keep_the_case_label(self):
+        """`--seconds` and `--staging-slots` are the only supported overrides."""
+        config = {**archive.matrix.cases()['attached'], 'seconds': 3300,
+                  'staging_slots': 16}
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [identity(configuration=config),
+                                    {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        out = root / 'a.json'
+        sys.argv = ['archive', '--input', str(root), '--output', str(out)]
+        archive.main()
+        self.assertEqual(json.loads(out.read_text())['trials'][0]['case'], 'attached')
 
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.

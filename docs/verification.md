@@ -440,12 +440,21 @@ What changed:
   been run** — see [Experiment 0005](experiments/0005-g1-concurrent-pressure.md).
   It fails: `ProjectedOutput` p99 misses its 20 ms target on all five Linux
   trials of `128-active`, the gate's headline scenario, and by 13× on the paced
-  `chunk-64` case. 500 sessions remain unrun, the macOS matrix is incomplete,
-  and the resource measurements ADR 0004 asks for were not retained. **G2 is
-  not signed off either**: its clauses are proven on macOS arm64, but its gate
-  depends on G1 per ADR 0001 §2, no integrated result artifact exists under
-  `docs/experiments` as ADR 0004 requires, and its READY clause rests on a mock
-  process backend. Both verdicts, clause by clause, are in
+  `chunk-64` case. **Three of those gaps have since closed and are named here so
+  this summary does not contradict the ledger above it**: 500 sessions have been
+  run on the raw path (1,501 processes, 0.54 % idle CPU, clean teardown), the six
+  lost macOS cases have been re-run, and the resource measurements ADR 0004 asks
+  for are retained — `scripts/release/archive.py` defines that retention in code
+  and [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md)
+  commits nine artifacts built by it. What remains open on G1: the 12-hour soak
+  itself, 500 sessions on the *projected* path (refused by the shipped 1 GiB
+  resident quota, which is behaviour rather than a result) and on macOS at all,
+  the rest of the macOS matrix, and a reference-state comparison that replays
+  ordered controls rather than bytes alone. **G2 is not signed off either**: its
+  clauses are proven on macOS arm64, but its gate depends on G1 per ADR 0001 §2
+  and its READY clause rests on a mock process backend. Integrated result
+  artifacts now exist under `docs/experiments` as ADR 0004 requires; what they do
+  not yet carry is a full matrix at five repeats on a qualified host. Both verdicts, clause by clause, are in
   [Release gates G1 and G2](#release-gates-g1-and-g2-adr-0004) above, along with
   three defects that audit turned up: an assertion that cannot fail, duplicated
   escalation/cleanup paths that no test attributes, and a missing proof ledger.

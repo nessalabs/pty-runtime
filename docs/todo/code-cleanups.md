@@ -301,6 +301,13 @@ rather than special-cased inside the parse.
 `EMFILE`, `ENFILE`, `ENOMEM` and `ENOSPC` now classify as `Capacity` — the word
 this boundary already has for admission being full. The 128-session failure
 would read `Process(Capacity)`. The errno itself stays out of the domain, as
-`ProcessError`'s own note and ADR 0005 require; `EAGAIN` stays `Io` because it
-is exhaustion from `fork` and "not ready" from a non-blocking read and this
-boundary cannot tell which.
+`ProcessError`'s own note and ADR 0005 require.
+
+`EAGAIN` stays `Io` in the general mapper, because it is exhaustion from `fork`
+and "not ready" from a non-blocking read and that boundary cannot tell which.
+**At a creation site it can**: nothing is being polled there, so the ambiguity
+that justified leaving it unclassified does not exist. `creation_error` maps it
+to `Capacity` at the four sites that make a process or a thread — the sentinel
+spawn, the reader thread, the spawner and the supervisor — and a process or
+thread limit now reads as admission being full rather than as unclassified I/O,
+which is the same failure the descriptor limit cost a full matrix run to name.

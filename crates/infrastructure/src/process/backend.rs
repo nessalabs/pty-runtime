@@ -118,7 +118,7 @@ impl UnixProcessBackend {
                     let _ = (&*spawn_owner.wake).write(&[1]);
                 }
             })
-            .map_err(super::error)?;
+            .map_err(super::creation_error)?;
         let owner = shared.clone();
         let failure_tx = tx.clone();
         let worker = std::thread::Builder::new()
@@ -140,7 +140,7 @@ impl UnixProcessBackend {
                 shared.shutdown.store(true, Ordering::Release);
                 let _ = tx.send(Message::Shutdown);
                 let _ = spawner.join();
-                return Err(super::error(error));
+                return Err(super::creation_error(error));
             }
         };
         Ok(Self {

@@ -40,11 +40,53 @@ fn error(error: std::io::Error) -> ProcessError {
     }
 }
 
+/// Classify a failure to *create* a process or a thread.
+///
+/// `EAGAIN` stays `Io` in the general mapper because that boundary cannot tell
+/// exhaustion from "not ready": the same errno means a `fork` hit `RLIMIT_NPROC`
+/// and means a non-blocking read had nothing to give. At a creation call site
+/// there is no second reading — nothing is being polled — so the ambiguity that
+/// justified leaving it unclassified does not exist, and reporting a process or
+/// thread limit as unclassified I/O costs exactly what the descriptor limit did.
+pub(super) fn creation_error(failure: std::io::Error) -> ProcessError {
+    if failure.raw_os_error() == Some(libc::EAGAIN) {
+        return ProcessError::Capacity;
+    }
+    error(failure)
+}
+
 #[cfg(test)]
 mod error_tests {
-    use super::error;
+    use super::{creation_error, error};
     use pty_runtime_domain::process::ProcessError;
     use std::io::Error;
+
+    /// `EAGAIN` is exhaustion at a creation site and "not ready" everywhere
+    /// else, and only the creation sites can tell.
+    #[test]
+    fn process_and_thread_limits_report_capacity_at_creation_sites_only() {
+        assert_eq!(
+            creation_error(Error::from_raw_os_error(libc::EAGAIN)),
+            ProcessError::Capacity,
+            "a fork or thread spawn refused for want of a slot is admission being full"
+        );
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::EAGAIN)),
+            ProcessError::Io,
+            "the general mapper still cannot tell exhaustion from not-ready"
+        );
+        // Everything the general mapper classifies keeps its classification.
+        for code in [libc::EMFILE, libc::ENFILE, libc::ENOMEM, libc::ENOSPC] {
+            assert_eq!(
+                creation_error(Error::from_raw_os_error(code)),
+                ProcessError::Capacity
+            );
+        }
+        assert_eq!(
+            creation_error(Error::from_raw_os_error(libc::ENOENT)),
+            ProcessError::NotFound
+        );
+    }
 
     /// The 128-session load case failed five of five on a host whose descriptor
     /// limit was 1024, reporting only `Io`. Naming it cost a full matrix run.

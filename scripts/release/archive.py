@@ -34,7 +34,7 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 8
+RETENTION_VERSION = 9
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
@@ -49,6 +49,11 @@ FULL_ROW_PHASES = ('measurement_end', 'closed')
 REQUIRED_IDENTITY = ('platform', 'machine', 'source_head', 'diff_sha256',
                      'descriptor_limit')
 REQUIRED_RUN = ('configuration', 'command', 'repeat', 'binary_sha256')
+
+# The only workload fields `load.py` exposes an override for. Everything else in
+# a case's configuration is what the case *is*, so a trial carrying a different
+# value is a different workload wearing the case's name.
+OVERRIDABLE = ('seconds', 'staging_slots')
 
 # Records a trial emits exactly once, or not at all. Assigning any of these
 # twice loses the first, which is how contradictory evidence hides inside a file
@@ -322,11 +327,26 @@ def recomputed_summary(summary, trials):
                 f'{row["path"]} records target verdicts its own measurements '
                 f'contradict: {contradicted}')
         # The numbers behind the verdict must also be the numbers the run
-        # measured, not a second set written alongside them.
+        # measured, not a second set written alongside them - and there must be
+        # exactly one measured row to compare against. Keying on the boundary
+        # and skipping absent ones let a trial pass every target while retaining
+        # no distribution at all, and kept only the last of two contradictory
+        # rows.
+        measured = [entry['boundary'] for entry in trial['latency']]
+        repeated = sorted({name for name in measured if measured.count(name) > 1})
+        if repeated:
+            raise SystemExit(
+                f'{row["path"]} retains more than one latency measurement for '
+                f'{repeated}; a boundary is measured once per trial')
         observed = {entry['boundary']: entry['p99_us'] for entry in trial['latency']}
+        unmeasured = sorted(name for name in latency if name not in observed)
+        if unmeasured:
+            raise SystemExit(
+                f'{row["path"]} judges {unmeasured} against a target while retaining no '
+                f'latency measurement for it; the verdict rests on nothing the artifact holds')
         drifted = {name: (event.get('observed_p99_us'), observed.get(name))
                    for name, event in sorted(latency.items())
-                   if name in observed and event.get('observed_p99_us') != observed[name]}
+                   if event.get('observed_p99_us') != observed[name]}
         if drifted:
             raise SystemExit(
                 f'{row["path"]} judges boundaries against p99 values its own latency '
@@ -429,6 +449,22 @@ def main():
                 f'{row["path"]} records passed={recorded} but summary.json says '
                 f'passed={row["passed"]}; the artifact would publish a verdict its '
                 f'own trial data contradicts')
+        # The case label indexes every experiment claim, and it was copied from
+        # the summary unchecked unless the run also claimed a full matrix. An
+        # idle raw trial archived cleanly as `reference`, so case-indexed
+        # evidence could describe a workload that never ran.
+        defined = matrix.cases(summary.get('smoke', False))
+        if row['case'] not in defined:
+            raise SystemExit(
+                f'{row["path"]} is labelled `{row["case"]}`, which is not a case this '
+                f'matrix defines; nothing can say what workload it ran')
+        ran = trial['run']['configuration']
+        differs = {key: (value, ran.get(key)) for key, value in defined[row['case']].items()
+                   if ran.get(key) != value and key not in OVERRIDABLE}
+        if differs:
+            raise SystemExit(
+                f'{row["path"]} is labelled `{row["case"]}` but ran a different workload '
+                f'{differs}; only {list(OVERRIDABLE)} may be overridden')
         trial['case'] = row['case']
         trial['trial'] = row['trial']
         trial['passed'] = row['passed']
