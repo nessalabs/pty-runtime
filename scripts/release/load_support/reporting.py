@@ -31,6 +31,38 @@ def trial_targets(path, config):
     return targets_from_events(latency, idle, config)
 
 
+def recompute_target(event, ceiling_key, observed_key):
+    """The verdict its own numbers support, ignoring the recorded `passed`.
+
+    A target record carries both the measurement and the conclusion drawn from
+    it, and nothing compared them: a record observing 224 ms against a 20 ms
+    ceiling while claiming `passed: true` was republished as a pass. The bit is
+    a convenience; the numbers are the evidence.
+    """
+    if not event:
+        return None
+    return measurement_verdict(event.get(observed_key), event.get(ceiling_key),
+                               event.get('failures', 0), event.get('unavailable', 0))
+
+
+def disagreeing_targets(latency, idle):
+    """Target records whose stated verdict their own measurements do not support."""
+    wrong = {}
+    for name, event in sorted(latency.items()):
+        expected = recompute_target(event, 'target_p99_us', 'observed_p99_us')
+        if event.get('passed') != expected:
+            wrong[name] = {'recorded': event.get('passed'), 'measurements_give': expected,
+                           'observed_p99_us': event.get('observed_p99_us'),
+                           'target_p99_us': event.get('target_p99_us')}
+    if idle:
+        expected = recompute_target(idle, 'target_core_percent', 'measured_core_percent')
+        if idle.get('passed') != expected:
+            wrong['idle_cpu'] = {'recorded': idle.get('passed'), 'measurements_give': expected,
+                                 'measured_core_percent': idle.get('measured_core_percent'),
+                                 'target_core_percent': idle.get('target_core_percent')}
+    return wrong
+
+
 def targets_from_events(latency, idle, config):
     """The per-trial target verdicts, from the trial's own target records.
 

@@ -23,10 +23,14 @@ def write(root, name, events):
 
 
 def identity(**extra):
-    return {'event': 'identity', 'platform': 'Linux', 'source_head': 'abc',
+    # A complete record: the archiver requires the fields that make a trial
+    # attributable, because an identity-shaped event is not attribution.
+    return {'event': 'identity', 'platform': 'Linux', 'machine': 'x86_64',
+            'source_head': 'abc', 'diff_sha256': 'd', 'binary_sha256': 'b',
+            'descriptor_limit': {'soft': 65535, 'hard': 65535, 'unlimited': False},
             'source_inventory': [{'path': f'f{n}', 'sha256': 'x'} for n in range(300)],
             'configuration': {'sessions': 1, 'active': 0, 'mode': 'attached', 'raw': False},
-            'repeat': 1, **extra}
+            'command': ['release_load'], 'repeat': 1, **extra}
 
 
 def census(at, phase, processes, **extra):
@@ -240,7 +244,10 @@ class Retention(unittest.TestCase):
         root = Path(self.directory)
         write(root, 'trial.jsonl', [
             identity(configuration={'sessions': 1, 'active': 0, 'mode': 'idle', 'raw': True}),
+            # 2 % against a 1 % ceiling: the record's own numbers give False, so
+            # the summary's True is the disagreement under test.
             {'event': 'idle_cpu_target', 'passed': False, 'measurement_complete': True,
+             'measured_core_percent': 2.0, 'target_core_percent': 1.0,
              'acceptance_duration': True},
             {'event': 'trial_result', 'passed': True}])
         (root / 'summary.json').write_text(json.dumps(
@@ -436,6 +443,67 @@ class Retention(unittest.TestCase):
                          'pid 2 is two different processes and belongs to neither cohort')
         for entry in trial['resource_series']:
             self.assertEqual(entry['cohort_fds'], 5)
+
+    def test_a_verdict_its_own_measurement_contradicts_is_refused(self):
+        """224 ms against a 20 ms ceiling, recorded as passing."""
+        root = Path(self.directory)
+        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
+        write(root, 'trial.jsonl', [
+            identity(configuration=config),
+            {'event': 'latency_target', 'boundary': 'ProjectedOutput', 'passed': True,
+             'measurement_complete': True, 'observed_p99_us': 224000,
+             'target_p99_us': 20000, 'failures': 0, 'unavailable': 0},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('measurements contradict', str(raised.exception))
+        self.assertIn('224000', str(raised.exception))
+
+    def test_a_target_judged_against_a_p99_the_run_did_not_measure_is_refused(self):
+        """The verdict's numbers must be the run's numbers, not a second set."""
+        root = Path(self.directory)
+        config = {'sessions': 1, 'active': 16, 'mode': 'attached', 'raw': False}
+        write(root, 'trial.jsonl', [
+            identity(configuration=config),
+            {'event': 'latency', 'boundary': 'ProjectedOutput', 'successes': 10,
+             'failures': 0, 'unavailable': 0, 'p50_us': 100, 'p95_us': 200,
+             'p99_us': 224000, 'max_us': 300000, 'bucket_width_us': 100, 'buckets': [1]},
+            {'event': 'latency_target', 'boundary': 'ProjectedOutput', 'passed': True,
+             'measurement_complete': True, 'observed_p99_us': 900,
+             'target_p99_us': 20000, 'failures': 0, 'unavailable': 0},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+        with self.assertRaises(SystemExit) as raised:
+            archive.main()
+        self.assertIn('its own latency records do not report', str(raised.exception))
+
+    def test_an_identity_missing_its_mandatory_fields_is_refused(self):
+        """An identity-shaped event is not attribution.
+
+        Dropping `repeat` also bypassed the coordinate check entirely, by
+        leaving it nothing to compare.
+        """
+        for field in ('repeat', 'source_head', 'binary_sha256', 'machine',
+                      'descriptor_limit', 'configuration'):
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                record = identity()
+                del record[field]
+                write(root, 'trial.jsonl', [record, {'event': 'trial_result', 'passed': True}])
+                (root / 'summary.json').write_text(json.dumps(
+                    {'results': [{'case': 'attached', 'trial': 1, 'passed': True,
+                                  'path': 'trial.jsonl'}]}))
+                sys.argv = ['archive', '--input', str(root), '--output', str(root / 'a.json')]
+                with self.assertRaises(SystemExit, msg=field) as raised:
+                    archive.main()
+                self.assertIn(field, str(raised.exception))
 
     def test_a_fixed_cohort_is_retained_so_turnover_cannot_hide_a_slope(self):
         """Totals over "whatever was measurable" are not comparable between samples.

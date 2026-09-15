@@ -34,10 +34,21 @@ def trim(buckets):
 # Bumped whenever what is kept changes, and stamped into every artifact. An
 # artifact built by an older policy is not wrong, but it holds less, and a
 # reader comparing two of them needs to know which is which without guessing.
-RETENTION_VERSION = 7
+RETENTION_VERSION = 8
 
 # Steady state, and the quiescence that has to follow it.
 FULL_ROW_PHASES = ('measurement_end', 'closed')
+
+# What an identity record has to carry for a trial's measurements to be
+# attributable at all. Requiring only that *some* identity-shaped event exist
+# let a record missing `repeat` slip past the coordinate check below by having
+# nothing to compare, and accepted trials with no revision, platform or binary
+# attribution as though they were evidence.
+# Split the same way `summarize` splits the record: the shared half is hoisted
+# to the artifact, the varying half stays under each trial as `run`.
+REQUIRED_IDENTITY = ('platform', 'machine', 'source_head', 'diff_sha256',
+                     'descriptor_limit')
+REQUIRED_RUN = ('configuration', 'command', 'repeat', 'binary_sha256')
 
 # Records a trial emits exactly once, or not at all. Assigning any of these
 # twice loses the first, which is how contradictory evidence hides inside a file
@@ -302,6 +313,24 @@ def recomputed_summary(summary, trials):
                 f'a trial is judged once')
         latency = {event['boundary']: event for event in trial['latency_targets']}
         idle = trial['targets'][-1] if trial['targets'] else {}
+        # A target record states both a measurement and a verdict, and nothing
+        # compared them: one observing 224 ms against a 20 ms ceiling while
+        # claiming `passed: true` was rolled up as a pass and published.
+        contradicted = reporting.disagreeing_targets(latency, idle)
+        if contradicted:
+            raise SystemExit(
+                f'{row["path"]} records target verdicts its own measurements '
+                f'contradict: {contradicted}')
+        # The numbers behind the verdict must also be the numbers the run
+        # measured, not a second set written alongside them.
+        observed = {entry['boundary']: entry['p99_us'] for entry in trial['latency']}
+        drifted = {name: (event.get('observed_p99_us'), observed.get(name))
+                   for name, event in sorted(latency.items())
+                   if name in observed and event.get('observed_p99_us') != observed[name]}
+        if drifted:
+            raise SystemExit(
+                f'{row["path"]} judges boundaries against p99 values its own latency '
+                f'records do not report: {drifted}')
         targets = reporting.targets_from_events(latency, idle, configuration)
         recomputed.append(targets)
         rows.append({**row, **targets})
@@ -348,6 +377,13 @@ def main():
         if trial['identity'] is None:
             raise SystemExit(f'{row["path"]} carries no identity record; '
                              f'its measurements cannot be attributed to a revision')
+        missing = ([field for field in REQUIRED_IDENTITY if field not in trial['identity']]
+                   + [field for field in REQUIRED_RUN if field not in (trial['run'] or {})])
+        if missing:
+            raise SystemExit(
+                f'{row["path"]} carries an identity record missing {missing}; an '
+                f'identity-shaped event is not attribution, and a missing field is '
+                f'not checked by anything that compares it')
         repeated = {kind: count for kind, count in trial['record_counts'].items() if count > 1}
         if repeated:
             raise SystemExit(
@@ -359,7 +395,7 @@ def main():
         # five times, and every count taken from the summary - including the
         # full-matrix claim - is then counting labels rather than trials.
         embedded = trial['run'].get('repeat')
-        if embedded is not None and embedded != row['trial']:
+        if embedded != row['trial']:
             raise SystemExit(
                 f'{row["path"]} identifies itself as repeat {embedded} but summary.json '
                 f'lists it as trial {row["trial"]}; the coordinate and the evidence '

@@ -159,10 +159,13 @@ later attach is given an exactly-accounted 684 MiB cursor gap. A **fairness outc
 producer and passes — under a session flooding at 135 times the median, the
 other fifteen are served identically and none is starved, though they are
 rate-limited so this is not a contested-share measurement, and input,
-cancellation and resize fairness are not isolated. A **canonical reference-state
+cancellation and resize fairness are not isolated. A **reference-state
 comparison under load** now also passes: one session's full 43.8 MiB stream is
 replayed into an independent engine after a measurement phase under pressure and
-the views are equal, on all three trials. An **explicit overload outcome** is now reported
+the views are equal, on all three trials — a comparison of *bytes*, not of bytes
+and ordered controls. The resizes the pressure phase issues are same-grid, so an
+implementation dropping every one of them under load would still produce an
+equal view, and ADR 0004's "same bytes and controls" is therefore not yet met. An **explicit overload outcome** is now reported
 rather than inferred: the runtime's own counters are emitted per trial, and the
 saturating case shows 5,843,224 output-backpressure events and 0.86 GiB of
 exactly-accounted observer gap where the passing case shows zero of both.
