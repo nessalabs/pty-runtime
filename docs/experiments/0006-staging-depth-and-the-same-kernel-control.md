@@ -491,6 +491,27 @@ fixture refused loudly rather than running something else, which is the
 behaviour added in Part 5's companion change; re-run with the documented
 features it passes 5 of 5.
 
+## The stalled-publisher outcome, now that it is retained
+
+ADR 0004 asks that a slow snapshot/event consumer not starve anything, and
+`stalled-sink` is the case that holds a real `event-stream` publisher stalled
+mid-publication. It emits the proof as one record — how many times the sink was
+called, how many publications it held in flight, and how large the largest
+payload it was asked to buffer grew. **The archiver was dropping that record**,
+so every archived `stalled-sink` trial held the case's name and none of its
+evidence. Three trials on the box, with it retained:
+
+| Trial | Sink calls | Held in flight | Largest payload | `ProjectedOutput` p99 | Replay gap |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
+| 2 | 1 | **1** | 4,130 B | 0.6 ms | 0 |
+| 3 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
+
+Exactly one publication is held, its payload stays within one chunk rather than
+growing without bound, and the projected path meets its target while the
+publisher is stalled, with every byte still accounted. That is the clause, and
+it is now checkable from the artifact instead of from the fixture's source.
+
 ## A note on the artifacts themselves
 
 Artifacts carry `retention_version`, so which policy produced one is a field
@@ -498,9 +519,18 @@ rather than a guess, and three policies are represented here:
 
 | Artifact | Version | Why |
 | --- | ---: | --- |
-| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min` | **5** | rebuilt from raw output that still exists |
+| `fairness`, `500-sessions`, `after-all-observers-detach`, `overload-outcome`, `reference-state`, `soak-55min`, `stalled-sink` | **6** | rebuilt from raw output that still exists |
 | `macos-arm64-rerun` | 3 | its raw run no longer exists on that machine |
 | `same-kernel`, `staging-sweep`, `depth-by-workload` | unstamped | predate the version field; raw runs lost when the box stopped |
+
+Version 6 keeps the per-PTY progress and blocking report — one row per producer
+per phase, carrying bytes, blocked-write duration, maximum backpressure wait,
+write calls, EAGAIN and partial-write counts — which ADR 0004 asks for,
+`LOAD.md` said was retained, and the archiver had been dropping entirely.
+Nothing else in an artifact can reconstruct it: aggregate throughput and the
+fairness extrema give totals and endpoints, not which PTY waited. It also keeps
+the `stalled_sink` outcome, resize and cancel failures, and the runtime options.
+It roughly quadruples an artifact, which is the cost of the evidence.
 
 Version 5 records how many terminal records each trial file held, so a later
 record cannot overwrite an earlier contradictory one unnoticed. Version 4 adds
