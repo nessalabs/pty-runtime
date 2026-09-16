@@ -527,9 +527,12 @@ def main():
             # check vacuous for exactly the runs that do not state a depth,
             # which is every default one. The harness's record of the fixture
             # default is the thing to compare against.
-            requested = ran.get('staging_slots', matrix.FIXTURE_DEFAULTS['staging_slots'])
-            expected = 'null' if ran.get('raw') else str(requested)
-            if str(effective) != str(expected):
+            # A raw run has no projection, and the fixture reports JSON null
+            # for the depth. Comparing `str(None)` against the literal 'null'
+            # compared Python's spelling with JSON's and refused every raw run.
+            expected = (None if ran.get('raw')
+                        else ran.get('staging_slots', matrix.FIXTURE_DEFAULTS['staging_slots']))
+            if effective != expected:
                 raise SystemExit(
                     f'{row["path"]} ran at staging depth {effective!r} while its '
                     f'configuration says {expected!r}; the depth is what these '

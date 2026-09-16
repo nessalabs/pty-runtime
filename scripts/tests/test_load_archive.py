@@ -658,6 +658,25 @@ class Retention(unittest.TestCase):
             archive.main()
         self.assertIn('staging depth', str(raised.exception))
 
+    def test_a_raw_run_reports_no_depth_and_that_is_correct(self):
+        """The fixture prints JSON null for a run with no projection."""
+        root = Path(self.directory)
+        write(root, 'trial.jsonl', [
+            identity('resources-raw-32'),
+            {'event': 'start', 'pid': 1, 'projection_staging_slots_per_session': None},
+            {'event': 'idle_cpu_target', 'passed': True, 'measurement_complete': True,
+             'measured_core_percent': 0.1, 'target_core_percent': 1.0,
+             'acceptance_duration': True},
+            {'event': 'trial_result', 'passed': True}])
+        (root / 'summary.json').write_text(json.dumps(
+            {'results': [{'case': 'resources-raw-32', 'trial': 1, 'passed': True,
+                          'path': 'trial.jsonl'}]}))
+        out = root / 'a.json'
+        sys.argv = ['archive', '--input', str(root), '--output', str(out)]
+        archive.main()
+        self.assertIsNone(json.loads(out.read_text())['trials'][0]['start']
+                          ['projection_staging_slots_per_session'])
+
     def test_the_effective_depth_is_retained_when_it_matches(self):
         config = {**archive.matrix.cases()['attached'], 'staging_slots': 16}
         root = Path(self.directory)
