@@ -20,11 +20,37 @@ rather than a working-tree patch.
 
 ## Host and revision
 
-Linux x86_64, 8 vCPU, kernel **`6.8.0-117`** — the same kernel as Experiment
-0005's baseline — running `main` at `981a74a`, which contains the chunk-batching
-change and the three corrections review added to it afterwards. Five trials per
-case, 60 s each after a 10 s warm-up, `ulimit -n 65535`. Load average below 0.3
-throughout.
+Linux x86_64, 8 vCPU, AMD EPYC-Rome, kernel **`6.8.0-117`** — the same kernel as
+Experiment 0005's baseline — running `main` at `981a74a`, which contains the
+chunk-batching change and the three corrections review added to it afterwards.
+Five trials per case, 60 s each after a 10 s warm-up, `ulimit -n 65535`. Load
+average below 0.3 throughout.
+
+### Two machines, and why latencies cannot be compared across parts
+
+Parts 1 and 2 were measured on one host. **Parts 3 to 8 were re-measured on a
+second**, of the same kernel, core count and CPU model, after the first was
+archived and its raw output lost. The second is **measurably slower on identical
+workloads** — roughly 1.5× on the small latencies:
+
+| Same case, same depth | First host | Second host |
+| --- | ---: | ---: |
+| `attached` `ProjectedOutput` p99 | 0.7 ms | **1.1 ms** |
+| `detaching` p99 | 0.6–0.8 ms | **1.0–1.1 ms** |
+| `stalled-sink` p99 | 0.6–0.7 ms | **1.0–1.1 ms** |
+| `capacity-projected` p99 | 225 ms | **258 ms** |
+| 500-session idle CPU | 0.54 % | **0.72 %** |
+
+**So a latency in Part 3, 5, 6, 7 or 8 must not be read against one in Part 1 or
+2.** Part 2's six-workload table gives `attached` as 0.7 ms at depth 256 and
+Part 8's overload table gives it as 1.1 ms; both are correct for the host that
+produced them. Every comparison *within* a part is on one host and stands.
+
+Nothing that is not a timing moved: fairness is identical to four decimal
+places, the stalled sink holds exactly one publication with the same 4,130-byte
+payload, the detach gap is 684.1 MiB on both, and teardown is clean on both.
+This experiment's claim to be "one host, one kernel, one sitting" now holds only
+within each part, which is a weaker claim than it was written to make.
 
 ## Part 1: the kernel confound, removed
 
@@ -176,7 +202,7 @@ the measurement phase and keeps producing. Five trials:
 | --- | --- |
 | Observers released | 64, at 30.0 s, every trial |
 | Accepted throughput after they left | **10.0 MiB/s** — the offered rate, unchanged |
-| `ProjectedOutput` p99 | 0.6–0.8 ms against a 20 ms target, passing |
+| `ProjectedOutput` p99 | 1.0–1.1 ms against a 20 ms target, passing |
 | Replay gap seen by a later attach | 684.1 MiB, **exactly accounted** in all five |
 | Final process tree / zombies | 1 / 0 |
 
@@ -256,9 +282,9 @@ compares that engine's view against `session.projected_view()`.
 
 | Trial | Bytes compared | Feed time | Grid | Views equal | Replay gap |
 | --- | ---: | ---: | --- | --- | ---: |
-| 1 | 43.8 MiB | 0.23 s | 80×24 | **yes** | 0 |
-| 2 | 43.8 MiB | 0.22 s | 80×24 | **yes** | 0 |
-| 3 | 43.8 MiB | 0.22 s | 80×24 | **yes** | 0 |
+| 1 | 43.8 MiB | 0.27 s | 80×24 | **yes** | 0 |
+| 2 | 43.8 MiB | 0.31 s | 80×24 | **yes** | 0 |
+| 3 | 43.8 MiB | 0.28 s | 80×24 | **yes** | 0 |
 
 It is affordable because ADR 0002's offered rate is *combined* across producers,
 so one producer's stream is about 44 MiB rather than the ~600 MiB the population
@@ -296,10 +322,10 @@ out.
 | | |
 | --- | --- |
 | Processes at steady state | **1,501** |
-| Resident memory | 3,220.2 MiB |
+| Resident memory | 3,216.7 MiB |
 | Descriptors | 14,508 |
 | Threads | 2,507 |
-| Idle CPU | **0.54 %** against a 1.0 % target |
+| Idle CPU | **0.72 %** against a 1.0 % target |
 | After close | tree of 1, **zero zombies** |
 
 **Projected, 500 sessions: refused, before a single session starts**, with
@@ -334,7 +360,7 @@ accumulating children/descriptors/workers". Nothing here had ever tested how
 much of that a shorter run can answer, so the question "why twelve hours" had
 only a reasoned answer. This is the measured one.
 
-A 55-minute `attached` trial, 632 periodic samples inside the measurement
+A 55-minute `attached` trial, 631 periodic samples inside the measurement
 window, analysed with `scripts/release/accumulation.py`. The extrapolation
 stretch is **1.09×** — an hour projected from 55 minutes — where a 60-second
 trial projects at 60× and its per-hour figures are not evidence of anything.
@@ -347,37 +373,59 @@ where the two disagree, both are given.
 
 | Resource | Growth over 55 min | Per hour | Verdict |
 | --- | ---: | ---: | --- |
-| Descriptors | +0.07 | +0.08/h | flat — 1,864 throughout, peak 1,873 |
-| Threads | +0.01 | +0.01/h | flat — 327, peak 328 |
-| Processes | +0.0007 | +0.0007/h | flat — 193, peak 197 |
-| Resident memory | +45.8 KiB | 50.0 KiB/h | real, immaterial |
+| Descriptors | +2.62 | +2.86/h | **undecided — see below** |
+| Threads | +0.22 | +0.25/h | moving, immaterial against a 1-descriptor floor |
+| Processes | +0.67 | +0.73/h | flat |
+| Resident memory | +134.3 KiB | 146.5 KiB/h | real, immaterial |
 
-**Nothing accumulates.** The memory slope is statistically real — significance
-**15.6** — and still **0.0108 % per hour** against a 451 MiB working set.
-Projected across the full twelve hours that is **0.59 MiB, 0.13 %**. This is
-exactly the separation the tool exists to make: a slope can be certain and
-irrelevant at once, so it is reported as "moving but too little to matter"
-rather than as a leak.
+**Memory does not accumulate.** The slope is statistically real — significance
+**36.6**, and a line genuinely describes the series (68 % of its variance) — and
+still **0.0318 % per hour** against a 450 MiB working set. Across twelve hours
+that is **1.72 MiB, 0.38 %**. This is the separation the tool exists to make: a
+slope can be certain and irrelevant at once.
 
-**The two bases disagree on memory, and the fixed population is the sharper
-one.** Over the whole-tree totals the same slope is *not* distinguishable from
-zero at all — significance 0.62, verdict "flat" — because the transient probe
-churning through the tree adds and removes a few hundred kilobytes at a time and
-buries a 46 KiB drift in the noise. Restricting the fit to a population that
-does not change resolves it. The cohort was added to stop turnover **masking**
-growth; on this run it also stops turnover masking a slope that is real and
-harmless, which is the same effect pointing the other way.
+**Descriptors are undecided on this run, and that is a finding about the
+tool.** The fit reports +2.62 descriptors over the window at significance 4.28 —
+"accumulating" on both of the tool's original counts. The series is not a ramp.
+It alternates between **1,864 and 1,873** as the fixture's transient
+cancellation probe comes and goes: 329 samples at the low value, 294 at the
+high, no monotonic climb anywhere in 55 minutes. What the fit found was the duty
+cycle between those two values drifting, and a line through it explains **2.8 %
+of the variance**. A clean synthetic leak explains 99.8 %.
 
-Two earlier runs of this case are superseded rather than corrected, because each
-is a different run rather than a different arithmetic: +113 KiB at 0.0286 %/h
-(significance 3.6, 424 MiB base), from an artifact predating the cohort entirely;
-and +69.4 KiB at 0.0166 %/h (significance 20.6, 445 MiB base), from a cohort
-keyed on pid alone. The first rested on whole-tree totals guarded only by a
-process *count*, which cannot tell a costly process leaving and a cheap one
-arriving from nothing happening. The second could not tell a recycled pid from
-the process that held the number before it. The figures above are from a cohort
-keyed on `(pid, start_ticks)`. All three agree on the conclusion, and on the
-order of magnitude: under a megabyte over twelve hours.
+So `accumulation.py` now reports how much of the movement the line accounts for,
+and a slope that is significant and material but non-linear is reported as
+**inconclusive** rather than as flat *or* as accumulating. It exits 2, so
+nothing reads it as a pass. This is the mistake the tool was written to avoid —
+"a big slope over five noisy samples is not evidence" — recurring in a form the
+original two checks could not see, because significance grows with sample count
+while fit quality does not.
+
+**Three earlier runs of this case reported descriptors flat**, at slopes of
+−0.11, +0.07 and 0.00 with significance below 0.2. Those are the same bimodal
+series caught with a different phase of the same drift. Their "flat" was as
+unjustified as this run's "accumulating" would have been; none of the four runs
+can settle descriptor accumulation over 55 minutes, and the honest verdict for
+all of them is the one this run now gives.
+
+**The fixed-population basis is the sharper one on memory**: significance 36.6
+over the cohort against 4.7 over the whole-tree totals, because the transient
+probe churning through the tree buries a 134 KiB drift in the noise.
+Restricting the fit to a population that does not change resolves it. The cohort
+was added to stop turnover **masking** growth; here it also stops turnover
+masking a slope that is real and harmless, the same effect pointing the other
+way. Both bases agree on the descriptor series being non-linear.
+
+Earlier runs of this case are superseded rather than corrected, because each is a
+different run rather than a different arithmetic: +113 KiB at 0.0286 %/h from an
+artifact predating the cohort entirely, +69.4 KiB at 0.0166 %/h from a cohort
+keyed on pid alone, and +45.8 KiB at 0.0108 %/h from one keyed on
+`(pid, start_ticks)` on the first host. The figures above are from that same
+identity-keyed cohort on the second host. **All four agree on the memory
+conclusion and its order of magnitude: one to two megabytes over twelve hours,
+against a working set of roughly 450 MiB.** They disagree about descriptors only
+in the sense that three of them asserted "flat" where this one declines to
+assert anything.
 
 ### The part that was got wrong
 
@@ -422,15 +470,16 @@ One trial each, counters named:
 
 | Case | Admission rejections | Backpressure events | Observer gaps | Gap bytes | Any operation refused or delayed | `ProjectedOutput` p99 |
 | --- | ---: | ---: | ---: | ---: | --- | ---: |
-| `attached` | 0 | 0 | 0 | 0 | **no** | 0.7 ms, passes |
-| `capacity-projected` | 0 | **5,843,224** | — | **0.86 GiB** | **yes** | fails |
+| `attached` | 0 | 0 | 0 | 0 | **no** | 1.1 ms, passes |
+| `capacity-projected` | 0 | **5,656,773** | — | **0.90 GiB** | **yes** | fails |
 
 The case that meets its target emits no overload signal at all; the case that
-misses emits millions of backpressure events and 0.86 GiB of exactly-accounted
+misses emits millions of backpressure events and 0.90 GiB of exactly-accounted
 replay loss. The signal and the failure coincide precisely.
 
 These counters are run-to-run quantities, not constants: earlier runs of the
-same case recorded 5,645,046 and 1.27 GiB, and 5,868,638 and 0.86 GiB. The figures above are the ones in the
+same case recorded 5,645,046 and 1.27 GiB, 5,868,638 and 0.86 GiB, and 5,843,224
+and 0.86 GiB. The figures above are the ones in the
 committed artifact, which is the only version of them that can be checked.
 
 **The crux is that admission rejections are zero.** Nothing is *rejected* under
@@ -517,9 +566,9 @@ evidence. Three trials on the box, with it retained:
 
 | Trial | Sink calls | Held in flight | Largest payload | `ProjectedOutput` p99 | Replay gap |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
-| 2 | 1 | **1** | 4,130 B | 0.7 ms | 0 |
-| 3 | 1 | **1** | 4,130 B | 0.6 ms | 0 |
+| 1 | 1 | **1** | 4,130 B | 1.1 ms | 0 |
+| 2 | 1 | **1** | 4,130 B | 1.0 ms | 0 |
+| 3 | 1 | **1** | 4,130 B | 1.1 ms | 0 |
 
 Exactly one publication is held, its payload stays within one chunk rather than
 growing without bound, and the projected path meets its target while the
@@ -588,7 +637,10 @@ basis; the sharper basis is not available for it.
 
 ## Limitations
 
-- **One host, one kernel, one sitting.** No macOS, no repetition across days.
+- **Two hosts, one kernel.** Parts 1–2 and Parts 3–8 were measured on different
+  machines of the same specification, and the second is about 1.5× slower on
+  small latencies — see the host section. Latencies are comparable within a part
+  and not across them. No macOS for Parts 1–8, no repetition across days.
 - **The sweep is one workload.** 16 active unpaced producers at 4093-byte
   chunks and 64 resident sessions. Nothing here measures a bursty or
   paced workload, which is where a deep queue would be expected to earn its

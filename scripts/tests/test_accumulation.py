@@ -155,6 +155,48 @@ class Accumulation(unittest.TestCase):
         self.assertIsNone(result['accumulating'])
         self.assertIn('population moved', result['verdict'])
 
+    def test_a_series_that_alternates_is_undecided_rather_than_leaking(self):
+        """The real 55-minute soak, in miniature.
+
+        A metric that visits two values as a transient probe comes and goes
+        hands a confident slope to any fit whose window catches one value more
+        often at one end. That is a duty cycle shifting, not a resource
+        accumulating, and the line explained 2.8% of the variance on real data.
+        """
+        # Alternates 1864/1873 with the high value growing from 30% of samples
+        # to 70%, over the sample count a 55-minute soak produces.
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'fds': 1873 if (index % 10) < 3 + 4 * index / 600 else 1864}
+                for index in range(600)]
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertGreater(result['significance'], accumulation.SIGNIFICANCE,
+                           'the slope is confident, which is the trap')
+        self.assertTrue(result['large_enough_to_matter'])
+        self.assertIsNone(result['accumulating'], result['verdict'])
+        self.assertIn('a line does not describe', result['verdict'])
+        self.assertLess(result['variance_explained'], accumulation.LINEARITY)
+
+    def test_a_clean_leak_still_reads_as_one(self):
+        """The linearity guard must not blunt the thing the tool is for."""
+        rows = series([10 + index // 2 for index in range(40)])
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertTrue(result['accumulating'])
+        self.assertGreater(result['variance_explained'], 0.9)
+
+    def test_an_undecided_metric_never_exits_as_a_pass(self):
+        import sys
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'fds': 1873 if (index % 10) < 3 + 4 * index / 600 else 1864}
+                for index in range(600)]
+        artifact = {'trials': [{'case': 'attached', 'trial': 1, 'resource_series': rows}]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'a.json'
+            path.write_text(json.dumps(artifact))
+            sys.argv = ['accumulation', '--artifact', str(path), '--warmup-seconds', '0']
+            with self.assertRaises(SystemExit) as raised:
+                accumulation.main()
+            self.assertEqual(raised.exception.code, 2)
+
     def test_no_evidence_does_not_exit_as_though_nothing_accumulated(self):
         """A gate must not read an empty artifact as a flat resource profile."""
         import sys

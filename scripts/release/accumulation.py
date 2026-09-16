@@ -51,7 +51,16 @@ def slope(points):
         return None
     variance = sum(r * r for r in residuals) / (n - 2)
     error = (variance / span) ** 0.5 if span else 0.0
+    # How much of the movement the line actually accounts for. Significance says
+    # the slope is not chance; it says nothing about whether a line describes the
+    # series at all. A metric that alternates between two values will hand a
+    # confident slope to any fit whose window catches one value more often at one
+    # end, and that is a duty cycle shifting, not a resource accumulating.
+    total = sum((v - mean_v) ** 2 for _, v in points)
+    explained = 1.0 - sum(r * r for r in residuals) / total if total else 1.0
     return {'per_second': gradient, 'standard_error': error,
+            'variance_explained': explained,
+            'observed_range': max(values) - min(values),
             'significance': abs(gradient) / error if error else (0.0 if gradient == 0 else float('inf')),
             'samples': n, 'mean': mean_v,
             'seconds_observed': max(times) - min(times)}
@@ -107,8 +116,16 @@ def judge(points, floor):
     threshold = bound if kind == 'absolute' else abs(fit['mean']) * bound
     significant = fit['significance'] >= SIGNIFICANCE
     material = abs(growth) >= threshold
+    linear = fit['variance_explained'] >= LINEARITY
     stretch = 3600.0 / observed if observed else float('inf')
+    # Significant, material, and a line that does not describe the series: the
+    # window cannot settle it either way, so say so rather than picking the
+    # answer the slope's sign happens to give.
+    undecided = significant and material and not linear
     return {'growth_over_window': growth, 'window_seconds': observed,
+            'variance_explained': fit['variance_explained'],
+            'observed_range': fit['observed_range'],
+            'a_line_describes_this_series': linear,
             'threshold_over_window': threshold, 'threshold_kind': kind,
             'per_hour_extrapolated': fit['per_second'] * 3600,
             'extrapolation_factor': stretch,
@@ -119,8 +136,9 @@ def judge(points, floor):
             'large_enough_to_matter': material,
             # Both, or it is not a finding. A certain slope of nothing is not a
             # leak, and a big slope over five noisy samples is not evidence.
-            'accumulating': bool(significant and material and growth > 0),
-            'verdict': ('accumulating' if significant and material and growth > 0
+            'accumulating': None if undecided else bool(significant and material and growth > 0),
+            'verdict': ('inconclusive: a line does not describe this series' if undecided
+                        else 'accumulating' if significant and material and growth > 0
                         else 'flat' if not significant
                         else 'moving but too little to matter' if not material
                         else 'decreasing')}
@@ -197,9 +215,16 @@ def assess(series, warmup_seconds, metric, floor):
                     bases['all_measured']['measured_process_significance']}
     name = 'stable_cohort' if 'stable_cohort' in decisive else 'all_measured'
     accumulating = any(bases[basis]['accumulating'] for basis in decisive)
+    # A basis that could not decide leaves the metric undecided unless another
+    # one found accumulation: "we could not tell" must never read as "flat".
+    if not accumulating and any(bases[basis]['accumulating'] is None for basis in decisive):
+        accumulating = None
     return {**common, **bases[name], 'basis': name, 'decisive_bases': decisive,
             'accumulating': accumulating,
-            'verdict': 'accumulating' if accumulating else bases[name]['verdict']}
+            'verdict': ('accumulating' if accumulating
+                        else bases[name]['verdict'] if accumulating is False
+                        else next(bases[basis]['verdict'] for basis in decisive
+                                  if bases[basis]['accumulating'] is None))}
 
 
 # What counts as growth *within the observed window*, which is where the
@@ -213,6 +238,19 @@ FLOORS = {'fds': ('absolute', 1.0), 'threads': ('absolute', 1.0),
 # An hour projected from a minute is a sixtyfold extrapolation. Past this, the
 # per-hour figure is reported but is not evidence of anything.
 TRUSTWORTHY_EXTRAPOLATION = 10.0
+
+# A line has to explain more of the movement than everything else put together
+# before a slope drawn through it is called a trend. Below this the fit is
+# reported as undecided rather than as flat *or* as accumulating: undecided is
+# the honest answer for a window that cannot settle the question, and it exits
+# non-zero, so nothing reads it as a pass.
+#
+# A 55-minute soak produced a descriptor slope of 2.62 over the window at
+# significance 4.28 - comfortably "accumulating" on both counts - from a series
+# that simply alternates between 1,864 and 1,873 descriptors as a transient
+# probe comes and goes. The line explained 2.8% of the variance. A clean
+# synthetic leak explains 99.8%.
+LINEARITY = 0.5
 
 # Metrics that *are* the population rather than a sum taken over it.
 #

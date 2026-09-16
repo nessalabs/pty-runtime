@@ -267,6 +267,31 @@ The values are identical, so no published figure moves; the artifact committed
 before the check existed simply kept the second copy. `stop()` now re-asserts
 the clause without reporting it.
 
+## A confident slope through a two-valued series: fixed
+
+`accumulation.py` judged a metric on two things — is the slope distinguishable
+from zero, and is it large enough to matter — and a 55-minute soak passed both
+for descriptors: +2.62 over the window at significance 4.28. There was no leak.
+The series alternates between **1,864 and 1,873** descriptors as the fixture's
+transient cancellation probe comes and goes, 329 samples at one value and 294 at
+the other, with no monotonic climb anywhere. The fit had found the duty cycle
+between them drifting.
+
+Significance grows with sample count; fit quality does not. Over 631 samples a
+slope of one part in 700 becomes "certain" while a line through the data
+explains **2.8 %** of its variance — a clean synthetic leak explains 99.8 %.
+
+The tool now reports `variance_explained`, and a slope that is significant and
+material but non-linear is **inconclusive** rather than flat *or* accumulating.
+It exits 2, so nothing reads it as a pass. This is the tool's own stated trap —
+"a big slope over five noisy samples is not evidence" — in the one form its two
+original checks could not see.
+
+**Three earlier runs called the same series flat** at significance below 0.2.
+That was as unjustified as calling this one a leak: none of the four runs can
+settle descriptor accumulation over 55 minutes, and declining to assert is the
+correct answer for all of them.
+
 ## Resource measurements were not retained: fixed
 
 Experiment 0005's artifact was assembled by hand and kept only a closing census
