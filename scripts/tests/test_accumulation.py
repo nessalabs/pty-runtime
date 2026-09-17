@@ -197,6 +197,55 @@ class Accumulation(unittest.TestCase):
                 accumulation.main()
             self.assertEqual(raised.exception.code, 2)
 
+    def test_a_flat_cohort_cannot_certify_a_population_it_no_longer_covers(self):
+        """Lost measurement coverage must not read as a clean result.
+
+        A stable owner and a child accumulating descriptors; halfway through the
+        child stops being measurable while the tree still reports both. The
+        cohort holds the owner alone and is flat. "The surviving subset is flat"
+        says nothing about the process that left the measurement.
+        """
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'tree_processes': 2,
+                 'measured_processes': 2 if index < 20 else 1,
+                 'fds': 10 + (20 + index if index < 20 else 0),
+                 'cohort_processes': 1, 'cohort_fds': 10}
+                for index in range(40)]
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertFalse(result['measured_population_stable'])
+        self.assertEqual(result['decisive_bases'], ['stable_cohort'])
+        self.assertIsNone(result['accumulating'], result['verdict'])
+        self.assertIn('does not cover it', result['verdict'])
+
+    def test_growth_inside_the_cohort_still_counts_when_coverage_is_lost(self):
+        """A leak found in a subset is still a leak; only a *pass* needs coverage."""
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'tree_processes': 2,
+                 'measured_processes': 2 if index < 20 else 1,
+                 'fds': 10, 'cohort_processes': 1,
+                 'cohort_fds': 10 + index // 2}
+                for index in range(40)]
+        result = accumulation.assess(rows, 0, 'fds', accumulation.FLOORS['fds'])
+        self.assertTrue(result['accumulating'])
+        self.assertEqual(result['verdict'], 'accumulating')
+
+    def test_lost_coverage_does_not_exit_as_a_pass(self):
+        import sys
+        rows = [{'monotonic_seconds': index * 5.0,
+                 'tree_processes': 2,
+                 'measured_processes': 2 if index < 20 else 1,
+                 'fds': 10 + (20 + index if index < 20 else 0),
+                 'cohort_processes': 1, 'cohort_fds': 10}
+                for index in range(40)]
+        artifact = {'trials': [{'case': 'attached', 'trial': 1, 'resource_series': rows}]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'a.json'
+            path.write_text(json.dumps(artifact))
+            sys.argv = ['accumulation', '--artifact', str(path), '--warmup-seconds', '0']
+            with self.assertRaises(SystemExit) as raised:
+                accumulation.main()
+            self.assertEqual(raised.exception.code, 2)
+
     def test_no_evidence_does_not_exit_as_though_nothing_accumulated(self):
         """A gate must not read an empty artifact as a flat resource profile."""
         import sys

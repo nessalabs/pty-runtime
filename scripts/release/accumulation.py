@@ -201,8 +201,20 @@ def assess(series, warmup_seconds, metric, floor):
     # `None` is "no count series to check", which is not evidence of movement.
     decisive = [name for name, row in bases.items()
                 if row['population_comparable'] is not False]
+    # Whether anything still covers the *whole* population. The cohort is a
+    # subset by construction, so a flat cohort says the surviving processes did
+    # not accumulate - not that the ones which stopped being measurable did not.
+    # Letting it certify the metric turned lost coverage into a release pass:
+    # a child accumulating descriptors until it became unmeasurable, with the
+    # stable owner alone left in the cohort, read as "flat" and exited zero.
+    whole_population = 'all_measured' in decisive
+    covered = (next(iter(sizes), 0) >= max((row['measured_processes'] for row in rows
+                                            if row.get('measured_processes') is not None),
+                                           default=0))
     common = {'metric': metric, 'window': how, 'degraded_samples': degraded,
-              'measured_population_stable': comparable, 'bases': bases}
+              'measured_population_stable': comparable,
+              'whole_population_measured': whole_population,
+              'cohort_covers_measured_population': covered, 'bases': bases}
     if not decisive:
         if not bases:
             return {**common, 'verdict': 'insufficient data', 'accumulating': None,
@@ -217,14 +229,27 @@ def assess(series, warmup_seconds, metric, floor):
     accumulating = any(bases[basis]['accumulating'] for basis in decisive)
     # A basis that could not decide leaves the metric undecided unless another
     # one found accumulation: "we could not tell" must never read as "flat".
-    if not accumulating and any(bases[basis]['accumulating'] is None for basis in decisive):
+    undecided = any(bases[basis]['accumulating'] is None for basis in decisive)
+    # Finding growth inside a subset is still finding growth, so an
+    # accumulating verdict stands on the cohort alone. A *flat* one does not:
+    # without whole-population evidence, or a cohort that covers it, the
+    # processes that left the measurement are unaccounted for.
+    lost_coverage = not accumulating and not whole_population and not covered
+    if lost_coverage or (not accumulating and undecided):
         accumulating = None
+    verdict = bases[name]['verdict']
+    if accumulating:
+        verdict = 'accumulating'
+    elif lost_coverage:
+        verdict = ('inconclusive: the cohort is flat, but the measured population '
+                   'moved and the cohort does not cover it')
+    elif accumulating is None:
+        verdict = next(bases[basis]['verdict'] for basis in decisive
+                       if bases[basis]['accumulating'] is None)
     return {**common, **bases[name], 'basis': name, 'decisive_bases': decisive,
-            'accumulating': accumulating,
-            'verdict': ('accumulating' if accumulating
-                        else bases[name]['verdict'] if accumulating is False
-                        else next(bases[basis]['verdict'] for basis in decisive
-                                  if bases[basis]['accumulating'] is None))}
+            'scope': ('whole measured population' if whole_population
+                      else f'a cohort of {next(iter(sizes), 0)} processes only'),
+            'accumulating': accumulating, 'verdict': verdict}
 
 
 # What counts as growth *within the observed window*, which is where the

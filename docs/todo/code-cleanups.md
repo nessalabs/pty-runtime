@@ -292,6 +292,35 @@ That was as unjustified as calling this one a leak: none of the four runs can
 settle descriptor accumulation over 55 minutes, and declining to assert is the
 correct answer for all of them.
 
+## A flat cohort certifying a population it no longer covered: fixed
+
+`accumulation.py` drops the whole-population basis when the measured process
+count moves, which is correct — those totals are not comparable. What it then
+did was let the *cohort* certify the metric on its own. A child accumulating
+descriptors until it stops being measurable, with the stable owner alone left in
+the cohort, read as `flat` and exited 0.
+
+"The surviving subset is flat" is not evidence that the processes which left the
+measurement stopped accumulating. A flat verdict now requires either
+whole-population evidence or a cohort that covers the measured population;
+without both it is inconclusive, and exits 2. An *accumulating* verdict still
+stands on the cohort alone — growth found in a subset is still growth — and the
+report carries the scope it was decided at.
+
+## The redaction helper could print fragments of a multiline value: fixed
+
+`redacted_environment` read newline-delimited `env` output and treated any line
+whose prefix looked like an identifier as a variable name. An environment value
+may contain a newline, so a fragment of one can have exactly that shape:
+`LEAKED_SECRET=prefix\nSENSITIVE_VALUE_FRAGMENT=rest` was reported as two names,
+the second of which is part of the first's value. A base64 value ending in `=`
+did the same. No character filter can separate these, because the output format
+does not carry the distinction.
+
+The child now runs `env -0`, so records are NUL-delimited and a name is a name.
+A trailing unterminated record — the signature of a truncated read — is reported
+by length and never split. Both platforms support `-0` identically.
+
 ## Resource measurements were not retained: fixed
 
 Experiment 0005's artifact was assembled by hand and kept only a closing census
