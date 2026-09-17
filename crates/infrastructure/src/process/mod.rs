@@ -16,11 +16,117 @@ mod supervisor;
 mod watch;
 pub use backend::UnixProcessBackend;
 use pty_runtime_domain::process::ProcessError;
+/// Map an OS error onto the process boundary's stable vocabulary.
+///
+/// Running out of descriptors is admission being full, not an unclassified I/O
+/// fault, and saying so is the difference between a diagnosable failure and an
+/// afternoon. `Io` is the residue: it means "the OS refused and the reason does
+/// not correspond to anything this boundary distinguishes". The errno itself
+/// stays out of the domain by design — see `ProcessError`'s own note — so the
+/// classification has to carry the meaning instead.
 fn error(error: std::io::Error) -> ProcessError {
+    // Checked before `kind`, because Rust leaves every one of these
+    // uncategorised and they would otherwise land in `Io` unexamined.
+    if matches!(
+        error.raw_os_error(),
+        Some(libc::EMFILE | libc::ENFILE | libc::ENOMEM | libc::ENOSPC)
+    ) {
+        return ProcessError::Capacity;
+    }
     match error.kind() {
         std::io::ErrorKind::NotFound => ProcessError::NotFound,
         std::io::ErrorKind::PermissionDenied => ProcessError::PermissionDenied,
         _ => ProcessError::Io,
+    }
+}
+
+/// Classify a failure to *create* a process or a thread.
+///
+/// `EAGAIN` stays `Io` in the general mapper because that boundary cannot tell
+/// exhaustion from "not ready": the same errno means a `fork` hit `RLIMIT_NPROC`
+/// and means a non-blocking read had nothing to give. At a creation call site
+/// there is no second reading — nothing is being polled — so the ambiguity that
+/// justified leaving it unclassified does not exist, and reporting a process or
+/// thread limit as unclassified I/O costs exactly what the descriptor limit did.
+pub(super) fn creation_error(failure: std::io::Error) -> ProcessError {
+    if failure.raw_os_error() == Some(libc::EAGAIN) {
+        return ProcessError::Capacity;
+    }
+    error(failure)
+}
+
+#[cfg(test)]
+mod error_tests {
+    use super::{creation_error, error};
+    use pty_runtime_domain::process::ProcessError;
+    use std::io::Error;
+
+    /// `EAGAIN` is exhaustion at a creation site and "not ready" everywhere
+    /// else, and only the creation sites can tell.
+    #[test]
+    fn process_and_thread_limits_report_capacity_at_creation_sites_only() {
+        assert_eq!(
+            creation_error(Error::from_raw_os_error(libc::EAGAIN)),
+            ProcessError::Capacity,
+            "a fork or thread spawn refused for want of a slot is admission being full"
+        );
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::EAGAIN)),
+            ProcessError::Io,
+            "the general mapper still cannot tell exhaustion from not-ready"
+        );
+        // Everything the general mapper classifies keeps its classification.
+        for code in [libc::EMFILE, libc::ENFILE, libc::ENOMEM, libc::ENOSPC] {
+            assert_eq!(
+                creation_error(Error::from_raw_os_error(code)),
+                ProcessError::Capacity
+            );
+        }
+        assert_eq!(
+            creation_error(Error::from_raw_os_error(libc::ENOENT)),
+            ProcessError::NotFound
+        );
+    }
+
+    /// The 128-session load case failed five of five on a host whose descriptor
+    /// limit was 1024, reporting only `Io`. Naming it cost a full matrix run.
+    #[test]
+    fn descriptor_and_memory_exhaustion_report_capacity_not_unclassified_io() {
+        for code in [libc::EMFILE, libc::ENFILE, libc::ENOMEM, libc::ENOSPC] {
+            assert_eq!(
+                error(Error::from_raw_os_error(code)),
+                ProcessError::Capacity,
+                "errno {code} is admission being full"
+            );
+        }
+    }
+
+    #[test]
+    fn already_distinguished_failures_keep_their_own_meaning() {
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::ENOENT)),
+            ProcessError::NotFound
+        );
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::EACCES)),
+            ProcessError::PermissionDenied
+        );
+    }
+
+    /// `EAGAIN` is exhaustion from `fork` and "not ready" from a non-blocking
+    /// read, and this boundary cannot tell which. It stays unclassified rather
+    /// than being guessed at.
+    #[test]
+    fn ambiguous_and_unknown_failures_remain_io() {
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::EAGAIN)),
+            ProcessError::Io
+        );
+        assert_eq!(
+            error(Error::from_raw_os_error(libc::EPIPE)),
+            ProcessError::Io
+        );
+        assert_eq!(error(Error::other("no errno at all")), ProcessError::Io);
     }
 }
 #[cfg(test)]

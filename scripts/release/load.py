@@ -22,11 +22,15 @@ FINAL_CENSUS_PHASE = 'closed'
 def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
     command = [str(binary)]
     for key, value in config.items():
+        # The fixture spells every flag with hyphens. Sending an underscore
+        # meant it fell back to its default, and a four-point sweep measured
+        # one point four times before anyone noticed.
+        flag = '--' + key.replace('_', '-')
         if isinstance(value, bool):
             if value:
-                command.append('--' + key)
+                command.append(flag)
         else:
-            command += ['--' + key, str(value)]
+            command += [flag, str(value)]
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1,
                                env={**os.environ, 'PTY_RELEASE_CENSUS': '1'})
@@ -116,7 +120,9 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
             if starts:
                 record(dict(event='producer_start_skew', nanoseconds=max(starts)-min(starts), count=len(starts)))
             if config['active'] > 0:
-                for boundary, ceiling in [('InputDispatch', 20000), ('RawOutput', 20000), ('ProjectedOutput', 20000), ('ResizeDispatch', 100000), ('CancelDispatch', 100000)]:
+                # ADR 0002's limits live in reporting.LATENCY_CEILINGS_US so the
+                # archiver can check that a trial was judged against them.
+                for boundary, ceiling in reporting.LATENCY_CEILINGS_US.items():
                     if boundary == 'ProjectedOutput' and config['raw']:
                         continue
                     value = latencies.get(boundary, {})
@@ -132,10 +138,12 @@ def trial(binary, config, destination, smoke, repeat, metadata, sample_seconds):
             record(cpu)
             if config['mode'] == 'idle':
                 owner = cpu['categories']['owner']
-                record(dict(event='idle_cpu_target', target_core_percent=1.0,
+                record(dict(event='idle_cpu_target',
+                            target_core_percent=reporting.IDLE_CPU_CEILING_PERCENT,
                             measured_core_percent=owner['core_percent'],
                             measurement_complete=owner['core_percent'] is not None,
-                            passed=reporting.measurement_verdict(owner['core_percent'], 1.0),
+                            passed=reporting.measurement_verdict(
+                                owner['core_percent'], reporting.IDLE_CPU_CEILING_PERCENT),
                             acceptance_duration=config['seconds'] >= 60 and not smoke))
             record(dict(event='trial_result', passed=True, seconds=time.monotonic()-started,
                         full_duration_trial=not smoke and config['seconds'] >= 60,
@@ -177,15 +185,45 @@ def main():
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--repeats', type=int, help='defaults to five full trials or one smoke trial')
     parser.add_argument('--sample-seconds', type=float, default=5)
+    parser.add_argument('--seconds', type=int,
+                        help='override each case\'s measurement duration. The matrix runs 60 s '
+                             'because that is what the latency targets are defined over; a longer '
+                             'run answers a different question, whether anything accumulates, and '
+                             'is not a substitute for the matrix')
+    parser.add_argument('--staging-slots', type=int,
+                        help='override each projected session\'s parser-output queue depth; '
+                             'the fixture default is 256. Recorded in the trial configuration, '
+                             'so a sweep is distinguishable from the matrix it is compared against')
     parser.add_argument('--list', action='store_true')
     args = parser.parse_args()
     cases = matrix.cases(args.smoke)
+    # What the matrix is, before any override. `full_matrix_executed` is a claim
+    # about this, not about having run every case name five times: `--seconds 1`
+    # does that and is not the matrix.
+    defined = matrix.cases(args.smoke)
+    if args.seconds is not None:
+        if args.seconds < 1:
+            parser.error('a measurement duration must be at least one second')
+        for case in cases.values():
+            case['seconds'] = args.seconds
+    if args.staging_slots is not None:
+        if not 1 <= args.staging_slots <= 1_048_576:
+            parser.error('staging slots must be within the range the fixture validates')
+        for case in cases.values():
+            case['staging_slots'] = args.staging_slots
+    default = matrix.default_selection(args.smoke)
     if args.list:
-        print(json.dumps(cases, indent=2))
+        print(json.dumps({'default_selection': default,
+                          'host_dependent': list(matrix.HOST_DEPENDENT),
+                          'cases': cases}, indent=2))
         return
     if args.output is None:
         parser.error('--output is required for an executed run')
-    selected = args.case or list(cases)
+    # The host-dependent cases are selected only when asked for by name: one
+    # needs 1,501 processes, and the other cannot pass anywhere at the shipped
+    # 1 GiB projection quota, so running them by default would make every
+    # default run exit non-zero regardless of what it measured.
+    selected = args.case or default
     if any(name not in cases for name in selected):
         parser.error('unknown case; use --list')
     repeats = args.repeats if args.repeats is not None else 1 if args.smoke else 5
@@ -205,7 +243,9 @@ def main():
                 results.append(dict(case=name, trial=repeat+1, passed=passed, path=output.name,
                                     **reporting.trial_targets(output, cases[name])))
     summary = dict(smoke=args.smoke, repeats=repeats, results=results,
-                   full_matrix_executed=not args.smoke and repeats >= 5 and set(selected) == set(cases),
+                   full_matrix_executed=not args.smoke and repeats >= 5
+                                        and set(default) <= set(selected)
+                                        and all(cases[name] == defined[name] for name in default),
                    all_trials_passed=all(row['passed'] for row in results),
                    all_trials_passed_scope='execution_and_correctness_accounting_only',
                    target_rollup=reporting.rollup(results),

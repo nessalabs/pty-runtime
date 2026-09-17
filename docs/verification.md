@@ -23,6 +23,20 @@ to discover in the artifact.
 ## How we check things
 
 - Run `python3 scripts/gate.py` (format, lint, tests, native build).
+- Ask whether resources accumulate with
+  `python3 scripts/release/accumulation.py --artifact <artifact>`, which fits the
+  retained series and separates a slope that is real from one that matters. It
+  fits each metric twice — over the cohort of processes measurable in *every*
+  census of the window, whose population is identical between samples by
+  construction, and over the whole-tree totals, which are the only basis that can
+  see a leak living in the process churn itself — because a count-only
+  comparability check cannot tell a costly process leaving and a cheap one
+  arriving from nothing happening. Over 55 minutes it reports descriptors,
+  memory drifting 0.0318 %/hour — 1.72 MiB if held for twelve hours — and
+  descriptors **undecided**, because their series alternates between two values
+  rather than trending and a line explains 2.8 % of it. It exits non-zero on an
+  undecided metric, so that does not read as a pass; see
+  [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md).
 - Prefer real process and terminal fixtures over mocks.
 - Do **not** commit gate logs or load dumps into the repo. Re-run when needed.
 - A green experiment does **not** mean “ready to ship.”
@@ -67,13 +81,18 @@ each is a rule this repository already had:
 - **G2's gate depends on G1.** ADR 0001 §2 ends "Native build work can start
   early, but its integration gate depends on the process/byte contract." G1 does
   not pass, so G2 cannot be signed however its own clauses read.
-- **No integrated result artifact exists.** ADR 0004 requires results saved under
-  `docs/experiments` per gate — source and dependency pins, toolchain and OS,
-  limits and workload, commands, seeds and duration, failures and timeouts,
-  latency distributions, resource peaks and cleanup — and says "Implementation
-  completion requires these results, not just a test plan." `docs/experiments`
-  holds 0001–0003 and no integrated gate record. A table of test names and a
-  local gate run whose output was not preserved is a test plan.
+- **No integrated result artifact covers a full matrix.** ADR 0004 requires
+  results saved under `docs/experiments` per gate — source and dependency pins,
+  toolchain and OS, limits and workload, commands, seeds and duration, failures
+  and timeouts, latency distributions, resource peaks and cleanup — and says
+  "Implementation completion requires these results, not just a test plan."
+  **Artifacts in that shape now exist**: Experiments 0005 and 0006 commit them,
+  built by `scripts/release/archive.py`, which defines the retention in code and
+  refuses a run whose summary its own trials do not support. What none of them
+  is, is a *full* matrix at five repeats on a qualified host: 0006's are
+  case-selected runs answering particular questions. A table of test names and a
+  local gate run whose output was not preserved was a test plan; these are
+  evidence of less than the whole gate.
 - **One G2 clause is mock-only.** See READY/history restoration below.
 
 G1 fails for its own reason: six of seven behaviours are proven against real
@@ -85,12 +104,20 @@ What closing each gate now requires, concretely: for **G1**, bringing
 `ProjectedOutput` p99 within its 20 ms target for `128-active`, `chunk-64` and
 `chunk-1` — or recording an explicit overload outcome that identifies the
 rejected operation where the workload is genuinely past capacity — plus the
-after-all-observers-detach case, a canonical reference-state comparison under
-load, and completing the macOS matrix, which lost 15 of 130 trials **for a
-reason the artifact does not record** and has no `dominant` evidence at all. For **G2**, G1 first, then real-child
-coverage of the READY-gated path, then an integrated result artifact under
-`docs/experiments` in the shape ADR 0004 specifies. Neither is a large amount of
-writing; both are runs nobody has made.
+and completing the macOS matrix, which lost 15 of 130 trials **for a
+reason the artifact does not record**. **That matrix is now complete.** All six cases that lost
+trials were re-run on macOS arm64 at five trials each: **30 trials, none lost**,
+while more than sixty censuses recorded a process vanishing — the same race, no
+longer fatal. `dominant` has macOS evidence for the first time. One result is not a pass: `rate-40MiB` misses
+`ProjectedOutput` once at 81 ms against a 20 ms target, as it did once in
+Experiment 0005. The other four trials of that case sit at 0.3-0.7 ms with the
+offered rate held throughout, on a host running at 180-260 % owner CPU, so this
+remains most consistent with the host contention that section already records
+rather than with a platform defect. Linux has never missed it. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). For **G2**, G1 first, then real-child
+coverage of the READY-gated path, then a *full-matrix* result artifact under
+`docs/experiments` — the shape ADR 0004 specifies now exists and is committed,
+what is missing is a complete run at five repeats on a qualified host. Neither
+is a large amount of writing; both are runs nobody has made.
 
 Audited at `d714e01`, macOS 26.6 / Darwin 25.6.0 arm64, rustc 1.98.1, Zig 0.16.0,
 Ghostty pinned at `82232ecde55405559dec29c5466cb9e39938cb41`.
@@ -116,15 +143,46 @@ gate is not a passing release gate — it is the floor these verdicts stand on.
 | Independent observers | **partly proven** | `tests/projected_runtime.rs::real_query_reply_is_sent_once_with_multiple_observers`; `tests/ordered_transfer_runtime.rs::two_parked_snapshot_consumers_replay_original_bytes_and_resizes_to_identical_final_models`; `tests/event_stream_isolation.rs::panicking_publisher_waker_does_not_suppress_another_observer_or_pty_output`; `aggregate_gauges_…` | Independence is real: two observers read one live PTY, two transfer observers hold independent cursors to identical final models, and a panicking observer waker does not suppress its neighbour. **What is missing** is ADR 0004's named case — a fast and a stalled observer *on the same session*, where the slow one takes an exact cursor gap and the fast one is unaffected. `tests/event_stream_isolation.rs::stalled_sink_does_not_block_parser_input_resize_or_cancel_and_later_reports_gap` covers a stalled observer, but it is the only observer there. |
 | Cancel / drain | **partly proven, mutation-checked** | `process_contract::cancellation_bypasses_full_input_and_escalates_once`; `process_contract::descendant_endpoint_has_bounded_drain_separate_from_exit`; `tests/raw_completion.rs::signal_death_and_descendant_drain_never_become_fabricated_success` | A child that traps `TERM` with a saturated input queue and 100 coalesced cancels dies by `SIGKILL` inside 2 s, with partial writes and their errors still visible. Drain is reported separately from exit: `Code(23)` + `Truncated` with a live descendant holding the endpoint, `Signal(15)` + `Eof` for a signalled child. **What is not proven is the coalescing.** ADR 0004 asks that concurrent cancellation requests collapse into one escalation sequence; 100 requests followed by an eventual `SIGKILL` show termination, not that a single sequence ran. The test is named `…escalates_once` and nothing in it asserts "once" — and per the escalation finding below, the two escalation paths feed different counters, so neither the behaviour's owner nor its cardinality is pinned. |
 | Cleanup | **partly proven** | `tests/process_handle_resources.rs::completed_old_handles_do_not_keep_process_wake_descriptors`; `crates/infrastructure/tests/process_handle_teardown.rs::retained_closed_handles_release_all_wake_descriptors`; `aggregate_gauges_…`; `projected_runtime::detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes` | Descriptor counts return to the pre-test baseline across 16 real sessions; observer, replay and input quotas all return to 0; the checkpoint arena is left empty. But `process_contract::failed_spawn_releases_admission_and_drop_reaps_child`, the test whose name carries the reaping claim, **asserts something that cannot fail** — see below. ADR 0004 also asks for worker and live-allocation counts against baseline and for allocator-retained footprint reported separately from leaked live objects; neither is asserted anywhere. |
-| …“pass **concurrent pressure** tests” | **run, and failed** | `crates/infrastructure/tests/process_pressure.rs::simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live`; `tests/runtime_performance.rs::projected_real_pty_producers` | In the unit and integration tests audited here the largest executed concurrency is **16** real producers: 16 × 128 KiB raw, and 16 × 4 MiB projected — a statement about those tests, not about what has been run. ADR 0004 asks for 64 resident sessions with 16 producers at a **combined 10 MiB/s** as the *controlled reference*, then 128 independent producers and 128-session mixed populations as *primary* scenarios, extending to 500 where the host permits. **That has now been run** — see [Experiment 0005](experiments/0005-g1-concurrent-pressure.md), 26 cases × 5 trials on macOS arm64 and Linux x86_64 at `e01c704` — the revision the harness reported, which the artifacts do not bind to the measured binaries (they keep an inventory count, not hashes, and no build record was retained). Every accounting check the matrix runs passed on both hosts across 245 trials — byte and gap accounting at absolute offsets, processed offsets and query counts, which is narrower than correctness: there is no reference-state comparison under load, and no same-session fast/stalled observer case. Latency did not: `ProjectedOutput` p99 misses its 20 ms target on all five Linux trials of **`128-active`**, this gate's headline scenario, and by 13× on `chunk-64` — a *paced* workload at ADR-specified parameters, so the "explicit overload outcome" escape does not apply to it. Every Linux miss repeats on all five trials on an otherwise idle machine, which rules out transient load on that host; the single-trial macOS misses are absent from Linux, which establishes only that they did not reproduce on a host differing in OS, architecture, CPU, core count, kernel and compiler at once — they are undiagnosed, not dismissed. 500 sessions remain unrun. **Which gate owns the projection latency failure is an open question**, recorded in Experiment 0005 and not settled there: ADR 0004 assigns concurrent pressure to G1 but ordered parsing and replies to G2, and every recorded `RawOutput` target passes in the same trials where `ProjectedOutput` fails. A candidate fix (chunk batching) has since been measured on Linux and brings `chunk-64` to 0.1 ms, `chunk-1` to 5.5-6.0 ms and `128-active` — this gate's headline scenario — to 8.0-9.1 ms, each at five repeats — see the follow-up section of Experiment 0005. **This does not change the verdict:** the patch is not on `main`, it re-ran 5 of 26 cases, macOS has no after-number, and `capacity-projected` — the matrix's largest miss — is **not fixed**, still missing at 255-331 ms. Note also that reported p99 values above 102.4 ms are the histogram's recorded maximum rather than a percentile; see the follow-up. |
+| …“pass **concurrent pressure** tests” | **run; byte path passes, projection failure filed under G2** | `crates/infrastructure/tests/process_pressure.rs::simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live`; `tests/runtime_performance.rs::projected_real_pty_producers` | In the unit and integration tests audited here the largest executed concurrency is **16** real producers: 16 × 128 KiB raw, and 16 × 4 MiB projected — a statement about those tests, not about what has been run. ADR 0004 asks for 64 resident sessions with 16 producers at a **combined 10 MiB/s** as the *controlled reference*, then 128 independent producers and 128-session mixed populations as *primary* scenarios, extending to 500 where the host permits. **That has now been run** — see [Experiment 0005](experiments/0005-g1-concurrent-pressure.md), 26 cases × 5 trials on macOS arm64 and Linux x86_64 at `e01c704` — the revision the harness reported, which the artifacts do not bind to the measured binaries (they keep an inventory count, not hashes, and no build record was retained). Every accounting check the matrix runs passed on both hosts across 245 trials — byte and gap accounting at absolute offsets, processed offsets and query counts, which is narrower than correctness: there is no reference-state comparison under load, and no same-session fast/stalled observer case. Latency did not: `ProjectedOutput` p99 misses its 20 ms target on all five Linux trials of **`128-active`**, this gate's headline scenario, and by 13× on `chunk-64` — a *paced* workload at ADR-specified parameters, so the "explicit overload outcome" escape does not apply to it. Every Linux miss repeats on all five trials on an otherwise idle machine, which rules out transient load on that host; the single-trial macOS misses are absent from Linux, which establishes only that they did not reproduce on a host differing in OS, architecture, CPU, core count, kernel and compiler at once — they are undiagnosed, not dismissed. **500 sessions have now been run** on a host with the PTY capacity ADR 0002 requires: the raw path passes at 500 with 1,501 processes, 3,216.7 MiB, 14,508 descriptors and 0.72 % idle CPU, teardown clean. The projected path is refused at 500 with a typed `Projection(Capacity)` before any session starts, because `resident_bytes` defaults to 1 GiB against an 8 MiB native reservation per session — which permits exactly 128, the matrix's own ceiling. See [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md). **The projection latency failure is filed under G2, on the ADR text.** This ledger previously left it open; the reasoning, so it can be overturned in one edit if the reading is wrong:
+
+- **ADR 0001 §5.1 enumerates G1 and contains no projection.** Command validation, PTY setup, signalling and reaping, the bounded registry, dedicated PTY readers, input admission, replay, attach/detach and shutdown — "validate real child behavior, byte order, pressure, fairness, and cleanup **before adding transports**".
+- **ADR 0001 §5.2 puts the projection path under G2** — "incremental input, extraction, resize, replies" — and adds "measure projected memory separately from raw-reader costs".
+- **§5.2 also states the dependency: G2's "integration gate depends on the process/byte contract".** So a G1 criterion that only the projection can satisfy makes G2 depend on a requirement G2 itself owns.
+- **The measurements agree with that split.** Every recorded `RawOutput` target passes, including in the very trials where `ProjectedOutput` fails — 2.14 ms against 20 ms while the projected path sits at 278 ms. The byte path meets its target under exactly the pressure the projection misses it under.
+
+- **ADR 0004's own G2 row names it**: "ordered **parsing**, replies, resize, binary checkpoints, READY/history restoration, and reference-state comparisons pass". `ProjectedOutput` latency measures the parsing path. G1's row — "ordered input/output, bounded replay, independent observers, cancel/drain, and cleanup" — maps to §5.1's readers, admission and replay, which is the byte path.
+
+**This does not sign off G1, and could not.** G1 still owes the 12-hour soak, and 500 sessions on the projected path are refused by the resident quota. Filing the projection latency under G2 changes which gate carries that particular failure, not whether G1 is finished — it is not.
+
+**Overturn this if the reading is wrong.** The counter-argument is that ADR 0004 puts "pass concurrent pressure tests" in G1's row and the pressure matrix includes projected cases. That is an argument about where the testing happens rather than which gate owns the criterion, which is why it did not win here — but it is not frivolous, and one edit reverses this. A candidate fix (chunk batching) has since been measured on Linux and brings `chunk-64` to **0.8-0.9 ms**, `chunk-1` to 7.7-9.1 ms and `128-active` — this gate's headline scenario — to 8.0-9.1 ms, each at five repeats. (The first two figures are from [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md), which re-ran them on the baseline's own kernel; Experiment 0005's follow-up reported 0.1 ms and 5.5-6.0 ms from a run on a different kernel, and those were optimistic.) — see the follow-up section of Experiment 0005. **This does not change the verdict:** the patch is not on `main`, it re-ran 5 of 26 cases, macOS has no after-number, and `capacity-projected` — the matrix's largest miss — is **explained rather than fixed**: [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md) shows its tail is the per-session staging queue's residence time, falling from 271-289 ms at the default 256 slots to **18.4-19.4 ms at 16, where it passes 5/5** — with throughput unchanged, control round-trip twelve times better, and replay eviction going from 1.46 GiB to zero. The shipped default is `ProjectionOptions::new()`'s 256; whether to change it is a product decision this evidence does not make. Note also that reported p99 values above 102.4 ms are the histogram's recorded maximum rather than a percentile; see the follow-up. |
 
 Most of what ADR 0004's "Concurrent output and pressure" section asks for beyond
 raw session count is now exercised by Experiment 0005, which runs an offered-rate
 sweep at 1, 20 and 40 MiB/s against a paced baseline, a one-dominant-producer
 case, stalled-observer and stalled-sink modes, observer counts of 1, 4 and 16,
-and per-boundary latency distributions. Three items remain unexercised: the
-**after-all-observers-detach** case, a **fairness target**, and an **explicit
-overload outcome** identifying a rejected operation — the last of which is what
+and per-boundary latency distributions. The **after-all-observers-detach** case is now covered: see
+[Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md),
+where 64 observers leave mid-run, throughput holds at the offered rate, and a
+later attach is given an exactly-accounted 684 MiB cursor gap. A **fairness outcome** is now reported per active
+producer and passes — under a session flooding at 135 times the median, the
+other fifteen are served identically and none is starved, though they are
+rate-limited so this is not a contested-share measurement, and input,
+cancellation and resize fairness are not isolated. A **reference-state
+comparison under load** now also passes: one session's full 43.8 MiB stream is
+replayed into an independent engine after a measurement phase under pressure and
+the views are equal, on all three trials — a comparison of *bytes*, not of bytes
+and ordered controls. The resizes the pressure phase issues are same-grid, so an
+implementation dropping every one of them under load would still produce an
+equal view, and ADR 0004's "same bytes and controls" is therefore not yet met. An **explicit overload outcome** is now reported
+rather than inferred: the runtime's own counters are emitted per trial, and the
+saturating case shows 5,656,773 output-backpressure events and 0.90 GiB of
+exactly-accounted observer gap where the passing case shows zero of both.
+**Input admission rejections are zero**, which is the crux — nothing is
+*rejected*; operations are delayed losslessly and replay is evicted with exact
+cursor gaps. Whether that satisfies ADR 0004's wording, "an explicit overload
+outcome identifies the *rejected* operation", is a reading of that ADR and is
+not settled here; it can now be made from the artifact rather than from the
+source — the last of which is what
 the unpaced capacity cases would need in order to claim ADR 0004's latency
 escape. Two caveats on the rest: the dominant-producer case has **no macOS
 evidence at all**, and latency values above 102.4 ms are the histogram's
@@ -151,6 +209,17 @@ Two scope notes that a reader will otherwise get wrong:
 
 > Pinned Rust FFI build; ordered parsing, replies, resize, binary checkpoints,
 > READY/history restoration, and reference-state comparisons pass
+
+**The projected-output latency failure is filed here**, moved from G1 on this
+row's own wording — it names "ordered parsing", and `ProjectedOutput` measures
+the parsing path. See the G1 concurrency row above for the reasoning and the
+counter-argument. The failure itself: `ProjectedOutput` p99 missed its 20 ms
+target by 13× on the paced `chunk-64` case at `e01c704`, which chunk batching
+brings to 0.8–0.9 ms; it still misses under unpaced saturation at 255–331 ms,
+where [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md)
+shows the tail is per-session staging-queue residence time. Every `RawOutput`
+target passes in the same trials, which is why this is filed under projection
+rather than under process and bytes.
 
 | Clause | Verdict | Evidence | Why that verdict |
 | --- | --- | --- | --- |
@@ -379,12 +448,21 @@ What changed:
   been run** — see [Experiment 0005](experiments/0005-g1-concurrent-pressure.md).
   It fails: `ProjectedOutput` p99 misses its 20 ms target on all five Linux
   trials of `128-active`, the gate's headline scenario, and by 13× on the paced
-  `chunk-64` case. 500 sessions remain unrun, the macOS matrix is incomplete,
-  and the resource measurements ADR 0004 asks for were not retained. **G2 is
-  not signed off either**: its clauses are proven on macOS arm64, but its gate
-  depends on G1 per ADR 0001 §2, no integrated result artifact exists under
-  `docs/experiments` as ADR 0004 requires, and its READY clause rests on a mock
-  process backend. Both verdicts, clause by clause, are in
+  `chunk-64` case. **Three of those gaps have since closed and are named here so
+  this summary does not contradict the ledger above it**: 500 sessions have been
+  run on the raw path (1,501 processes, 0.54 % idle CPU, clean teardown), the six
+  lost macOS cases have been re-run, and the resource measurements ADR 0004 asks
+  for are retained — `scripts/release/archive.py` defines that retention in code
+  and [Experiment 0006](experiments/0006-staging-depth-and-the-same-kernel-control.md)
+  commits nine artifacts built by it. What remains open on G1: the 12-hour soak
+  itself, 500 sessions on the *projected* path (refused by the shipped 1 GiB
+  resident quota, which is behaviour rather than a result) and on macOS at all,
+  the rest of the macOS matrix, and a reference-state comparison that replays
+  ordered controls rather than bytes alone. **G2 is not signed off either**: its
+  clauses are proven on macOS arm64, but its gate depends on G1 per ADR 0001 §2
+  and its READY clause rests on a mock process backend. Integrated result
+  artifacts now exist under `docs/experiments` as ADR 0004 requires; what they do
+  not yet carry is a full matrix at five repeats on a qualified host. Both verdicts, clause by clause, are in
   [Release gates G1 and G2](#release-gates-g1-and-g2-adr-0004) above, along with
   three defects that audit turned up: an assertion that cannot fail, duplicated
   escalation/cleanup paths that no test attributes, and a missing proof ledger.

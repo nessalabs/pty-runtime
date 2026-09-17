@@ -61,21 +61,48 @@ class LoadDiagnostics(unittest.TestCase):
             with self.assertRaisesRegex(ProcessLookupError, r'lsof.*123.*exit=1'):
                 resources.process_costs([123])
 
-    def test_vanished_lsof_process_uses_owner_fallback_with_evidence(self):
-        inventory = subprocess.CompletedProcess(['lsof'], 0, 'p123\nf0\n', '')
-        threads = subprocess.CompletedProcess(['ps'], 1, '', '')
-        with patch.object(load.census, 'members', return_value={123: (1, 'S'), 456: (123, 'S')}), patch.object(resources.platform, 'system', return_value='Darwin'), patch.object(resources.subprocess, 'check_output', side_effect=['123 100 0:00.01\n456 20 0:00.01\n', '123 100 0:00.01\n']), patch.object(resources.subprocess, 'run', side_effect=[inventory, inventory, threads]):
+    def test_a_vanished_process_is_reported_without_losing_the_others(self):
+        """One process ending must not discard the census of every other one.
+
+        This is what cost 15 of 130 macOS trials in Experiment 0005, and left
+        the dominant-producer case with no macOS evidence at all.
+        """
+        def darwin(args, **kwargs):
+            if args[0] == 'lsof':
+                return subprocess.CompletedProcess(args, 1, 'p123\nf0\n', 'no such process')
+            return subprocess.CompletedProcess(args, 0, '123 100 0:00.01\n456 20 0:00.01\n', '')
+        with patch.object(load.census, 'members', return_value={123: (1, 'S'), 456: (123, 'S')}), \
+             patch.object(resources.platform, 'system', return_value='Darwin'), \
+             patch.object(resources.subprocess, 'run', side_effect=darwin):
             sample = load.census.sample(123, {456}, 'periodic')
         self.assertEqual([row['pid'] for row in sample['processes']], [123])
         self.assertEqual(sample['unavailable_pids'], [456])
-        self.assertIn('lsof', sample['unavailable_reason'])
-        self.assertIn('456', sample['unavailable_reason'])
+        self.assertIn('exited', sample['unavailable_reason'])
+
+    def test_a_collector_that_produced_nothing_still_raises(self):
+        """A vanished process and a broken collector are different facts."""
+        def broken(args, **kwargs):
+            if args[0] == 'lsof':
+                return subprocess.CompletedProcess(args, 127, '', 'lsof: command not found')
+            return subprocess.CompletedProcess(args, 0, '123 100 0:00.01\n', '')
+        with patch.object(resources.platform, 'system', return_value='Darwin'), \
+             patch.object(resources.subprocess, 'run', side_effect=broken):
+            with self.assertRaisesRegex(ProcessLookupError, 'exit=127'):
+                resources.process_costs([123])
 
     def test_darwin_cpu_minutes_continue_past_one_hour(self):
-        inventory = subprocess.CompletedProcess(['lsof'], 0, 'p123\nf0\n', '')
+        def darwin(args, elapsed='', **kwargs):
+            if args[0] == 'lsof':
+                return subprocess.CompletedProcess(args, 0, 'p123\nf0\n', '')
+            return subprocess.CompletedProcess(args, 0, f'123 100 {elapsed}\n', '')
         for elapsed, expected in [('59:59.99', 3599.99), ('60:00.00', 3600.0), ('1295:17.02', 77717.02)]:
-            with self.subTest(elapsed=elapsed), patch.object(resources.platform, 'system', return_value='Darwin'), patch.object(resources.subprocess, 'check_output', return_value=f'123 100 {elapsed}\n'), patch.object(resources.subprocess, 'run', return_value=inventory):
-                self.assertAlmostEqual(resources.process_costs([123])[0]['cpu_seconds'], expected)
+            with self.subTest(elapsed=elapsed), \
+                 patch.object(resources.platform, 'system', return_value='Darwin'), \
+                 patch.object(resources.subprocess, 'run',
+                              side_effect=lambda args, elapsed=elapsed, **kw: darwin(args, elapsed, **kw)):
+                rows, vanished = resources.process_costs([123])
+                self.assertAlmostEqual(rows[0]['cpu_seconds'], expected)
+                self.assertEqual(vanished, [])
 
     def test_unavailable_idle_cpu_cannot_pass_target_but_is_not_correctness_failure(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -115,11 +142,46 @@ class LoadDiagnostics(unittest.TestCase):
             self.assertTrue(any(row.get('text') == 'final fixture stderr' for row in events))
             self.assertEqual(events[-1]['event'], 'trial_result')
 
-    def test_missing_ps_process_identifies_missing_pid(self):
-        result = subprocess.CompletedProcess(['lsof'], 0, 'p123\nf0\np456\nf0\n', '')
-        with patch.object(resources.platform, 'system', return_value='Darwin'), patch.object(resources.subprocess, 'check_output', return_value='123 100 0:00.01\n'), patch.object(resources.subprocess, 'run', return_value=result):
-            with self.assertRaisesRegex(ProcessLookupError, r'ps.*456'):
-                resources.process_costs([123, 456])
+    def test_a_reused_pid_we_may_not_read_does_not_kill_the_census(self):
+        """A 75-minute soak died after 91 seconds because this raised."""
+        def read(self, *args, **kwargs):
+            if '/777/' in str(self):
+                raise PermissionError(13, 'Permission denied')
+            if str(self).endswith('/stat'):
+                return '1 (x) S' + ' 0' * 20
+            return 'Rss: 4 kB\nPss: 2 kB\n'
+        with patch.object(resources.platform, 'system', return_value='Linux'), \
+             patch.object(Path, 'read_text', read), \
+             patch.object(Path, 'iterdir', lambda self: iter([])):
+            rows, vanished = resources.process_costs([123, 777])
+        self.assertEqual([row['pid'] for row in rows], [123])
+        self.assertEqual(vanished, [777])
+
+    def test_a_process_missing_from_ps_is_reported_as_vanished(self):
+        def darwin(args, **kwargs):
+            if args[0] == 'lsof':
+                return subprocess.CompletedProcess(args, 0, 'p123\nf0\np456\nf0\n', '')
+            return subprocess.CompletedProcess(args, 0, '123 100 0:00.01\n', '')
+        with patch.object(resources.platform, 'system', return_value='Darwin'), \
+             patch.object(resources.subprocess, 'run', side_effect=darwin):
+            rows, vanished = resources.process_costs([123, 456])
+        self.assertEqual([row['pid'] for row in rows], [123])
+        self.assertEqual(vanished, [456])
+
+    def test_linux_tolerates_a_process_leaving_proc_mid_census(self):
+        real = Path.read_text
+        def read(self, *args, **kwargs):
+            if '/999/' in str(self):
+                raise FileNotFoundError(str(self))
+            if str(self).endswith('/stat'):
+                return '1 (x) S' + ' 0' * 20
+            return 'Rss: 4 kB\nPss: 2 kB\n'
+        with patch.object(resources.platform, 'system', return_value='Linux'), \
+             patch.object(Path, 'read_text', read), \
+             patch.object(Path, 'iterdir', lambda self: iter([])):
+            rows, vanished = resources.process_costs([123, 999])
+        self.assertEqual([row['pid'] for row in rows], [123])
+        self.assertEqual(vanished, [999], 'the surviving process must still be measured')
 
 
 if __name__ == '__main__':

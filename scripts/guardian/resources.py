@@ -11,51 +11,150 @@ import time
 from probe import Session
 
 
+def resident_costs(pids):
+    """Measure a population that is supposed to be wholly alive.
+
+    `process_costs` reports processes it could not measure rather than raising,
+    because the load census samples a population that is legitimately churning. These callers are the
+    opposite case: they hold a fixed set of helpers open for the whole sample,
+    so a process leaving means the measurement is describing something other
+    than what it claims, and the totals built from it would be quietly wrong.
+    """
+    rows, vanished = process_costs(pids)
+    if vanished:
+        raise ProcessLookupError(
+            f'processes exited during a fixed-population sample: {vanished}')
+    return rows
+
+
+def incarnation_of(stat):
+    """`(ppid, starttime)` from the tail of /proc/<pid>/stat, past the comm field.
+
+    Splitting on the last `)` drops the pid and the parenthesised command, so
+    index 0 is field 3 (state), index 1 is field 4 (ppid) and index 19 is field
+    22 (starttime in clock ticks since boot). A pid is reused; a pid with the
+    same start time and parent, moments apart, is not.
+    """
+    return stat[1], stat[19]
+
+
+def incarnation(root):
+    return incarnation_of((root / 'stat').read_text().rsplit(')', 1)[1].split())
+
+
 def process_costs(pids):
+    """Measure each process, returning `(rows, vanished)`.
+
+    A sampled process exiting mid-census is ordinary, not a fault: producers
+    finish, transient probes are cancelled, and the census is not synchronised
+    with any of them. Reporting that as an exception loses every *other*
+    process's measurement for the sake of one that ended — which cost 15 of 130
+    macOS trials in Experiment 0005 and left the dominant-producer case with no
+    macOS evidence at all. A process that is gone is named in `vanished`; only a
+    collector that cannot run at all still raises.
+    """
     if platform.system() == 'Linux':
-        rows = []
+        rows, vanished = [], []
         for pid in pids:
             root = Path('/proc') / str(pid)
-            stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
-            memory = {}
-            for line in (root / 'smaps_rollup').read_text().splitlines():
-                key, _, value = line.partition(':')
-                if key in ('Rss', 'Pss'):
-                    memory[key] = int(value.split()[0]) * 1024
-            rows.append({'pid': pid, 'rss_bytes': memory['Rss'], 'pss_bytes': memory['Pss'],
-                         'cpu_seconds': (int(stat[11]) + int(stat[12])) / os.sysconf('SC_CLK_TCK'),
-                         'fds': len(list((root / 'fd').iterdir())),
-                         'threads': len(list((root / 'task').iterdir()))})
-        return rows
+            try:
+                # Read the identity before and after everything else. A pid is
+                # not a process: this fixture spawns a transient probe every
+                # second, so over a long run the kernel hands one of those
+                # numbers to something new, and these are four separate reads
+                # with the kernel free to recycle the number between any two of
+                # them. When the replacement belongs to somebody else the read
+                # is refused and the handler below catches it; when it belongs
+                # to *us* nothing is refused, and the census quietly reports the
+                # newcomer's memory, descriptors and threads as the runtime's -
+                # or splices the predecessor's CPU onto the successor's memory.
+                #
+                # `(ppid, starttime)` names one incarnation. Same pid, same
+                # start time, same parent, before and after: one process.
+                before = incarnation(root)
+                memory = {}
+                for line in (root / 'smaps_rollup').read_text().splitlines():
+                    key, _, value = line.partition(':')
+                    if key in ('Rss', 'Pss'):
+                        memory[key] = int(value.split()[0]) * 1024
+                descriptors = len(list((root / 'fd').iterdir()))
+                threads = len(list((root / 'task').iterdir()))
+                stat = (root / 'stat').read_text().rsplit(')', 1)[1].split()
+                if incarnation_of(stat) != before:
+                    # The number was recycled mid-census. These readings
+                    # describe two different processes, so they describe
+                    # neither.
+                    vanished.append(pid)
+                    continue
+                rows.append({'pid': pid, 'rss_bytes': memory['Rss'], 'pss_bytes': memory['Pss'],
+                             'cpu_seconds': (int(stat[11]) + int(stat[12])) / os.sysconf('SC_CLK_TCK'),
+                             'fds': descriptors,
+                             'threads': threads,
+                             # Carried so a *later* census can tell the same
+                             # process from the same number. Without it a
+                             # recycled pid stays in any population keyed on pid
+                             # alone, which is what the resource cohort is.
+                             'start_ticks': int(stat[19]), 'ppid': int(stat[1])})
+            except (FileNotFoundError, ProcessLookupError, KeyError, IndexError):
+                # /proc/<pid> disappearing, or emptying as the kernel tears it
+                # down, is how exit looks from here.
+                vanished.append(pid)
+            except PermissionError:
+                # The tree came from a `ps` snapshot, so by the time /proc is
+                # read a pid in it may belong to somebody else: this fixture
+                # spawns a transient probe every second, and over a long run
+                # that churn is enough for the kernel to hand one of those
+                # numbers to a process that is not ours. Reading its memory is
+                # then correctly refused.
+                #
+                # This was fatal until a 75-minute soak hit it after 91 seconds.
+                # A one-minute trial never does, which is exactly the kind of
+                # thing only a long run finds.
+                vanished.append(pid)
+        return rows, vanished
     selector = ','.join(map(str, pids))
-    output = subprocess.check_output(['ps', '-p', selector, '-o', 'pid=,rss=,time='], text=True)
-    fds = {}
-    current = None
+    listing = subprocess.run(['ps', '-p', selector, '-o', 'pid=,rss=,time='],
+                             capture_output=True, text=True)
+    # `ps` exits non-zero when *none* of the pids exist, which is a real answer,
+    # and also when it fails outright. Those must not look alike: a failed `ps`
+    # with an empty listing would otherwise report every live process as having
+    # vanished. Only an empty listing paired with no complaint is believed.
+    if listing.returncode != 0 and listing.stderr.strip():
+        raise ProcessLookupError(
+            f'ps process census pids={pids} exit={listing.returncode} '
+            f'stderr={listing.stderr!r}')
+    output = listing.stdout
     inventory = subprocess.run(['lsof', '-Fpf', '-p', selector], capture_output=True, text=True)
-    if inventory.returncode != 0:
+    if inventory.returncode != 0 and not inventory.stdout.strip():
+        # No output at all is the collector failing, not a process exiting.
         raise ProcessLookupError(
             f'lsof process census pids={pids} exit={inventory.returncode} '
-            f'stderr={inventory.stderr!r} stdout={inventory.stdout!r}')
+            f'stderr={inventory.stderr!r}')
+    fds = {}
+    current = None
     for line in inventory.stdout.splitlines():
         if line.startswith('p'):
             current = int(line[1:])
             fds[current] = 0
         elif line.startswith('f') and line[1:].isdigit():
             fds[current] += 1
-    missing_fds = sorted({int(line.split()[0]) for line in output.splitlines()} - fds.keys())
-    if missing_fds:
-        raise ProcessLookupError(f'lsof process census missing_pids={missing_fds} requested_pids={pids} stdout={inventory.stdout!r}')
     rows = []
     for line in output.splitlines():
         pid, rss, elapsed = line.split()
+        pid = int(pid)
+        if pid not in fds:
+            # Present to ps, gone by the time lsof looked.
+            continue
         minutes, seconds = elapsed.split(':')
-        rows.append({'pid': int(pid), 'rss_bytes': int(rss) * 1024, 'pss_bytes': None,
+        # Darwin has no equivalent of /proc/<pid>/stat's start time here, so
+        # this collector cannot verify an incarnation and does not claim to.
+        # Its exposure is narrower - one `ps` and one `lsof`, not four reads per
+        # process - but it is not zero.
+        rows.append({'pid': pid, 'rss_bytes': int(rss) * 1024, 'pss_bytes': None,
                      'cpu_seconds': int(minutes) * 60 + float(seconds),
-                     'fds': fds[int(pid)], 'threads': None})
-    missing = sorted(set(pids) - {row['pid'] for row in rows})
-    if missing:
-        raise ProcessLookupError(f'ps process census missing_pids={missing} requested_pids={pids} stdout={output!r}')
-    return rows
+                     'fds': fds[pid], 'threads': None,
+                     'start_ticks': None, 'ppid': None})
+    return rows, sorted(set(pids) - {row['pid'] for row in rows})
 
 
 def measure(helper, count, seconds):
@@ -69,10 +168,10 @@ def measure(helper, count, seconds):
             _, guardian, sentinel, _ = session.admitted()
             pids.extend([guardian, sentinel])
         launch_seconds = time.monotonic() - launch
-        before = process_costs(pids)
+        before = resident_costs(pids)
         sample_start = time.monotonic()
         time.sleep(seconds)
-        after = process_costs(pids)
+        after = resident_costs(pids)
         elapsed = time.monotonic() - sample_start
         cpu = sum(row['cpu_seconds'] for row in after) - sum(row['cpu_seconds'] for row in before)
         return {'sessions': count, 'persistent_helpers': len(pids), 'launch_seconds': launch_seconds,
@@ -91,7 +190,7 @@ def measure_adapter(adapter, count, seconds):
                                stdout=subprocess.PIPE, text=True)
     try:
         assert process.stdout.readline().strip() == f'baseline {process.pid}'
-        baseline = process_costs([process.pid])[0]
+        baseline = resident_costs([process.pid])[0]
         launch = time.monotonic()
         process.stdin.write('start\n')
         process.stdin.flush()
@@ -105,10 +204,10 @@ def measure_adapter(adapter, count, seconds):
         helpers = [pid for workload in workloads for pid in [parents[workload], parents[parents[workload]]]]
         assert len(set(helpers)) == 2 * count
         pids = [process.pid, *helpers, *workloads]
-        before = process_costs(pids)
+        before = resident_costs(pids)
         started = time.monotonic()
         time.sleep(seconds)
-        after = process_costs(pids)
+        after = resident_costs(pids)
         elapsed = time.monotonic() - started
         costs = {row['pid']: row for row in after}
         result = {'sessions': count, 'persistent_helpers': len(helpers), 'launch_seconds': launch_seconds,
@@ -118,7 +217,7 @@ def measure_adapter(adapter, count, seconds):
         process.stdin.write('close\n')
         process.stdin.flush()
         assert process.stdout.readline().strip() == 'closed'
-        result['owner_after_shutdown'] = process_costs([process.pid])[0]
+        result['owner_after_shutdown'] = resident_costs([process.pid])[0]
         process.stdin.close()
         assert process.wait(timeout=10) == 0
         return result

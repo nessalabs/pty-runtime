@@ -87,7 +87,7 @@ pub(super) fn launch(
             Ok(())
         });
     }
-    let sentinel = command.spawn().map_err(error)?;
+    let sentinel = command.spawn().map_err(super::creation_error)?;
     // Parent copies of child channel endpoints would suppress EOF during failed
     // admission. Close them before constructing the protocol cleanup owner.
     drop(copies);

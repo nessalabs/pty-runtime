@@ -3,6 +3,17 @@ import json
 
 LATENCY_BOUNDARIES = ('InputDispatch', 'RawOutput', 'ProjectedOutput', 'ResizeDispatch', 'CancelDispatch')
 
+# ADR 0002's qualification limits, in one place so the driver that judges
+# against them and the archiver that checks the judgement cannot drift apart.
+#
+# A target record carries its own ceiling, and recomputing the verdict from that
+# ceiling only proves the record is internally consistent: a trial observing
+# 224 ms could raise its ceiling to 999 ms and pass its own arithmetic. The
+# ceiling is not the run's to choose.
+LATENCY_CEILINGS_US = {'InputDispatch': 20000, 'RawOutput': 20000, 'ProjectedOutput': 20000,
+                       'ResizeDispatch': 100000, 'CancelDispatch': 100000}
+IDLE_CPU_CEILING_PERCENT = 1.0
+
 
 def verdict(values):
     if False in values:
@@ -28,6 +39,63 @@ def trial_targets(path, config):
                 latency[event['boundary']] = event
             elif event.get('event') == 'idle_cpu_target':
                 idle = event
+    return targets_from_events(latency, idle, config)
+
+
+def recompute_target(event, ceiling_key, observed_key):
+    """The verdict its own numbers support, ignoring the recorded `passed`.
+
+    A target record carries both the measurement and the conclusion drawn from
+    it, and nothing compared them: a record observing 224 ms against a 20 ms
+    ceiling while claiming `passed: true` was republished as a pass. The bit is
+    a convenience; the numbers are the evidence.
+    """
+    if not event:
+        return None
+    return measurement_verdict(event.get(observed_key), event.get(ceiling_key),
+                               event.get('failures', 0), event.get('unavailable', 0))
+
+
+def unqualified_ceilings(latency, idle):
+    """Target records judged against a ceiling ADR 0002 did not set."""
+    wrong = {}
+    for name, event in sorted(latency.items()):
+        expected = LATENCY_CEILINGS_US.get(name)
+        if expected is not None and event.get('target_p99_us') != expected:
+            wrong[name] = {'recorded_ceiling_us': event.get('target_p99_us'),
+                           'adr_0002_ceiling_us': expected}
+    if idle and idle.get('target_core_percent') != IDLE_CPU_CEILING_PERCENT:
+        wrong['idle_cpu'] = {'recorded_ceiling_percent': idle.get('target_core_percent'),
+                             'adr_0002_ceiling_percent': IDLE_CPU_CEILING_PERCENT}
+    return wrong
+
+
+def disagreeing_targets(latency, idle):
+    """Target records whose stated verdict their own measurements do not support."""
+    wrong = {}
+    for name, event in sorted(latency.items()):
+        expected = recompute_target(event, 'target_p99_us', 'observed_p99_us')
+        if event.get('passed') != expected:
+            wrong[name] = {'recorded': event.get('passed'), 'measurements_give': expected,
+                           'observed_p99_us': event.get('observed_p99_us'),
+                           'target_p99_us': event.get('target_p99_us')}
+    if idle:
+        expected = recompute_target(idle, 'target_core_percent', 'measured_core_percent')
+        if idle.get('passed') != expected:
+            wrong['idle_cpu'] = {'recorded': idle.get('passed'), 'measurements_give': expected,
+                                 'measured_core_percent': idle.get('measured_core_percent'),
+                                 'target_core_percent': idle.get('target_core_percent')}
+    return wrong
+
+
+def targets_from_events(latency, idle, config):
+    """The per-trial target verdicts, from the trial's own target records.
+
+    Split out of `trial_targets` so the archiver can recompute a summary row
+    from the records it retained and refuse a summary that disagrees with them,
+    rather than republishing whatever the driver wrote. One implementation, so
+    the check cannot drift from the thing it checks.
+    """
     expected = [name for name in LATENCY_BOUNDARIES
                 if not (name == 'ProjectedOutput' and config['raw'])] if config['active'] > 0 else []
     missing = [name for name in expected

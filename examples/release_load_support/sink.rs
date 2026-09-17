@@ -67,19 +67,30 @@ mod enabled {
             });
             Ok(Self { task, sink })
         }
-        pub fn report(&self) {
+        /// Assert the clause and return what it held, without reporting.
+        ///
+        /// ADR 0001 asks that a stalled consumer not starve anything: exactly
+        /// one publication in flight, called once, payload bounded.
+        fn check(&self) -> (u64, u64, u64) {
             let calls = self.sink.calls.load(Ordering::Relaxed);
             let inflight = self.sink.inflight.load(Ordering::Relaxed);
             let bytes = self.sink.bytes.load(Ordering::Relaxed);
             assert_eq!(calls, 1);
             assert_eq!(inflight, 1);
             assert!(bytes <= 17000);
+            (calls, inflight, bytes)
+        }
+        pub fn report(&self) {
+            let (calls, inflight, bytes) = self.check();
             println!(
                 "{{\"event\":\"stalled_sink\",\"calls\":{calls},\"inflight\":{inflight},\"max_payload_bytes\":{bytes}}}"
             );
         }
         pub async fn stop(self) -> Result<()> {
-            self.report();
+            // Checked again at shutdown, not reported again. Printing a second
+            // identical record made the trial carry two accounts of one
+            // measurement, and whichever an archiver read last silently won.
+            self.check();
             self.task.abort();
             assert!(self.task.await.unwrap_err().is_cancelled());
             assert_eq!(self.sink.inflight.load(Ordering::Relaxed), 0);
