@@ -1,6 +1,9 @@
 //! Application layer for the PTY runtime.
 #![forbid(unsafe_code)]
 
+#[path = "../../atomic_update.rs"]
+mod atomic;
+
 pub mod process;
 pub mod runtime;
 pub mod terminal;

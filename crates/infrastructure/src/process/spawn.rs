@@ -26,12 +26,13 @@ pub(super) fn launch(
     let directory = open_directory(&cwd, roots)?;
     let (mut host, child) = super::endpoints::open(size)?;
     let cleanup_host = host.try_clone().map_err(error)?;
-    // Rust 1.85 has `fetch_update` only. Current stable renamed it to
-    // `try_update` and denies the old name under `-D warnings`.
-    #[allow(deprecated)]
-    let generation = NEXT_GENERATION.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-        value.checked_add(1)
-    });
+    // `Ok` is the generation before the increment, which is the one this launch uses.
+    let generation = crate::atomic::try_update_u64(
+        &NEXT_GENERATION,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+        |value| value.checked_add(1),
+    );
     let generation = generation.map_err(|_| ProcessError::Capacity)?;
     let (owner_s, child_s) = UnixStream::pair().map_err(error)?;
     let (owner_g, child_g) = UnixStream::pair().map_err(error)?;

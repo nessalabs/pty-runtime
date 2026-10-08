@@ -227,12 +227,17 @@ non-blocking read finds nothing left to take, and recording the exit wakes
 the reader. The close does not trust a byte-count ioctl: on Linux that
 query returned zero while a later read still returned thousands of bytes.
 A descendant that still holds its own endpoint is unaffected: closing ours
-is not the last reference. `retained_slave_keeps_output_written_before_the_session_leader_exits`
-parks the reader until the leader is gone and requires both the descriptor
-and a payload larger than one read to still be there. Linux does not discard
-the buffer, so the descriptor check is what fails there if the endpoint is
-dropped early. The oversized payload is what fails on macOS if the endpoint
-is closed after the first short read.
+is not the last reference. `retained_slave_is_open_after_the_workload_exits_and_the_queued_bytes_arrive`
+parks the reader, waits until the workload has exited, requires the parent's
+child endpoint to still be open, and only then reads. It does not wait for
+the session leader: macOS session exit can wait for pending terminal output,
+and a 9000-byte write with the reader parked never finished at all (GitHub
+Actions run 37741604610, commit `356330b`, macos-15, leader 9696 still alive
+after 5 seconds). The payload is 64 `A` bytes plus `END`, read 16 at a time,
+so it fits in the queue and still takes more than one read. Closing after
+the first read would drop the tail on macOS. Linux does not discard the
+buffer, so the descriptor check is what fails there if the endpoint is
+dropped early.
 
 ## Raw-child flake: diagnosable
 

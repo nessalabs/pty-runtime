@@ -78,17 +78,13 @@ pub(super) struct Counters {
     readers: AtomicU64,
     reader_scratch: AtomicU64,
 }
-// Rust 1.85 has `fetch_update` only. Current stable renamed it to
-// `try_update` and denies the old name under `-D warnings`.
-#[allow(deprecated)]
 fn add(counter: &AtomicU64, count: u64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_add(count))
     });
 }
-#[allow(deprecated)]
 fn subtract(counter: &AtomicU64, count: u64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_sub(count))
     });
 }
@@ -142,5 +138,21 @@ impl Counters {
             reader_scratch_allocated_bytes: self.reader_scratch.load(Ordering::Relaxed),
             counters: std::array::from_fn(|index| self.values[index].load(Ordering::Relaxed)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_and_subtract_saturate_instead_of_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        add(&counter, 5);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        subtract(&counter, 3);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX - 3);
+        subtract(&counter, u64::MAX);
+        assert_eq!(counter.load(Ordering::Relaxed), 0);
     }
 }

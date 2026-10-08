@@ -52,11 +52,8 @@ pub(super) struct Histogram {
     unavailable: AtomicU64,
     maximum_us: AtomicU64,
 }
-// Rust 1.85 has `fetch_update` only. Current stable renamed it to
-// `try_update` and denies the old name under `-D warnings`.
-#[allow(deprecated)]
 fn increment(counter: &AtomicU64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_add(1))
     });
 }

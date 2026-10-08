@@ -1,5 +1,8 @@
 //! Infrastructure layer for the PTY runtime.
 
+#[path = "../../atomic_update.rs"]
+mod atomic;
+
 pub mod identity;
 pub mod process;
 pub mod registry;

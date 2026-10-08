@@ -1,13 +1,24 @@
-//! The parent must still hold the child PTY endpoint after the session leader
-//! has exited, and the bytes written before that exit must then be delivered.
+//! The parent must still hold the child PTY endpoint after the workload has
+//! exited, and the bytes that workload queued must then be delivered.
 //!
 //! Linux keeps those bytes even if the parent drops the endpoint, so a green
 //! byte assertion on Linux does not prove the descriptor stayed open. The
 //! open-descriptor check is what fails on Linux when the endpoint is dropped
-//! at spawn. macOS discards unread bytes in `ttyclose` when the leader's
-//! teardown closes the last reference, including a tail left after a short
-//! read. The payload is larger than one read so that tail is part of the
-//! assertion. Both checks fail there if this parent drops the endpoint early.
+//! at spawn. macOS discards unread bytes in `ttyclose` when the last reference
+//! closes at session teardown, including a tail left after a short read.
+//!
+//! The check happens after the workload has exited and before the reader runs.
+//! It does not wait for the session leader. macOS session exit can itself wait
+//! for pending terminal output — the runtime drains before it waits for helper
+//! exit for that reason — so a test that waits for the leader while the reader
+//! is parked stalls on the bytes it is trying to keep. A 9000-byte payload did
+//! that on macOS: the write also exceeded the terminal queue (historical
+//! ceiling 1024 bytes, `TTYHOG`), so the workload never finished either.
+//!
+//! The payload is larger than one read and smaller than that ceiling. Closing
+//! after the first read would drop the tail on macOS once the workload's own
+//! descriptors are gone. Linux keeps that tail, so the byte assertion is not
+//! the Linux lock.
 #![cfg(test)]
 use super::{backend::UnixProcessBackend, process_test_support::*, spawner};
 use pty_runtime_application::process::IProcessBackend;
@@ -19,7 +30,7 @@ use pty_runtime_domain::{
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, mpsc},
-    time::{Duration, Instant},
+    time::Duration,
 };
 struct Release(Option<mpsc::Sender<()>>);
 impl Drop for Release {
@@ -31,7 +42,7 @@ impl Drop for Release {
 }
 
 #[test]
-fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
+fn retained_slave_is_open_after_the_workload_exits_and_the_queued_bytes_arrive() {
     let (entered_tx, entered_rx) = mpsc::channel();
     let (release_tx, release_rx) = mpsc::channel::<()>();
     let release_rx = Mutex::new(release_rx);
@@ -40,8 +51,8 @@ fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
         let _ = release_rx.lock().unwrap().recv();
     });
     let (noted_tx, noted_rx) = mpsc::channel();
-    let note_sentinel = Arc::new(move |sentinel, fd| {
-        let _ = noted_tx.send((sentinel, fd, descriptor_path(fd)));
+    let note_sentinel = Arc::new(move |_sentinel, fd| {
+        let _ = noted_tx.send((fd, descriptor_path(fd)));
     });
     let owner = Arc::new(
         UnixProcessBackend::build(
@@ -61,18 +72,28 @@ fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
     // second so a panic unblocks that reader before the join.
     let mut release = Release(Some(release_tx));
     let events = Arc::new(Events::default());
-    // 9000 bytes is more than one 4096-byte read. The marker is the tail.
-    // Closing the child endpoint after the first read drops that tail on
-    // macOS. Linux keeps it, so this assertion is not the Linux lock; the
-    // descriptor check below is.
-    let mut expected = vec![b'A'; 9000];
+    const QUEUED: usize = 64;
+    let mut expected = vec![b'A'; QUEUED];
     expected.extend_from_slice(b"END");
+    let limits = ProcessLimits {
+        read_chunk: 16,
+        ..ProcessLimits::default()
+    };
+    assert!(
+        expected.len() > limits.read_chunk,
+        "payload must outlast one read, or closing after that read has no tail to drop"
+    );
+    assert!(
+        expected.len() < 1024,
+        "payload must fit in the macOS terminal queue, or the write blocks while the reader is parked"
+    );
     let spec = CommandSpec::new(
         "/bin/sh".into(),
         std::env::temp_dir(),
         vec![
             "-c".into(),
-            "dd if=/dev/zero bs=9000 count=1 2>/dev/null | tr '\\0' A; printf END".into(),
+            format!("dd if=/dev/zero bs={QUEUED} count=1 2>/dev/null | tr '\\0' A; printf END")
+                .into(),
         ],
     )
     .unwrap();
@@ -81,16 +102,16 @@ fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
             &spec,
             TerminalSize::new(80, 24).unwrap(),
             SessionLifetime::new(90, 1),
-            ProcessLimits::default(),
+            limits,
             events.clone(),
         )
         .unwrap();
     entered_rx
         .recv_timeout(Duration::from_secs(2))
         .expect("reader did not reach its hold");
-    let (sentinel, slave_fd, slave_path) = noted_rx
+    let (slave_fd, slave_path) = noted_rx
         .recv_timeout(Duration::from_secs(2))
-        .expect("launch did not report the session leader");
+        .expect("launch did not report the child endpoint");
     let slave_path = slave_path.expect("child endpoint path was not visible at launch");
     let shown = slave_path.to_string_lossy();
     assert!(
@@ -101,18 +122,10 @@ fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
         !shown.ends_with("ptmx"),
         "launch reported the host endpoint {slave_path:?}"
     );
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while !session_leader_finished(sentinel) {
-        assert!(
-            Instant::now() < deadline,
-            "session leader {sentinel} was still alive 5s after the workload \
-             exited, with its output unread; exiting is blocked on the terminal \
-             buffer, so this parent cannot hold the endpoint across teardown"
-        );
-        // The runtime is not delaying. This test is waiting until the leader
-        // has actually exited before it looks at the descriptor.
-        std::thread::sleep(Duration::from_millis(5));
-    }
+    // The workload has finished writing and closed its descriptors. The reader
+    // is still parked, so this is before any read. The session leader is not
+    // part of the check: its exit can wait on this unread output.
+    events.wait(|state| state.exit.is_some());
     assert_eq!(
         descriptor_path(slave_fd).as_ref(),
         Some(&slave_path),
@@ -120,10 +133,8 @@ fn retained_slave_keeps_output_written_before_the_session_leader_exits() {
          flushes unread PTY output when that last reference closes at \
          session-leader teardown"
     );
-    // The leader is already gone. Unblock the reader and require the bytes
-    // that were queued before the leader exited.
     let _ = release.0.take().unwrap().send(());
-    events.wait(|state| state.exit.is_some() && state.drain.is_some());
+    events.wait(|state| state.drain.is_some());
     let state = events.state.lock().unwrap();
     assert_eq!(state.bytes, expected);
     assert_eq!(state.exit, Some(ExitStatus::Code(0)));
@@ -155,54 +166,4 @@ fn descriptor_path(fd: i32) -> Option<PathBuf> {
         let _ = fd;
         None
     }
-}
-
-fn session_leader_finished(pid: u32) -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        leader_finished_linux(pid)
-    }
-    #[cfg(target_os = "macos")]
-    {
-        leader_finished_macos(pid)
-    }
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    {
-        let _ = pid;
-        false
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn leader_finished_linux(pid: u32) -> bool {
-    // Do not waitpid: the supervisor owns reaping this child. A missing
-    // record means it has already been collected; Z means it has exited.
-    let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
-        return true;
-    };
-    let Some((_, rest)) = stat.rsplit_once(')') else {
-        return false;
-    };
-    rest.split_whitespace().next() == Some("Z")
-}
-
-#[cfg(target_os = "macos")]
-fn leader_finished_macos(pid: u32) -> bool {
-    // SAFETY: proc_bsdinfo is a plain output record. Zero is initialized
-    // storage, and proc_pidinfo writes at most the length passed in.
-    let mut info: libc::proc_bsdinfo = unsafe { std::mem::zeroed() };
-    let size = std::mem::size_of::<libc::proc_bsdinfo>() as i32;
-    let count = unsafe {
-        libc::proc_pidinfo(
-            pid as libc::pid_t,
-            libc::PROC_PIDTBSDINFO,
-            0,
-            (&mut info as *mut libc::proc_bsdinfo).cast(),
-            size,
-        )
-    };
-    if count != size {
-        return true;
-    }
-    info.pbi_status == libc::SZOMB
 }

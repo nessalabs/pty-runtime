@@ -171,15 +171,12 @@ impl IProcessBackend for UnixProcessBackend {
         if self.shared.shutdown.load(Ordering::Acquire) {
             return Err(ProcessError::Closed);
         }
-        // Rust 1.85 has `fetch_update` only. Current stable renamed it to
-        // `try_update` and denies the old name under `-D warnings`.
-        #[allow(deprecated)]
-        let admitted =
-            self.shared
-                .active
-                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
-                    (count < self.shared.max).then_some(count + 1)
-                });
+        let admitted = crate::atomic::try_update_usize(
+            &self.shared.active,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+            |count| (count < self.shared.max).then_some(count + 1),
+        );
         admitted.map_err(|_| ProcessError::Capacity)?;
         let (reply, result) = mpsc::sync_channel::<Result<Arc<Session>, ProcessError>>(1);
         let request = Request {

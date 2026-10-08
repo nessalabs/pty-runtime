@@ -751,13 +751,29 @@ closing on that false empty would let macOS discard the rest. A descendant
 that still holds its own endpoint is not flushed, because closing ours is
 not the last reference while theirs remains.
 
-What has been run for this fix is Linux only. The passing lines are in the
-pull request that introduced the change, with the revision they were run
-against. Linux does not discard the buffer, so those passes do not prove the
-macOS race is closed. The descriptor half of
-`retained_slave_keeps_output_written_before_the_session_leader_exits` does
-fail on Linux if the parent drops the endpoint early; that is the lock this
-platform can actually trip. macOS has not been re-run here.
+The first macOS run of the regression test failed for a different reason
+than a dropped endpoint. GitHub Actions run 37741604610 (commit `356330b`,
+macos-15) reported session leader 9696 still alive after 5 seconds. That
+revision parked the reader and waited for the leader to exit, after asking
+the workload to write 9000 bytes. macOS stops a terminal write once the queue
+is full — the historical ceiling is 1024 bytes — so the workload never
+finished and the leader, which waits for the workload, could not exit. Waiting
+for the leader before reading is the wrong observation even when the write
+fits. This runtime already drains before it waits for helper exit, because
+macOS session exit can itself wait for pending terminal output. The test was
+inverting that order, and it treated a failed `proc_pidinfo` as proof the
+leader had exited.
+
+`retained_slave_is_open_after_the_workload_exits_and_the_queued_bytes_arrive`
+writes 64 `A` bytes plus `END` and reads at most 16 bytes at a time. The
+lengths are asserted: more than one read, and under the 1024-byte ceiling. It
+waits until the workload has exited, checks that the parent's child endpoint
+is still open, and only then lets the reader run. It does not wait for the
+session leader. Closing after the first read would still drop the unread tail
+on macOS once the workload's own descriptors are gone. Linux does not discard
+that tail, so a green byte assertion here does not prove it. The descriptor
+check is what fails on Linux if the parent drops the endpoint before the
+read. macOS has not been re-run with this order.
 
 ## Where to look next
 
