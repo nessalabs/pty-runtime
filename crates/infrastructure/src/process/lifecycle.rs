@@ -58,6 +58,9 @@ impl OwnedProcess {
             return;
         };
         self.exit_at = Some(Instant::now());
+        // Before the inputs are failed, so a reader unblocked by this exit
+        // still observes the flag that lets it release the child endpoint.
+        self.session.note_workload_exit();
         self.session.finish_inputs(ProcessError::Closed);
         let _ =
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.events.exited(status)));

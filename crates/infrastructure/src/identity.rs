@@ -20,9 +20,10 @@ pub fn next_owner_identity() -> Result<u64, ProcessError> {
         })
         .as_ref()
         .map_err(|error| *error)?;
-    counter
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
+    // `Ok` is the value before the increment. That observed value is the identity.
+    let updated =
+        crate::atomic::try_update_u64(counter, Ordering::AcqRel, Ordering::Acquire, |old| {
             old.checked_add(1)
-        })
-        .map_err(|_| ProcessError::Capacity)
+        });
+    updated.map_err(|_| ProcessError::Capacity)
 }

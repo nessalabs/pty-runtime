@@ -53,7 +53,7 @@ pub(super) struct Histogram {
     maximum_us: AtomicU64,
 }
 fn increment(counter: &AtomicU64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_add(1))
     });
 }

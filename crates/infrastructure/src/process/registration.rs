@@ -15,7 +15,7 @@ pub(super) fn start(
     shared: &Shared,
 ) -> Result<OwnedProcess, ProcessError> {
     let super::spawner::Prepared { request, mut child } = prepared;
-    let Some((guardian, host)) = child.take() else {
+    let Some((guardian, host, slave)) = child.take() else {
         return Err(ProcessError::Internal);
     };
     // Guardian's RAII cleanup also covers every registration failure below.
@@ -34,6 +34,7 @@ pub(super) fn start(
         cancel_timing: Mutex::new(None),
         closed: AtomicBool::new(false),
         stop_reader: AtomicBool::new(false),
+        workload_exited: AtomicBool::new(false),
         reader_done: AtomicBool::new(false),
         reader_failed: AtomicBool::new(false),
         wake: Mutex::new(Some(shared.wake.clone())),
@@ -41,10 +42,21 @@ pub(super) fn start(
     });
     let reader_session = session.clone();
     let events = request.events.clone();
+    #[cfg(test)]
+    let hold = shared.reader_hold.clone();
     let reader = std::thread::Builder::new()
         .name("pty-reader".into())
         .stack_size(request.limits.reader_stack_bytes)
-        .spawn(move || io::reader(reader_host, reader_rx, reader_session, events))
+        .spawn(move || {
+            // The slave is already captured by this thread. A test can park
+            // here, after that ownership and before any read, and the
+            // descriptor stays open across session-leader teardown.
+            #[cfg(test)]
+            if let Some(hold) = &hold {
+                hold();
+            }
+            io::reader(reader_host, reader_rx, Some(slave), reader_session, events)
+        })
         .map_err(super::creation_error)?;
     let mut process = OwnedProcess::new(
         guardian,

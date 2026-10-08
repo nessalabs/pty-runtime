@@ -729,6 +729,54 @@ What changed:
   and `session.rs` (355) were over the line without the gate noticing.
 
 
+## Unread output discarded at macOS session teardown
+
+The G1 "ordered input/output" row above did not cover this. A child that
+prints one assignment and exits can have those bytes thrown away by macOS
+when the session leader exits, if the parent has already closed its copy of
+the child terminal endpoint. The reader then sees end-of-file and zero bytes.
+`tests/raw_child_contract.rs::empty_environment_is_exact_at_uninstrumented_exec_boundary`
+reported that as the child having an empty environment. On CI run
+35178796470 (commit `6807821`, macOS 15) that test failed after about 590 ms
+with "0 bytes, 0 assignment(s)"; the same binary's two earlier passes of the
+test in that job took about 15 ms.
+
+The parent now keeps a child endpoint open from allocation until the reader
+has taken the queued bytes and the workload has exited. Recording that exit
+wakes the reader, so a reader already blocked in `poll` is not left waiting
+out the teardown. The endpoint is closed only after a non-blocking read finds
+nothing waiting. A byte-count query on the master is not that test: on this
+Linux it returned zero while thousands of bytes were still readable, and
+closing on that false empty would let macOS discard the rest. A descendant
+that still holds its own endpoint is not flushed, because closing ours is
+not the last reference while theirs remains.
+
+The first macOS run of the regression test failed for a different reason
+than a dropped endpoint. GitHub Actions run 37741604610 (commit `356330b`,
+macos-15) reported session leader 9696 still alive after 5 seconds. That
+revision parked the reader and waited for the leader to exit, after asking
+the workload to write 9000 bytes. macOS stops a terminal write once the queue
+is full — the historical ceiling is 1024 bytes — so the workload never
+finished and the leader, which waits for the workload, could not exit. Waiting
+for the leader before reading is the wrong observation even when the write
+fits. This runtime already drains before it waits for helper exit, because
+macOS session exit can itself wait for pending terminal output. The test was
+inverting that order, and it treated a failed `proc_pidinfo` as proof the
+leader had exited.
+
+`retained_slave_is_open_after_the_workload_exits_and_the_queued_bytes_arrive`
+writes 64 `A` bytes plus `END` and reads at most 16 bytes at a time. The
+lengths are asserted: more than one read, and under the 1024-byte ceiling. It
+waits until the workload has exited, checks that the parent's child endpoint
+is still open, and only then lets the reader run. It does not wait for the
+session leader. Closing after the first read would still drop the unread tail
+on macOS once the workload's own descriptors are gone. Linux does not discard
+that tail, so a green byte assertion on Linux does not prove it. The
+descriptor check is what fails on Linux if the parent drops the endpoint
+before the read. macOS CI run 37745584612 (commit `f405349`, macos-15) passed
+the gate, which runs this test. That is one green run of this order. A close
+after the first read would have failed the byte assertion on that runner.
+
 ## Where to look next
 
 | Want | Go here |

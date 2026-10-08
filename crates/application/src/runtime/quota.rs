@@ -18,11 +18,10 @@ impl Quota {
         }
     }
     pub fn acquire(&self, bytes: usize) -> bool {
-        self.used
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |used| {
-                used.checked_add(bytes).filter(|next| *next <= self.limit)
-            })
-            .is_ok()
+        crate::atomic::try_update_usize(&self.used, Ordering::AcqRel, Ordering::Acquire, |used| {
+            used.checked_add(bytes).filter(|next| *next <= self.limit)
+        })
+        .is_ok()
     }
     pub fn release(&self, bytes: usize) {
         self.used.fetch_sub(bytes, Ordering::AcqRel);
@@ -59,5 +58,23 @@ impl Drop for InputLease {
     fn drop(&mut self) {
         self.bytes.release(self.count);
         self.slots.release(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn acquire_stops_at_the_limit_and_leaves_usage_there() {
+        let quota = Quota::new(4);
+        assert!(quota.acquire(3));
+        assert!(!quota.acquire(2));
+        assert_eq!(quota.usage().used, 3);
+        assert!(quota.acquire(1));
+        assert_eq!(quota.usage().used, 4);
+        assert!(!quota.acquire(1));
+        quota.release(4);
+        assert_eq!(quota.usage().used, 0);
     }
 }
