@@ -771,9 +771,11 @@ waits until the workload has exited, checks that the parent's child endpoint
 is still open, and only then lets the reader run. It does not wait for the
 session leader. Closing after the first read would still drop the unread tail
 on macOS once the workload's own descriptors are gone. Linux does not discard
-that tail, so a green byte assertion here does not prove it. The descriptor
-check is what fails on Linux if the parent drops the endpoint before the
-read. macOS has not been re-run with this order.
+that tail, so a green byte assertion on Linux does not prove it. The
+descriptor check is what fails on Linux if the parent drops the endpoint
+before the read. macOS CI run 37745584612 (commit `f405349`, macos-15) passed
+the gate, which runs this test. That is one green run of this order. A close
+after the first read would have failed the byte assertion on that runner.
 
 ## Where to look next
 
