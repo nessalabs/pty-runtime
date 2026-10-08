@@ -1,6 +1,6 @@
 # pty-runtime
 
-Private Rust workspace implementing bounded Unix PTY sessions and replaceable
+Rust workspace implementing bounded Unix PTY sessions and replaceable
 headless terminal projection. The initial reader strategy is one dedicated
 reader per live PTY. Implementation and release qualification are in progress;
 standalone experiment results are not evidence of a finished session runtime.

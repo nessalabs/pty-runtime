@@ -11,7 +11,7 @@ nothing is closed silently, and a finding declined is stated as declined, with
 its reason. The ledger stays a record of the runtime rather than of process
 work: its whole value is that every line in it can be trusted to be about what
 the code does.
-User authorization permits commits and pushes to main in this private repository.
+User authorization permits commits and pushes to main in this repository.
 Do not turn experiment fixtures into claims of implemented runtime behavior.
 
 ## Pull requests
