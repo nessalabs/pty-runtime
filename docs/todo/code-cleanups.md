@@ -209,9 +209,30 @@ case it most needed to name**, and sent this investigation after a lost-output
 theory. The assertion is now split: nothing delivered is reported as an empty
 environment, and an unterminated final line is reported as a short read.
 
-**Still open:** why the variable intermittently fails to reach the child. The
-next occurrence will say which of the two it was, which is what six failures and
-then a seventh could not.
+**Resolved:** the variable was reaching the child. The zero-byte end-of-file
+was the lost buffer. The delay experiment slept *before* the first `poll`, and
+a fresh poll still saw the bytes because the session leader was alive — macOS
+keeps the controlling terminal until that leader exits. The loss is `read`
+happening only after the leader is torn down. `ttyclose` flushes unread output
+when the last reference to the child endpoint closes, and the parent was
+dropping its reference at spawn, so the leader's death was that last close
+whenever the reader had not already taken the queue. CI run 35178796470
+(commit `6807821`, macOS) failed this way after about 590 ms, reporting
+end-of-file and 0 bytes; the two earlier passes of the same test in that job
+took about 15 ms. An `env -0` with an actually empty environment would have
+been as fast as a success.
+
+The parent now keeps that endpoint until the workload has exited and a
+non-blocking read finds nothing left to take, and recording the exit wakes
+the reader. The close does not trust a byte-count ioctl: on Linux that
+query returned zero while a later read still returned thousands of bytes.
+A descendant that still holds its own endpoint is unaffected: closing ours
+is not the last reference. `retained_slave_keeps_output_written_before_the_session_leader_exits`
+parks the reader until the leader is gone and requires both the descriptor
+and a payload larger than one read to still be there. Linux does not discard
+the buffer, so the descriptor check is what fails there if the endpoint is
+dropped early. The oversized payload is what fails on macOS if the endpoint
+is closed after the first short read.
 
 ## Raw-child flake: diagnosable
 
@@ -248,11 +269,10 @@ binaries as `cargo test --test process_contract` from the workspace root
 `pty-runtime-infrastructure` and was never run at all. Cargo said so in the log.
 It looked exactly like a clean reproduction.
 
-**Still open:** the mechanism, and therefore the flakiness itself. The
-contention timeouts are neither widened nor explained. What has changed is that
-the next failure will name which of the three claims broke rather than printing
-nothing, which is what made the original six undiagnosable — so the next
-occurrence should be worth more than all six previous ones combined.
+**The mechanism is no longer open.** It is the lost buffer at session-leader
+teardown, recorded in the section above. The contention timeouts were a
+separate question and are not what failed this test: the failing run reported
+end-of-file, not a timeout.
 
 ## The stalled-sink outcome was reported twice: fixed
 

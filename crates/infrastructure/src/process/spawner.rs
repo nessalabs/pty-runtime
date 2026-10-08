@@ -4,6 +4,8 @@ use pty_runtime_domain::{
     process::{CommandSpec, ProcessError, ProcessLimits},
     terminal::TerminalSize,
 };
+#[cfg(test)]
+use std::os::fd::AsRawFd;
 use std::{
     fs::File,
     io::Write,
@@ -33,15 +35,15 @@ pub(super) enum Message {
     Launch(Box<Request>),
     Shutdown,
 }
-pub(super) struct PendingChild(pub Option<(Guardian, File)>);
+pub(super) struct PendingChild(pub Option<(Guardian, File, File)>);
 impl PendingChild {
-    pub fn take(&mut self) -> Option<(Guardian, File)> {
+    pub fn take(&mut self) -> Option<(Guardian, File, File)> {
         self.0.take()
     }
 }
 impl Drop for PendingChild {
     fn drop(&mut self) {
-        if let Some((child, host)) = &mut self.0 {
+        if let Some((child, host, _slave)) = &mut self.0 {
             child.cleanup(host);
         }
     }
@@ -57,6 +59,12 @@ pub(super) struct Options {
     pub hook: Option<Arc<dyn Fn() -> Result<(), ProcessError> + Send + Sync>>,
     #[cfg(test)]
     pub after_launch: Option<Arc<dyn Fn(u32) + Send + Sync>>,
+    /// Session-leader pid and the still-open child endpoint, on the spawner
+    /// thread, before that endpoint is moved to the reader.
+    #[cfg(test)]
+    pub note_sentinel: Option<Arc<dyn Fn(u32, i32) + Send + Sync>>,
+    #[cfg(test)]
+    pub reader_hold: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 pub(super) fn run(
     shared: Arc<Shared>,
@@ -93,6 +101,10 @@ pub(super) fn run(
             request.limits.guardian_grace(),
         ) {
             Ok(child) => {
+                #[cfg(test)]
+                if let Some(hook) = &options.note_sentinel {
+                    hook(child.0.sentinel_id(), child.2.as_raw_fd());
+                }
                 #[cfg(test)]
                 if let Some(hook) = &options.after_launch {
                     hook(child.0.id());

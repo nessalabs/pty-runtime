@@ -53,6 +53,7 @@ pub(super) struct Session {
     pub cancel_timing: Mutex<Option<pty_runtime_application::diagnostics::Timing>>,
     pub closed: AtomicBool,
     pub stop_reader: AtomicBool,
+    pub workload_exited: AtomicBool,
     pub reader_done: AtomicBool,
     pub reader_failed: AtomicBool,
     pub wake: Mutex<Option<Arc<UnixStream>>>,
@@ -68,6 +69,16 @@ impl Session {
     }
     pub fn stop(&self) {
         self.stop_reader.store(true, Ordering::Release);
+        self.poke_reader();
+    }
+    /// The workload has been reaped. Wake a reader blocked in `poll` without
+    /// asking it to stop: output queued before this exit still has to be read,
+    /// and the retained child endpoint stays open until that queue is empty.
+    pub fn note_workload_exit(&self) {
+        self.workload_exited.store(true, Ordering::Release);
+        self.poke_reader();
+    }
+    fn poke_reader(&self) {
         if let Ok(wake) = self.reader_wake.lock() {
             if let Some(wake) = wake.as_ref() {
                 let _ = (&*wake).write(&[1]);

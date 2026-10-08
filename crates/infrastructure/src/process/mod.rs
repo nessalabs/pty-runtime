@@ -130,5 +130,11 @@ mod error_tests {
     }
 }
 #[cfg(test)]
+#[path = "../../tests/fixtures/process_events.rs"]
+mod process_test_support;
+#[cfg(test)]
+#[path = "../../tests/fixtures/process_retained_endpoint.rs"]
+mod retained_endpoint_tests;
+#[cfg(test)]
 #[path = "../../tests/fixtures/process_spawn_barrier.rs"]
 mod spawn_barrier_tests;

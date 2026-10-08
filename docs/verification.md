@@ -729,6 +729,36 @@ What changed:
   and `session.rs` (355) were over the line without the gate noticing.
 
 
+## Unread output discarded at macOS session teardown
+
+The G1 "ordered input/output" row above did not cover this. A child that
+prints one assignment and exits can have those bytes thrown away by macOS
+when the session leader exits, if the parent has already closed its copy of
+the child terminal endpoint. The reader then sees end-of-file and zero bytes.
+`tests/raw_child_contract.rs::empty_environment_is_exact_at_uninstrumented_exec_boundary`
+reported that as the child having an empty environment. On CI run
+35178796470 (commit `6807821`, macOS 15) that test failed after about 590 ms
+with "0 bytes, 0 assignment(s)"; the same binary's two earlier passes of the
+test in that job took about 15 ms.
+
+The parent now keeps a child endpoint open from allocation until the reader
+has taken the queued bytes and the workload has exited. Recording that exit
+wakes the reader, so a reader already blocked in `poll` is not left waiting
+out the teardown. The endpoint is closed only after a non-blocking read finds
+nothing waiting. A byte-count query on the master is not that test: on this
+Linux it returned zero while thousands of bytes were still readable, and
+closing on that false empty would let macOS discard the rest. A descendant
+that still holds its own endpoint is not flushed, because closing ours is
+not the last reference while theirs remains.
+
+What has been run for this fix is Linux only. The passing lines are in the
+pull request that introduced the change, with the revision they were run
+against. Linux does not discard the buffer, so those passes do not prove the
+macOS race is closed. The descriptor half of
+`retained_slave_keeps_output_written_before_the_session_leader_exits` does
+fail on Linux if the parent drops the endpoint early; that is the lock this
+platform can actually trip. macOS has not been re-run here.
+
 ## Where to look next
 
 | Want | Go here |

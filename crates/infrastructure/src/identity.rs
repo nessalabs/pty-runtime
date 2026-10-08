@@ -20,9 +20,11 @@ pub fn next_owner_identity() -> Result<u64, ProcessError> {
         })
         .as_ref()
         .map_err(|error| *error)?;
-    counter
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
-            old.checked_add(1)
-        })
-        .map_err(|_| ProcessError::Capacity)
+    // Rust 1.85 has `fetch_update` only. Current stable renamed it to
+    // `try_update` and denies the old name under `-D warnings`.
+    #[allow(deprecated)]
+    let updated = counter.fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
+        old.checked_add(1)
+    });
+    updated.map_err(|_| ProcessError::Capacity)
 }

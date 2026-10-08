@@ -78,11 +78,15 @@ pub(super) struct Counters {
     readers: AtomicU64,
     reader_scratch: AtomicU64,
 }
+// Rust 1.85 has `fetch_update` only. Current stable renamed it to
+// `try_update` and denies the old name under `-D warnings`.
+#[allow(deprecated)]
 fn add(counter: &AtomicU64, count: u64) {
     let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_add(count))
     });
 }
+#[allow(deprecated)]
 fn subtract(counter: &AtomicU64, count: u64) {
     let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_sub(count))

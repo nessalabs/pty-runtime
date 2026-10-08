@@ -29,6 +29,11 @@ pub(super) struct Shared {
     pub active: AtomicUsize,
     pub max: usize,
     pub wake: Arc<UnixStream>,
+    /// Test barrier in front of the dedicated reader. The child endpoint is
+    /// already owned by that thread before this runs, so holding here keeps
+    /// the descriptor open without reading.
+    #[cfg(test)]
+    pub reader_hold: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 /// Unix process owner with a shared host supervisor/spawner and dedicated PTY readers.
 /// Each admitted PTY additionally owns two fresh helper processes and bounded
@@ -70,17 +75,16 @@ impl UnixProcessBackend {
         max_processes: usize,
         image: PathBuf,
     ) -> Result<Self, ProcessError> {
-        Self::build(
-            allowed_roots,
-            max_processes,
-            spawner::Options {
-                bundled: Some(image),
-                #[cfg(test)]
-                hook: None,
-                #[cfg(test)]
-                after_launch: None,
-            },
-        )
+        #[cfg(not(test))]
+        let options = spawner::Options {
+            bundled: Some(image),
+        };
+        #[cfg(test)]
+        let options = spawner::Options {
+            bundled: Some(image),
+            ..spawner::Options::default()
+        };
+        Self::build(allowed_roots, max_processes, options)
     }
     pub(super) fn build(
         allowed_roots: Vec<PathBuf>,
@@ -94,6 +98,8 @@ impl UnixProcessBackend {
         let roots = spawn::roots(&allowed_roots)?;
         let image = super::image::HelperImage::new(options.bundled.as_deref())?;
         let (wake_tx, wake_rx) = pair()?;
+        #[cfg(test)]
+        let reader_hold = options.reader_hold.clone();
         let shared = Arc::new(Shared {
             image,
             shutdown: AtomicBool::new(false),
@@ -102,6 +108,8 @@ impl UnixProcessBackend {
             active: AtomicUsize::new(0),
             max: max_processes,
             wake: Arc::new(wake_tx),
+            #[cfg(test)]
+            reader_hold,
         });
         let (tx, rx) = mpsc::sync_channel(max_processes + 1);
         let (ready_tx, ready_rx) = mpsc::sync_channel(max_processes);
@@ -163,12 +171,16 @@ impl IProcessBackend for UnixProcessBackend {
         if self.shared.shutdown.load(Ordering::Acquire) {
             return Err(ProcessError::Closed);
         }
-        self.shared
-            .active
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
-                (count < self.shared.max).then_some(count + 1)
-            })
-            .map_err(|_| ProcessError::Capacity)?;
+        // Rust 1.85 has `fetch_update` only. Current stable renamed it to
+        // `try_update` and denies the old name under `-D warnings`.
+        #[allow(deprecated)]
+        let admitted =
+            self.shared
+                .active
+                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+                    (count < self.shared.max).then_some(count + 1)
+                });
+        admitted.map_err(|_| ProcessError::Capacity)?;
         let (reply, result) = mpsc::sync_channel::<Result<Arc<Session>, ProcessError>>(1);
         let request = Request {
             command: command.clone(),

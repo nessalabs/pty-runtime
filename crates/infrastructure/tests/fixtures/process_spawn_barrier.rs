@@ -2,9 +2,7 @@
 // This file is included as a unit-test module; integration compilation is disabled
 // with the feature-independent include flag below.
 #![cfg(test)]
-use super::{backend::UnixProcessBackend, spawner};
-#[path = "process_events.rs"]
-mod support;
+use super::{backend::UnixProcessBackend, process_test_support::*, spawner};
 use pty_runtime_application::process::IProcessBackend;
 use pty_runtime_domain::{
     SessionLifetime,
@@ -17,7 +15,6 @@ use std::sync::{
     mpsc,
 };
 use std::time::{Duration, Instant};
-use support::*;
 fn blocked_owner(
     fail: bool,
 ) -> (
@@ -54,9 +51,9 @@ fn blocked_owner(
                 vec![std::env::temp_dir()],
                 3,
                 spawner::Options {
-                    bundled: None,
                     hook: Some(hook),
                     after_launch: Some(after_launch),
+                    ..spawner::Options::default()
                 },
             )
             .unwrap(),

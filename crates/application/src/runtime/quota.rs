@@ -18,11 +18,15 @@ impl Quota {
         }
     }
     pub fn acquire(&self, bytes: usize) -> bool {
-        self.used
+        // Rust 1.85 has `fetch_update` only. Current stable renamed it to
+        // `try_update` and denies the old name under `-D warnings`.
+        #[allow(deprecated)]
+        let updated = self
+            .used
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |used| {
                 used.checked_add(bytes).filter(|next| *next <= self.limit)
-            })
-            .is_ok()
+            });
+        updated.is_ok()
     }
     pub fn release(&self, bytes: usize) {
         self.used.fetch_sub(bytes, Ordering::AcqRel);

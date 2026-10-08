@@ -232,16 +232,16 @@ fn empty_environment_is_exact_at_uninstrumented_exec_boundary() {
     // being absent. Six failures under contention were undiagnosable for that
     // reason, one of them in CI on a documentation-only pull request.
     //
-    // 1. The child saw an environment at all. Nothing is *not* a short read:
-    //    `env` prints nothing and exits 0 when the environment is empty, so
-    //    zero bytes is a complete and correct report of an empty environment -
-    //    which is this test's failure, not its instrument's. Reporting it as a
-    //    truncated read sent the seventh investigation of this test after a
-    //    lost-output theory for hours; the two are told apart here instead.
+    // 1. The child saw an environment at all. `env` prints nothing and exits 0
+    //    when its environment is empty, so zero bytes plus end-of-file is what
+    //    an empty environment looks like. It is also what a discarded PTY
+    //    buffer looks like. The parent keeps a child endpoint open until this
+    //    read has taken the queued bytes, so session-leader teardown can no
+    //    longer discard them and arrive here looking like an empty environment.
     assert!(
         !output.is_empty(),
         "the child observed an empty environment, so the expected variable never \
-         reached it - delivery was complete and there was nothing to deliver: {}",
+         reached it: {}",
         redacted_environment(&output)
     );
     // 2. Delivery was complete. `env -0` terminates every record with NUL, so

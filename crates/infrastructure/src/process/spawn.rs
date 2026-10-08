@@ -21,16 +21,18 @@ pub(super) fn launch(
     roots: &[LaunchRoot],
     image: &super::image::HelperImage,
     grace: Duration,
-) -> Result<(super::guardian::Guardian, File), ProcessError> {
+) -> Result<(super::guardian::Guardian, File, File), ProcessError> {
     let cwd = spec.cwd().canonicalize().map_err(error)?;
     let directory = open_directory(&cwd, roots)?;
     let (mut host, child) = super::endpoints::open(size)?;
     let cleanup_host = host.try_clone().map_err(error)?;
-    let generation = NEXT_GENERATION
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            value.checked_add(1)
-        })
-        .map_err(|_| ProcessError::Capacity)?;
+    // Rust 1.85 has `fetch_update` only. Current stable renamed it to
+    // `try_update` and denies the old name under `-D warnings`.
+    #[allow(deprecated)]
+    let generation = NEXT_GENERATION.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+        value.checked_add(1)
+    });
+    let generation = generation.map_err(|_| ProcessError::Capacity)?;
     let (owner_s, child_s) = UnixStream::pair().map_err(error)?;
     let (owner_g, child_g) = UnixStream::pair().map_err(error)?;
     let channels = [
@@ -90,13 +92,16 @@ pub(super) fn launch(
     let sentinel = command.spawn().map_err(super::creation_error)?;
     // Parent copies of child channel endpoints would suppress EOF during failed
     // admission. Close them before constructing the protocol cleanup owner.
+    // The child PTY endpoint stays open. macOS flushes unread program output
+    // in `ttyclose` when the last reference to that endpoint goes away, and
+    // session-leader teardown is that last reference if the parent drops it
+    // here. The reader closes it once the bytes have been taken.
     drop(copies);
     drop(child_s);
     drop(child_g);
-    drop(child);
     let mut guardian = super::guardian::Guardian::new(sentinel, channels, generation, cleanup_host);
     guardian.admit(&mut host)?;
-    Ok((guardian, host))
+    Ok((guardian, host, child))
 }
 fn copy_fd(fd: i32) -> Result<OwnedFd, ProcessError> {
     // SAFETY: fd is borrowed live; fcntl returns a new exclusively owned
