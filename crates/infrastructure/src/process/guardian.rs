@@ -71,6 +71,14 @@ impl Guardian {
     pub fn id(&self) -> u32 {
         self.started.map_or(0, |values| values[0] as u32)
     }
+    /// Process id of the session leader, which is the direct child of this
+    /// owner. Distinct from `id`, which is the workload id reported after the
+    /// helper has forked. Tests use it to watch that leader exit without
+    /// reaping it; production call sites do not.
+    #[cfg(test)]
+    pub fn sentinel_id(&self) -> u32 {
+        self.sentinel.id()
+    }
     pub fn admit(&mut self, host: &mut File) -> Result<(), ProcessError> {
         let deadline = Instant::now() + Duration::from_secs(5);
         let result = loop {

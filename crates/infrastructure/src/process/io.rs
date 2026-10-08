@@ -29,15 +29,26 @@ impl ReaderScratch {
 }
 pub(super) fn reader(
     mut host: File,
-    wake: UnixStream,
+    mut wake: UnixStream,
+    mut retained: Option<File>,
     session: Arc<Session>,
     events: Arc<dyn IProcessEvents>,
 ) {
     let mut scratch = ReaderScratch::new(session.limits.read_chunk, session.diagnostics.as_ref());
     let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        read_loop(&mut host, &wake, &session, &*events, &mut scratch.bytes)
+        read_loop(
+            &mut host,
+            &mut wake,
+            &mut retained,
+            &session,
+            &*events,
+            &mut scratch.bytes,
+        )
     }))
     .unwrap_or(DrainOutcome::Failed(ProcessError::Internal));
+    // Stop, failure, and panic must all release the child endpoint. Leaving it
+    // open would keep the session from reaching a real end of file.
+    drop(retained);
     if matches!(outcome, DrainOutcome::Failed(_)) {
         session.reader_failed.store(true, Ordering::Release);
         session.notify();
@@ -49,7 +60,8 @@ pub(super) fn reader(
 }
 fn read_loop(
     host: &mut File,
-    wake: &UnixStream,
+    wake: &mut UnixStream,
+    retained: &mut Option<File>,
     session: &Session,
     events: &dyn IProcessEvents,
     scratch: &mut [u8],
@@ -77,46 +89,87 @@ fn read_loop(
             }
             return DrainOutcome::Failed(ProcessError::Io);
         }
+        // The wake socket is level-triggered. Leaving the byte in it makes
+        // every later poll return immediately.
+        drain_wake(wake);
         if session.stop_reader.load(Ordering::Acquire) {
             return DrainOutcome::Truncated;
         }
-        let count = match host.read(scratch) {
-            Ok(0) => return DrainOutcome::Eof,
-            Ok(count) => count,
-            Err(e)
-                if e.kind() == std::io::ErrorKind::Interrupted
-                    || e.kind() == std::io::ErrorKind::WouldBlock =>
-            {
-                continue;
-            }
-            // Linux reports EIO when all child endpoint references close.
-            Err(e) if e.raw_os_error() == Some(libc::EIO) => return DrainOutcome::Eof,
-            Err(e) => return DrainOutcome::Failed(error(e)),
-        };
-        let read_completed = Instant::now();
-        if let Some(diagnostics) = &session.diagnostics {
-            diagnostics.count(
-                pty_runtime_application::diagnostics::CounterKind::BytesRead,
-                count as u64,
-            );
-        }
+        // Read until the master blocks. One read is not "the queue is empty":
+        // on this Linux, FIONREAD returned 0 with 8000 bytes still queued, and
+        // the next read returned them. Closing the child endpoint on that
+        // false empty is what lets macOS flush the tail.
         loop {
             if session.stop_reader.load(Ordering::Acquire) {
                 return DrainOutcome::Truncated;
             }
-            match events.output_observed(&scratch[..count], Some(read_completed)) {
-                OutputAcceptance::Accepted => break,
-                OutputAcceptance::Closed => return DrainOutcome::Truncated,
-                OutputAcceptance::Backpressure => {
-                    if let Some(diagnostics) = &session.diagnostics {
-                        diagnostics.count(
-                            pty_runtime_application::diagnostics::CounterKind::OutputBackpressure,
-                            1,
-                        );
+            let count = match host.read(scratch) {
+                Ok(0) => {
+                    if retained.is_none() {
+                        return DrainOutcome::Eof;
                     }
-                    events.wait_for_capacity(Instant::now() + Duration::from_millis(20))
+                    break;
+                }
+                Ok(count) => count,
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    // The non-blocking read is what says nothing is waiting.
+                    // Close only then, and only after the workload has exited,
+                    // so a descendant that still holds the endpoint is not the
+                    // victim of an early last close. The next read observes
+                    // the real end, or that descendant's later bytes.
+                    if session.workload_exited.load(Ordering::Acquire) && retained.take().is_some()
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                // Linux reports EIO once every child endpoint has closed.
+                // While this parent still holds one, that is not the end.
+                Err(error) if error.raw_os_error() == Some(libc::EIO) => {
+                    if retained.is_none() {
+                        return DrainOutcome::Eof;
+                    }
+                    break;
+                }
+                Err(failure) => return DrainOutcome::Failed(error(failure)),
+            };
+            let read_completed = Instant::now();
+            if let Some(diagnostics) = &session.diagnostics {
+                diagnostics.count(
+                    pty_runtime_application::diagnostics::CounterKind::BytesRead,
+                    count as u64,
+                );
+            }
+            loop {
+                if session.stop_reader.load(Ordering::Acquire) {
+                    return DrainOutcome::Truncated;
+                }
+                match events.output_observed(&scratch[..count], Some(read_completed)) {
+                    OutputAcceptance::Accepted => break,
+                    OutputAcceptance::Closed => return DrainOutcome::Truncated,
+                    OutputAcceptance::Backpressure => {
+                        if let Some(diagnostics) = &session.diagnostics {
+                            diagnostics.count(
+                                pty_runtime_application::diagnostics::CounterKind::OutputBackpressure,
+                                1,
+                            );
+                        }
+                        events.wait_for_capacity(Instant::now() + Duration::from_millis(20))
+                    }
                 }
             }
+        }
+    }
+}
+fn drain_wake(wake: &mut UnixStream) {
+    let mut buf = [0u8; 64];
+    loop {
+        match wake.read(&mut buf) {
+            Ok(0) => break,
+            Ok(_) => continue,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => break,
         }
     }
 }

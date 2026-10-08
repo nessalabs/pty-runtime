@@ -79,12 +79,12 @@ pub(super) struct Counters {
     reader_scratch: AtomicU64,
 }
 fn add(counter: &AtomicU64, count: u64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_add(count))
     });
 }
 fn subtract(counter: &AtomicU64, count: u64) {
-    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+    let _ = crate::atomic::try_update_u64(counter, Ordering::Relaxed, Ordering::Relaxed, |value| {
         Some(value.saturating_sub(count))
     });
 }
@@ -138,5 +138,21 @@ impl Counters {
             reader_scratch_allocated_bytes: self.reader_scratch.load(Ordering::Relaxed),
             counters: std::array::from_fn(|index| self.values[index].load(Ordering::Relaxed)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_and_subtract_saturate_instead_of_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        add(&counter, 5);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        subtract(&counter, 3);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX - 3);
+        subtract(&counter, u64::MAX);
+        assert_eq!(counter.load(Ordering::Relaxed), 0);
     }
 }
