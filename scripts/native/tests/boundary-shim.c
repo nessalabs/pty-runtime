@@ -47,6 +47,12 @@ GhosttyResult test_ghostty_terminal_compress(GhosttyTerminal t, GhosttyTerminalC
   if (matches("compress-unsupported")) {
     *out = GHOSTTY_TERMINAL_COMPRESSION_RESULT_UNSUPPORTED; return GHOSTTY_SUCCESS;
   }
+  if (matches("compress-pending")) {
+    *out = GHOSTTY_TERMINAL_COMPRESSION_RESULT_PENDING; return GHOSTTY_SUCCESS;
+  }
+  if (matches("compress-complete")) {
+    *out = GHOSTTY_TERMINAL_COMPRESSION_RESULT_COMPLETE; return GHOSTTY_SUCCESS;
+  }
   return ghostty_terminal_compress(t, m, out);
 }
 GhosttyResult test_ghostty_terminal_resize(GhosttyTerminal t, uint16_t c, uint16_t r,
@@ -86,6 +92,10 @@ GhosttyResult test_ghostty_snapshot_decoder_get(GhosttySnapshotDecoder d,
     GhosttySnapshotDecoderData k, void *out) {
   if ((int)k == fault_key && matches("decoder-get")) return GHOSTTY_INVALID_VALUE;
   return ghostty_snapshot_decoder_get(d, k, out);
+}
+GhosttyResult test_ghostty_snapshot_decoder_ready(GhosttySnapshotDecoder d, GhosttyTerminal *out) {
+  if (matches("decoder-ready-budget")) return GHOSTTY_OUT_OF_MEMORY;
+  return ghostty_snapshot_decoder_ready(d, out);
 }
 GhosttyResult test_ghostty_snapshot_decoder_next(GhosttySnapshotDecoder d) {
   if (matches("decoder-next")) return GHOSTTY_INVALID_VALUE;

@@ -877,6 +877,40 @@ Neither specialist approval nor the scoped performance result waives the 100%
 target. The two implementation PRs remain draft; no G3/G4 or release
 qualification is claimed.
 
+## Coverage follow-up and current readiness
+
+The follow-up adds fifty meaningful Rust boundary tests and expands the own-C
+contract coverage without lowering any threshold or excluding production error
+paths. Tests cover public overflow/refusal rollback, transfer boundaries,
+projection slot reuse, real filesystem/socket contracts, helper CLI admission,
+and descriptor ownership. A separately benchmarked three-line scanner shortcut
+skips a redundant search only for Ground-state chunks without an escape byte.
+
+Final-source mechanical checks passed in 132.604 seconds with unchanged source
+manifest. Separate Clean Code/SOLID, adversarial, and DDD reviews found no scoped
+P1/P2 code findings. Two earlier P2 test-quality findings were fixed and
+independently re-reviewed. Detailed findings, source identities, rejected
+experiments, raw evidence locations and limitations are in
+[`reviews/coverage-closure.md`](reviews/coverage-closure.md) and its linked ledgers.
+
+Readiness is still blocked by both coverage and performance:
+
+- Strict workspace line/function/region coverage is 94.53% / 93.21% / 92.85%;
+  helper coverage is 32.21% / 56.88% / 32.85%. All test phases passed; both 100%
+  report thresholds failed. Tool totals include some test scaffolding. No target
+  was reduced. Actual helper termination prevents ordinary profile flushing;
+  continuous-profile experiments produced invalid derived counts and were rejected.
+- All four own-C bridge files reached 100% lines/functions/regions/branch sides,
+  using seven real terminal targets plus allocator and explicit boundary-fault
+  contracts. This does not qualify the Rust/helper/upstream-engine/platform scope.
+- The fixed final scanner-candidate comparison passed at one session (+0.21%)
+  but failed at sixteen (+20.60%, 360.339 → 434.551 ms; limit +10%). All twenty
+  records passed exact-byte and observed cleanup checks. Earlier failed cohorts
+  remain recorded; the microbenchmark gain does not establish the runtime cause.
+
+Both PRs remain draft and unmerged. Neither the 100% readiness target nor the
+full release workloads/soak have passed. No broader milestone is claimed.
+
 ## Where to look next
 
 | Want | Go here |

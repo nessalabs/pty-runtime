@@ -88,3 +88,7 @@ fn number(value: Option<OsString>) -> io::Result<u64> {
         .and_then(|value| value.to_str().and_then(|value| value.parse().ok()))
         .ok_or_else(|| io::ErrorKind::InvalidInput.into())
 }
+
+#[cfg(test)]
+#[path = "../tests/public_boundaries.rs"]
+mod public_boundary_tests;

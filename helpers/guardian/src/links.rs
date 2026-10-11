@@ -134,3 +134,7 @@ impl Links {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/links.rs"]
+mod tests;

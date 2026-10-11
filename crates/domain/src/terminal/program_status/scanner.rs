@@ -27,6 +27,9 @@ impl Scanner {
         mutations: &mut Vec<Mutation>,
         queries: &mut Vec<usize>,
     ) {
+        if self.plain_chunk(input) {
+            return;
+        }
         let mut offset = 0;
         while offset < input.len() {
             if matches!(self.mode, Mode::Ground) {

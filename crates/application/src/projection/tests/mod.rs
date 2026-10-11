@@ -30,3 +30,7 @@ mod program_status;
 mod program_status_terminal;
 
 mod program_status_boundaries;
+
+mod coverage_boundaries;
+
+mod construction_boundaries;

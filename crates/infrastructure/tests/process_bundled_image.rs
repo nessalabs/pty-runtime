@@ -46,6 +46,24 @@ fn bundled(path: &Path) -> Result<UnixProcessBackend, ProcessError> {
 }
 
 #[test]
+fn invalid_process_capacity_is_rejected_before_opening_bundled_image() {
+    let directory = Directory::new();
+    let missing = directory.path("missing-image");
+    for capacity in [0, 65_537, usize::MAX] {
+        assert!(matches!(
+            UnixProcessBackend::with_bundled_guardian(
+                vec![directory.0.clone()],
+                capacity,
+                missing.clone()
+            ),
+            Err(ProcessError::Capacity)
+        ));
+    }
+    assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 0);
+    assert!(matches!(bundled(&missing), Err(ProcessError::NotFound)));
+}
+
+#[test]
 fn bundled_exact_image_is_staged_before_source_disappears() {
     let directory = Directory::new();
     let source = directory.path("exact");
