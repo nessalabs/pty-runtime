@@ -149,3 +149,34 @@ exact byte, completion, stable-source, and zero-observed-descendant checks.
 All samples and the prior failures remain recorded; no replacement cohort was
 run. The scanner microbenchmark benefit does not explain this integrated failure.
 Both the coverage and performance readiness blockers therefore remain open.
+
+## Hosted MSRV finding and correction
+
+Hosted Rust 1.85 rejected a new test-only `&& let Some(...)` condition in
+`projection/tests/admission_rollback.rs` (E0658). This P2 compatibility issue
+was missed by the initial reviews. The [original failing job](https://github.com/nessalabs/pty-runtime/actions/runs/38178543250/job/114585999601)
+and local `/tmp/pty-coverage-msrv-failure.log` preserve the failure. The test fixture now uses two stable early
+continues, preserving the closed/pending/weak-upgrade evaluation order. No
+production source changed. Independent quality, adversarial and DDD reviewers
+re-reviewed the actual correction and marked the scoped finding resolved.
+
+The focused Rust 1.85 test and full locked workspace/all-targets/all-features
+matrix pass with unchanged sources (`work/coverage-closure/msrv-fix-focused.log`
+and `msrv-fix-matrix`). The corrected source digest is
+`8f137114df26f12d1d679f735d47c0c83a55c72f74c1f188c65ad6a8806b2018`.
+The previous performance comparison still fails for the unchanged production
+candidate; this test syntax correction is not grounds to retry that cohort.
+
+Post-correction validation is complete with unchanged source manifests:
+Rust 1.85 full matrix PASS (67.307 s), stable mechanical gate PASS (51.344 s),
+and strict coverage FAIL (122.943 s). The final artifacts are
+`work/coverage-closure/{msrv-fix-matrix,gate-msrv-final,coverage-msrv-final}`.
+Workspace totals are 9955/10531 lines, 1029/1104 functions, and 14603/15729
+regions (94.53% / 93.21% / 92.84%). Helper totals remain 476/1478 lines,
+62/109 functions, and 747/2274 regions (32.21% / 56.88% / 32.85%).
+Every test phase passed; only the two threshold reports failed. The earlier
+scanner-run region count remains historical, not silently replaced.
+Own-C production and its contract sources did not change in this syntax fix;
+the complete 100% component evidence remains applicable. Both strict coverage
+and the unchanged production candidate's sixteen-session performance remain
+readiness failures.

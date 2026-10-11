@@ -373,16 +373,18 @@ impl crate::scheduling::ICapacitySignal for CloseDriver {
         );
         let handles = self.handles.lock().unwrap().clone();
         for handle in handles {
-            if !handle.closed.load(Ordering::SeqCst)
-                && handle.pending.swap(false, Ordering::SeqCst)
-                && let Some(work) = handle.work.upgrade()
+            if handle.closed.load(Ordering::SeqCst) || !handle.pending.swap(false, Ordering::SeqCst)
             {
-                match work.run() {
-                    WorkSchedule::Finished => handle.close(),
-                    WorkSchedule::Dormant => (),
-                    WorkSchedule::After(_) => {
-                        panic!("closing an unused model must not need a timer")
-                    }
+                continue;
+            }
+            let Some(work) = handle.work.upgrade() else {
+                continue;
+            };
+            match work.run() {
+                WorkSchedule::Finished => handle.close(),
+                WorkSchedule::Dormant => (),
+                WorkSchedule::After(_) => {
+                    panic!("closing an unused model must not need a timer")
                 }
             }
         }

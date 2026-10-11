@@ -886,8 +886,10 @@ projection slot reuse, real filesystem/socket contracts, helper CLI admission,
 and descriptor ownership. A separately benchmarked three-line scanner shortcut
 skips a redundant search only for Ground-state chunks without an escape byte.
 
-Final-source mechanical checks passed in 132.604 seconds with unchanged source
-manifest. Separate Clean Code/SOLID, adversarial, and DDD reviews found no scoped
+Final-source mechanical checks passed in 51.344 seconds with unchanged source
+manifest. The full Rust 1.85 workspace test matrix also passed (67.307 seconds)
+after correcting a test-only let-chain rejected by hosted MSRV CI. Independent
+reviewers re-reviewed that compatibility fix. Separate Clean Code/SOLID, adversarial, and DDD reviews found no scoped
 P1/P2 code findings. Two earlier P2 test-quality findings were fixed and
 independently re-reviewed. Detailed findings, source identities, rejected
 experiments, raw evidence locations and limitations are in
@@ -895,7 +897,7 @@ experiments, raw evidence locations and limitations are in
 
 Readiness is still blocked by both coverage and performance:
 
-- Strict workspace line/function/region coverage is 94.53% / 93.21% / 92.85%;
+- Strict workspace line/function/region coverage is 94.53% / 93.21% / 92.84%;
   helper coverage is 32.21% / 56.88% / 32.85%. All test phases passed; both 100%
   report thresholds failed. Tool totals include some test scaffolding. No target
   was reduced. Actual helper termination prevents ordinary profile flushing;

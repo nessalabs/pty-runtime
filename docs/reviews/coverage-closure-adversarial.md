@@ -93,3 +93,19 @@ Independently verified `work/coverage-closure/gate-scanner/metadata.json` and `c
 | Helper | 476/1478 (32.2057%) | 62/109 (56.8807%) | 747/2274 (32.8496%) |
 
 Rust branch counts remain 0/0 (unmeasured). Aggregate/test-scaffolding caveats above still apply. **Final adversarial code disposition: PASS. Coverage readiness disposition: FAIL/BLOCKED.** No whole-project 100% claim or release qualification is approved. The parent is separately running native coverage and the preplanned performance cohort; neither can replace the failed Rust/helper threshold. No additional builds were run by this reviewer during validation.
+
+## Rust 1.85 compatibility P2 re-review
+
+Hosted MSRV testing found P2: the new CloseDriver test used a let-chain unsupported by the declared Rust 1.85 compiler (`admission_rollback.rs:378`). Inspected the retained hosted error in `/tmp/pty-coverage-msrv-failure.log`: rustc 1.85.0 rejects it with E0658. This compatibility blocker was missed in the preceding source review and was caught by the compiler matrix.
+
+Independently reviewed the replacement: an early continue for `closed || !pending.swap(false)` followed by `let Some(work) = upgrade() else { continue; }`. Short-circuit order is identical: closed handles do not clear pending; only open handles attempt the swap; only previously pending handles upgrade; only successful upgrades run work. There are no production changes or altered callback/lock lifetimes. `work/coverage-closure/msrv-fix-focused.log` records the focused rollback test passing with the corrected source (1 passed).
+
+**P2 code fix resolved; adversarial re-review PASS for this correction.** Full local/hosted MSRV and refreshed stable gate/coverage remain separate validation requirements. Earlier performance failure is not cleared by this test-syntax fix. No builds were run by this reviewer.
+
+## Final post-MSRV evidence validation
+
+Independently compared `msrv-fix-matrix`, `gate-msrv-final`, and `coverage-msrv-final` metadata under `work/coverage-closure`. All three source maps are identical, each reports unchanged sources, and each recorded file hash matches the current file. For an explicit reproducible identity, SHA-256 of the sorted compact JSON source-file hash map is `5b40f522d5b4281f409c02b1493a093b59bff16334a0ceb82de391411f30e50e`.
+
+MSRV matrix: **PASS**, 67.307 seconds. Mechanical gate: **PASS**, 51.344 seconds. Coverage: **FAIL**, 122.943 seconds; only the workspace/helper threshold-report phases failed, while all behavior phases passed. Final workspace counts are 9955/10531 lines, 1029/1104 functions, and 14603/15729 regions (92.8412% regions). Helper remains 476/1478 lines, 62/109 functions, and 747/2274 regions. Rust branches remain unmeasured.
+
+**Final adversarial code review: PASS; MSRV P2 resolved. Overall readiness remains BLOCKED by the unmet coverage target and previously reported performance failure.** A commit/push records this reviewed progress; it does not establish 100% coverage or release/readiness acceptance. No builds were run for this validation.

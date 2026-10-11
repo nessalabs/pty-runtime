@@ -85,3 +85,35 @@ already recorded in `coverage-closure-performance.md`.
 No source was changed in this review. Acceptance remains conditional on the
 independent adversarial review, final mechanical evidence, honest coverage
 measurement and the prospectively declared performance gate at the final source.
+
+## MSRV compatibility finding and independent correction review
+
+Correction: the preceding quality pass missed a P2 compatibility defect in the
+new `CloseDriver` fixture. Its `&& let Some(work) = ...` chain is unsupported by
+the declared Rust 1.85 toolchain. The hosted failure at
+`/tmp/pty-coverage-msrv-failure.log` reports E0658 at
+`admission_rollback.rs:378`; the library test build exits 101. A stable-toolchain
+pass did not establish minimum-supported-version compatibility.
+
+Reviewed the actual replacement at base commit
+`328c6967226ae0c084ce8702f13c88a0f5bf5e29`, current source digest
+`8f137114df26f12d1d679f735d47c0c83a55c72f74c1f188c65ad6a8806b2018`.
+The fixture now continues early when closed or when no wake was pending, then
+uses the Rust-1.85-supported `let Some(work) = ... else { continue; }` before
+running the work. Short-circuit evaluation is preserved: a closed handle never
+clears pending, an open handle clears pending once, and weak upgrade/run occurs
+only when that swap observed a pending wake. Work still runs outside the
+registry lock, with the same bounded driver turns and finish/idle handling.
+
+The change is local to test orchestration, adds no dependency or production
+visibility, and improves control-flow clarity without introducing an abstraction.
+The focused Rust 1.85 evidence at
+`work/coverage-closure/msrv-fix-focused.log` shows successful compilation and a
+passing backend rollback test. **The scoped P2 syntax defect is resolved on
+independent re-review.** The complete Rust 1.85 matrix and subsequent full gate
+remain separate checks; their outcomes are not inferred from this one test.
+
+No build or test was run by this reviewer. The three-line production scanner
+candidate is unchanged by this compatibility fix. Its recorded performance
+failure remains applicable; this test-only change supplies no basis for a new
+timing cohort or for upgrading readiness.
