@@ -913,6 +913,38 @@ Readiness is still blocked by both coverage and performance:
 Both PRs remain draft and unmerged. Neither the 100% readiness target nor the
 full release workloads/soak have passed. No broader milestone is claimed.
 
+### Additional hosted macOS EOF blocker
+
+Hosted CI on `a3e0fee` passed both Rust 1.85 and Linux gates and all PTY
+experiment jobs. One macOS gate passed; the other failed the existing concurrent
+producer test with `Truncated` instead of EOF after successful workload exit.
+A longer test-only drain allowance was investigated and rejected: an isolated
+single-callback diagnostic still truncated with two seconds available.
+
+An isolated trace then identified repeated zero-byte reads after workload exit
+while the reader retains its child endpoint. That path does not release the
+endpoint and loops until the drain deadline. A named public-boundary regression
+reproduces it with exact bytes and exit zero. The user extended the ownership exception, and the reviewed reader fix is now
+applied. It releases the retained child endpoint after an observed workload exit
+and confirms EOF through a further read; default drain deadlines are unchanged.
+The actual-source mechanical gate passes (124.216 s, unchanged manifest), as do
+independent quality, DDD and adversarial reviews. Tests preserve expired-deadline
+truncation and late descendant output alongside the failing-before/passing-after
+EOF regression. Rust 1.85 also passes (53.570 s). The fixed five-pair performance
+cohort passes the unchanged 10% limit at both session counts; earlier failed
+cohorts remain recorded, and no causal speedup is claimed. Hosted checks remain
+pending for the integrated commit. See
+[`the integration record`](reviews/coverage-closure.md#authorized-eof-integration).
+
+Strict coverage still fails (118.958 s; all test phases passed, both reports
+failed). Workspace export totals are 94.53% lines / 93.21% functions / 92.84%
+regions; helper totals remain 32.21% / 56.88% / 32.85%. Inconsistent saturated
+workspace counters mean these are reported totals with an instrumentation
+anomaly, not reliable evidence of coverage improvement or complete new-line
+coverage. Functional regression proof is independent. A bounded default-versus-atomic-counter diagnostic did not reproduce the anomaly
+and was inconclusive. Coverage integrity, the 100% target and full
+release/platform qualification remain open.
+
 ## Where to look next
 
 | Want | Go here |

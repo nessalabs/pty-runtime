@@ -180,3 +180,106 @@ Own-C production and its contract sources did not change in this syntax fix;
 the complete 100% component evidence remains applicable. Both strict coverage
 and the unchanged production candidate's sixteen-session performance remain
 readiness failures.
+
+## Hosted macOS EOF failure remains open
+
+After the MSRV correction, both hosted Rust 1.85 jobs, both Linux gates, all PTY
+experiment jobs and one macOS gate passed. The other [macOS gate](https://github.com/nessalabs/pty-runtime/actions/runs/38179155056/job/114587814005)
+failed `simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live`:
+exit was zero but drain was `Truncated`, while EOF was expected. The log is
+retained at `/tmp/pty-coverage-macos-failure.log`.
+
+A proposed fixture-only two-second producer drain allowance passed focused tests
+and `gate-drain-final`, but was rejected and reverted after an isolated delayed
+reader still truncated with that allowance. Its passing gate applies only to
+that rejected candidate and does not close the failure. Default limits and all
+original EOF/exact-byte assertions remain intact in the actual branch.
+
+The isolated trace shows workload exit, followed by repeated `Ok(0)` reads with
+`retained=true`, `exited=true`, and `stop=false`, until the exact drain deadline
+sets stop and reports truncation. This confirms a local runtime EOF-handling P2;
+the hosted failure is consistent with that mechanism but did not itself capture
+read outcomes. Raw evidence and the failing named public-boundary regression are
+under `work/coverage-closure/process-pressure-diagnostic`. A minimal correction
+is being verified in that isolated copy, not applied to the separately owned
+runtime implementation. Coverage, performance and this P2 keep both PRs draft.
+
+## Frozen EOF proposal verification
+
+The isolated proposal is now reviewable at
+`work/coverage-closure/retained-eof-fix.patch`, SHA256
+`55aefd7e61f27bacdbfba1e1d0ff540f1f0c30003a22fc97ff76f4d458103c63`.
+It adds seven lines to the reader's post-exit zero-byte-read handling and three
+public-boundary integration tests. The independent adversarial reviewer added
+the missing late-descendant-output preservation test; an independent quality
+reviewer re-reviewed that addition. Final quality, DDD and adversarial reviews
+report no scoped unresolved P1/P2 findings (see `retained-eof-proposal-*.md`).
+
+The full `python3 scripts/gate.py` passed against the isolated frozen source
+in 112.332 seconds, with its source manifest unchanged.
+Evidence: `work/coverage-closure/eof-proposal-gate/{metadata.json,command.log}`.
+This includes the gate's runtime performance contracts; it is not a replacement
+controlled performance cohort. Baseline failure and focused passing evidence
+remain in `process-pressure-diagnostic/FIX-EVIDENCE.md`.
+
+The actual branch still has no reader or drain-timeout change. Integration awaits
+an explicit extension of the user's issue #21 exception to the separately owned
+raw PTY implementation. Once integrated, actual-source gates and hosted platform
+checks remain required. Strict coverage, the failed sixteen-session comparison
+and release workloads remain open. Neither draft PR is ready for acceptance.
+
+## Authorized EOF integration
+
+The user explicitly extended the ownership exception to apply the EOF fix and
+complete integration verification. The actual branch now contains the exact
+reviewed patch (seven reader lines and three public integration tests), source
+digest `e986497052ef14b8e5f1aeb65920a61ec7d9e2ea5942fb1b2e005a5b557210e0`.
+The proposal-stage statements above describe the earlier unapplied state.
+
+Actual-checkout mechanical gate PASS: 124.216 seconds, exit zero, source manifest
+unchanged (`work/coverage-closure/eof-integrated-gate`). An independent reviewer
+matched all 351 manifest entries to actual source and verified all three new
+tests plus the retained-endpoint invariant in both infrastructure configurations.
+Independent quality/SOLID, DDD and adversarial source reviews report no unresolved
+P1/P2 finding in the integrated correction.
+
+The full Rust 1.85 workspace/all-targets/all-features matrix also passes in
+53.570 seconds with unchanged sources (`eof-integrated-msrv`). Strict coverage
+fails in 118.958 seconds with unchanged sources (`eof-integrated-coverage`): all
+test phases passed, and both 100% reports failed. The workspace export reports
+9959/10535 lines, 1029/1104 functions and 14611/15737 regions; helper totals are
+476/1478 lines, 62/109 functions and 747/2274 regions. Workspace values are
+**reported export totals with an instrumentation anomaly**, not authoritative
+coverage-improvement evidence: three reader instantiations have inconsistent
+saturated derived counters. A pre-existing context/panic-path anomaly is also
+present. Functional regression evidence is separate; the earlier claim that the
+export proved all new executable lines covered is withdrawn. Raw exports remain
+preserved and the integrity cause is being investigated without production edits.
+
+The fixed five-pair performance cohort completed with all twenty records valid.
+One-session medians are 45.533750 ms baseline / 43.753959 ms candidate (-3.91%);
+sixteen-session medians are 602.493208 / 479.758917 ms (-20.37%). Both pass the
+unchanged ratio <=1.10 rule. The two runner evidence findings were fixed and
+independently re-reviewed before collection. See
+`retained-eof-integrated-performance.md` for the prospective plan, final audit,
+all samples and remaining limitations. Earlier failed cohorts remain recorded;
+wide variation and the EOF correction's position outside the measured payload
+interval prohibit attributing these differences to the fix or claiming speedup.
+
+Hosted Linux/macOS/MSRV verification is pending on the integrated commit.
+Strict coverage and full release/platform qualification remain unmet. Default
+deadlines and all original EOF assertions remain intact. The affected zero-read
+branch was introduced in `ec9a3fbb`; the correction preserves its retained-tail
+protection while releasing the endpoint after an independently observed exit.
+
+The single paired coverage-counter diagnostic is inconclusive. Fresh default
+and atomic-counter builds each passed the seven delayed-EOF/pressure cases and
+the retained-endpoint invariant, but neither export reproduced saturation and
+both marked the new guard as unexecuted. Atomic compiler flags were verified;
+source and uninstrumented helper hashes stayed unchanged. No successful phase
+was repeated. A rejected CLI filter placement was corrected before its retained
+unit test executed; both invocations remain recorded. Evidence is under
+`work/coverage-closure/eof-counter-diagnostic`. This cannot attribute the anomaly
+to lost counter updates or establish coverage improvement, and does not replace
+the failed full-scope coverage run. No production behavior or coverage threshold
+was changed for the diagnostic.

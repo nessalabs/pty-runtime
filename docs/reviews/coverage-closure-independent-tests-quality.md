@@ -117,3 +117,64 @@ No build or test was run by this reviewer. The three-line production scanner
 candidate is unchanged by this compatibility fix. Its recorded performance
 failure remains applicable; this test-only change supplies no basis for a new
 timing cohort or for upgrading readiness.
+
+## Concurrent-output fixture drain deadline review
+
+The hosted macOS failure at base commit
+`a3e0fee3c5974e22486673d94cade302ad9b39ee` is retained at
+`/tmp/pty-coverage-macos-failure.log`: the concurrent producer test observed
+`Truncated` where it asserted `Eof` (`process_pressure.rs:49`). This is distinct
+from the resolved MSRV syntax failure.
+
+Reviewed the actual test-only diff at source digest
+`0a5cf055b2b18767741e8830da0dc2e337165d74b112b8e3f946f48ee6bea173`.
+Only the sixteen finite producers now receive an explicit two-second
+`drain_timeout`; the quiet process keeps default limits. Exit code zero, EOF,
+exactly 131,072 bytes, and every byte zero are still required for every producer.
+No production deadline, output assertion, performance threshold or coverage
+denominator changed.
+
+The former fixture combined a complete-delivery assertion with a default
+250-millisecond post-exit cutoff. The lifecycle checks that elapsed deadline and
+stops the reader; the reader reports `Truncated` when stopped. Therefore process
+exit zero alone never guaranteed EOF before this cutoff. A larger explicit,
+still-bounded drain allowance is consistent with this test's concurrent-delivery
+purpose. The separate descendant-endpoint test retains its explicit 40-millisecond
+deadline and `Truncated` assertion, so bounded drain behavior is still tested.
+
+This adjustment does remove the implicit demand that all sixteen output streams
+reach EOF within the default cutoff on the current host. It must not be described
+as proving complete delivery under default limits or as fixing a runtime defect.
+The observed CI outcome is consistent with the deadline path, but this review
+does not claim to have measured the hosted reader's scheduling delay. The
+independent delayed-callback diagnostic is separate causal evidence.
+
+Scoped quality verdict: no blocking design or contract-weakening finding for
+the stated complete-delivery fixture. The supplied
+`work/coverage-closure/pressure-drain-fix-focused.log` reports all seven process
+contract tests and all four process pressure tests passing. Full frozen/hosted
+checks remain separate; a single local pass cannot establish absence of all
+scheduling-sensitive failures. No builds were run by this reviewer. The runtime
+performance failure remains unchanged and is not waived by this test correction.
+
+### Correction: proposed drain allowance rejected and reverted
+
+The proposed two-second allowance is **not an integrated or verified fix**.
+The coordinating task reports that the independent delayed-acceptor diagnostic
+still returned `Truncated` with complete bytes at two seconds. That result does
+not support closing the hosted failure by increasing this fixture deadline.
+The earlier scoped design assessment and local focused passes must not be
+interpreted as causal proof or acceptance of the CI repair.
+
+Independent read-only inspection confirms `process_pressure.rs` is back to HEAD
+with `ProcessLimits::default()` for the finite producers and no remaining diff.
+The source digest is again
+`8f137114df26f12d1d679f735d47c0c83a55c72f74c1f188c65ad6a8806b2018`.
+The passing `gate-drain-final` run applies to the rejected candidate and cannot
+close this issue or be represented as verification of a retained change.
+
+**The P2 hosted concurrent-output CI finding remains open.** Further isolated
+callback/reader-outcome investigation is underway; no replacement timeout,
+production fix or closure is approved by this review. The separate performance
+and coverage blockers also remain unchanged. No builds were run for this
+correction.

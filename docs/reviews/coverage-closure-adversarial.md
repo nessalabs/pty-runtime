@@ -109,3 +109,30 @@ Independently compared `msrv-fix-matrix`, `gate-msrv-final`, and `coverage-msrv-
 MSRV matrix: **PASS**, 67.307 seconds. Mechanical gate: **PASS**, 51.344 seconds. Coverage: **FAIL**, 122.943 seconds; only the workspace/helper threshold-report phases failed, while all behavior phases passed. Final workspace counts are 9955/10531 lines, 1029/1104 functions, and 14603/15729 regions (92.8412% regions). Helper remains 476/1478 lines, 62/109 functions, and 747/2274 regions. Rust branches remain unmeasured.
 
 **Final adversarial code review: PASS; MSRV P2 resolved. Overall readiness remains BLOCKED by the unmet coverage target and previously reported performance failure.** A commit/push records this reviewed progress; it does not establish 100% coverage or release/readiness acceptance. No builds were run for this validation.
+
+## macOS pressure-drain failure investigation (P2 remains open)
+
+Hosted macOS PR gate at `a3e0fee` failed `simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live` at `process_pressure.rs:49`: actual child exit was zero, but drain was Truncated instead of Eof. The byte-length assertion comes later and was not executed, so the CI log establishes neither data loss nor complete delivery. Failure log: `/tmp/pty-coverage-macos-failure.log`. Passing push CI does not erase this failure.
+
+Source trace: the producer fixture supplies the default 250 ms drain deadline. `lifecycle.rs:148–154` stops the reader after the recorded workload exit plus that deadline; `io.rs` translates the stop into Truncated. Events always accepts output and checks that no supervision error was reported; explicit owner shutdown occurs only after the assertions. ADR 0004 separates workload exit and output completion and permits a configured drain cutoff. The 0.33-second failed-test duration is consistent with a deadline cutoff, but the exact host scheduling/EOF delay was not captured.
+
+Ran exactly ten diagnostic executions of the original pressure fixture, all passing, preserved under `work/coverage-closure/process-pressure-diagnostic`. This was not a retry-until-green strategy and is not acceptance of the failing hosted scenario.
+
+An isolated paired test delayed an accepting output callback by 350 ms after independently observing the child's exit. It preserved real runtime behavior and used scoped backend cleanup and an external three-second watchdog. The 250 ms case returned exit zero, all seven literal bytes, and Truncated at 470 ms. **The 2-second case unexpectedly also returned Truncated**, despite exit zero and exact bytes. Its expected-Eof assertion failed; the source and failing `paired-run.log` are retained. Consequently the experiment does not prove that increasing the fixture deadline resolves the underlying failure.
+
+Reviewed the proposed tracked fixture-only change to a 2-second producer drain budget: quiet cancellation retains its default limits; exact Eof and 131072 zero-byte assertions remain; the separate 40 ms descendant-drain contract remains. This is a reasonable explicit workload budget, but a passing focused run cannot close the unexplained delayed-reader outcome. Candidate mechanisms include retained-child handling (the reader releases it on WouldBlock, while Ok(0)/EIO with a retained child only break/re-poll) and helper census/retirement delays. Neither is proven from these observations. **P2 investigation remains OPEN; do not label this a verified runtime fix or clear strict CI readiness on a rerun.** No production code was changed by this reviewer.
+
+## P2 causal reproduction: macOS EOF with retained child endpoint
+
+Corrected the diagnostic to delay only its first callback using AtomicBool and count every callback. Both cases had exactly one seven-byte callback. The 250 ms case reported Truncated at 480 ms; the 2-second case still reported Truncated at 2163 ms. This rules out compounded per-callback sleeps in that reproduction. Original and corrected failures remain preserved.
+
+Added read/exit/deadline trace logging only in an isolated source copy under `work/coverage-closure/process-pressure-diagnostic/trace-source`; no tracked runtime/test source was changed. The recorded `trace-run.log` establishes the sequence for the 2-second case:
+
+- Workload exit zero recorded at monotonic 493760.758 seconds.
+- The first read after the single delayed callback, at 493761.113, returned `Ok(0)` with `retained=true`, `workload_exited=true`, and `stop=false`.
+- Repeated `Ok(0)` reads followed immediately (twenty captured). No WouldBlock release occurred.
+- At 493762.759, the owner reached the configured exit-plus-two-second deadline, set stop, and the reader reported Truncated. All seven bytes were delivered and no supervision failure was reported.
+
+**Confirmed runtime P2:** `io.rs:107–112` breaks/re-polls on zero-byte reads whenever the retained child exists, but only its WouldBlock branch releases that child. macOS can report EOF with this retained descriptor present after session teardown; the result is a busy loop and false incomplete-drain report until the deadline. Raising the fixture timeout only extends this path. The longer fixture timeout was reverted by the parent.
+
+A minimal candidate fix should release the retained endpoint after a zero-byte read plus confirmed workload exit, then observe EOF again; pre-exit retention and multi-read tail guarantees must remain tested. EIO handling is a related question, not established by this trace. A regression must first fail on the actual public process boundary, then pass with the production correction. The trace proves this mechanism locally; it does not uniquely prove the same kernel event occurred on the hosted CI run, whose read trace is unavailable. **P2 remains open pending that fix and independent re-review.**
