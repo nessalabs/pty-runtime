@@ -13,4 +13,5 @@ decisions: [`../adr/`](../adr/README.md).
 | Client / demo terminal | [client-demo.md](client-demo.md) |
 | Performance / load | [performance-load.md](performance-load.md) |
 | Coverage / native bridge | [coverage-native.md](coverage-native.md) |
+| Program Status Protocol | [program-status.md](program-status.md) |
 | CI / release qualification | [ci-release.md](ci-release.md) |

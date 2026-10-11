@@ -1,5 +1,6 @@
 //! Engine-neutral terminal projection contracts and resource limits.
 mod checkpoint;
+pub mod program_status;
 mod view;
 pub use checkpoint::*;
 pub use view::*;
