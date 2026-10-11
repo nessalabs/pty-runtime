@@ -317,6 +317,9 @@ impl IProcessEvents for SessionEventSink {
                     state.status.record_failure(ProcessError::Internal);
                 }
             });
+            if let Ok(Some(projection)) = context.projection() {
+                projection.notify_process_exited();
+            }
         }
     }
     fn drained(&self, outcome: DrainOutcome) {

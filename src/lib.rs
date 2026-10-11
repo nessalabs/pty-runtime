@@ -7,9 +7,9 @@ mod adapters;
 mod runtime;
 pub use adapters::StorageOptions;
 pub use pty_runtime_application::projection::{
-    PinnedCheckpoint, ProjectedView, ProjectionOperation, ProjectionServices, StateTransfer,
-    TransferBoundary, TransferCursor, TransferEnd, TransferError, TransferEvent, TransferEventKind,
-    TransferObserver, TransferRead,
+    PinnedCheckpoint, ProjectedProgramStatus, ProjectedView, ProjectionOperation,
+    ProjectionServices, StateTransfer, TransferBoundary, TransferCursor, TransferEnd,
+    TransferError, TransferEvent, TransferEventKind, TransferObserver, TransferRead,
 };
 pub use pty_runtime_application::runtime::{
     AttachPosition, Attachment, Completion, CompletionWait, NextOutput, OutputEvent, RuntimeError,

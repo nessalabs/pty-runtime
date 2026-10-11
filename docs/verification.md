@@ -780,9 +780,9 @@ after the first read would have failed the byte assertion on that runner.
 ## Program Status Protocol — stage 1 (issue #21)
 
 The domain parser and bounded record store implement OSC 7501 revision 0.4.
-They are not yet connected to runtime sessions: this stage sends no terminal
-replies and exposes no automatic session status. The application integration
-and lifecycle tests are stage 2, still pending.
+At the stage 1 checkpoint these types were not connected to runtime sessions:
+the commit sends no terminal replies and exposes no automatic session status.
+The stage 2 result below records the subsequent integration and lifecycle tests.
 
 The 37 domain unit tests and 17 independent public acceptance tests cover split
 sequences, opaque non-target controls, bounded records, inheritance, deletion,
@@ -806,6 +806,76 @@ of 93.54% / 92.37% / 91.68%, and separately instrumented guardian coverage of
 13.60% / 19.27% / 16.05%. These fail the required 100% and zero-uncovered target.
 Branch coverage is unavailable (0/0); native bridge and other platforms remain
 outside this Rust measurement. This stage claims no release qualification.
+
+## Program Status Protocol — stage 2 (issue #21)
+
+Projected sessions now own the protocol store independently of their native
+terminal. `Session::program_status()` returns a bounded, quota-held snapshot;
+raw sessions return `None`. Reads do not restore parked models. Record caps
+are configurable in 64..=256, and copied snapshots retain their memory charge
+after session close. Reports remain untrusted data, never authorization.
+
+Queries receive the fixed revision-0.4 capability reply in stream order with
+native replies. All slices of the original chunk share one logical reply limit;
+the aggregate and native reply buffers have a combined peak reservation. Only
+a fully accepted chunk commits protocol mutations and advances its original-byte
+position. Native errors, including `HistoryIncomplete`, fail projection without
+retrying a partially accepted prefix. Original replay and transfer bytes remain
+unchanged. Ordered exit markers bypass ordinary admission pressure and native
+restoration; final drain clears working/blocked records again after tail output.
+
+Evidence on macOS arm64:
+
+- Fourteen independently authored coordinator tests pass for split queries,
+  exact/over-limit replies, a mutating second-slice failure, exit/drain ordering,
+  full admission, parked restoration, snapshot concurrency and quota lifetimes.
+- Three real PTY/Ghostty tests pass. They assert the capability reply precedes
+  device attributes, raw sessions send no reply, both observers see original
+  bytes, status sequences leave the view identical to a plain-text reference,
+  transfer preserves the original tail, and parking/status reads/exit preserve
+  the intended lifecycle. Suppressing the fixed reply made the real-child
+  handshake test fail; restoration passed. Logs are retained in
+  `work/osc7501-stage2/real-runtime/`.
+- The frozen mechanical gate passed with `sources_unchanged=true`, exit 0, in
+  90.38 seconds (`work/osc7501-stage2/gate-final`). Its per-file manifest ties
+  the result to the reviewed source rather than only to the stage 1 base commit.
+- Independent DDD, Clean Code/SOLID and adversarial reviews pass with no scoped
+  P1/P2 findings. Their records and final source identities are under
+  [`reviews/`](reviews/). A stale worker comment was corrected and re-reviewed.
+
+The existing pressure test expected only the chunks following an oversized reply
+to remain staged. The unified failure path now also retains the offending
+original chunk, so its expected count changed from three to four. This does not
+retry that chunk; projection is failed. The initial result was preserved and the
+corrected assertion passed the full gate.
+
+A coverage follow-up added five independent coordinator boundary tests (19 total)
+and domain counter/opaque-control tests without changing production behavior.
+The expanded frozen mechanical gate passed again, with unchanged sources, at
+`work/osc7501-stage2/gate-coverage-expanded`; independent quality re-review passed
+source SHA `aaf8eabeb3597197fedffaebba148c631566499d77df1ca81de634df0b62bf8f`.
+
+The first final-source performance batch **failed** the predeclared 10% median
+regression limit at sixteen sessions: 511.109 -> 623.483 ms. That failure is
+retained. A prospectively specified, fixed five-pair alternating baseline/current
+comparison then passed the unchanged guardrail: 47.419 -> 46.233 ms at one session
+and 597.061 -> 474.446 ms at sixteen. Every controlled record validated the exact
+original bytes and zero observed descendants after shutdown. Large variance and
+uncontrolled ambient load prevent a causal speedup claim. The independent review
+and every dataset are recorded in
+[`reviews/program-status-performance.md`](reviews/program-status-performance.md).
+
+The final coverage gate **failed** with unchanged sources. Workspace
+line/function/region coverage is 93.82% / 92.52% / 91.96%; guardian coverage remains
+13.60% / 19.27% / 16.05%. The new domain files are 99.79% / 100% / 99.45%, including
+the local counter tests; their remaining store regions are assertion failure
+arms, not identified unexecuted production regions. The two new application files
+are 96.30% / 86.36% / 92.52%, including untriggered defensive error paths.
+Scope, instrumentation limits and per-file gaps are recorded in
+[`reviews/program-status-coverage.md`](reviews/program-status-coverage.md).
+Neither specialist approval nor the scoped performance result waives the 100%
+target. The two implementation PRs remain draft; no G3/G4 or release
+qualification is claimed.
 
 ## Where to look next
 

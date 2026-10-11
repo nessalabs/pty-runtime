@@ -1,6 +1,7 @@
 //! Deterministic local process fixture; only synthetic input/output.
 mod contract_support;
 mod performance_support;
+mod program_status_support;
 mod projection_support;
 use std::io::{Read, Write};
 fn raw() {
@@ -20,6 +21,8 @@ fn main() {
             performance_support::producer(args[2].parse().unwrap(), args[3].parse().unwrap())
         }
         Some("projection-query") => projection_support::query(),
+        Some("program-status") => program_status_support::query(true),
+        Some("program-status-raw") => program_status_support::query(false),
         Some("record-launch") => contract_support::record_launch(&args[2]),
         Some("inspect-contract") => contract_support::inspect(&args),
         Some("merged-bytes") => {

@@ -312,11 +312,9 @@ fn a_view_does_not_pull_queued_output_into_its_run() {
 /// A failed projection ends the batch, and the output failure retained stays
 /// retained.
 ///
-/// An oversized generated reply fails the projection and then falls through to
-/// an immediate schedule with no reply set, so nothing else in the loop
-/// condition stops it. `queue.fail` keeps staged output on purpose; a batch that
-/// kept running would dequeue exactly those bytes and drop them, because a
-/// failed policy cannot process them and nothing requeues them.
+/// An oversized generated reply fails projection after native mutation. The
+/// affected original chunk and the three behind it remain staged for diagnostics;
+/// the failed policy prevents the batch from feeding any of them again.
 #[test]
 fn a_failed_projection_stops_the_output_batch_and_keeps_queued_output() {
     let h = Harness::standard();
@@ -341,8 +339,8 @@ fn a_failed_projection_stops_the_output_batch_and_keeps_queued_output() {
     );
     assert_eq!(
         h.owner.queue.queued(),
-        3,
-        "the batch must stop at the failure, leaving the retained output queued"
+        4,
+        "the failed chunk and queued suffix stay retained without replay"
     );
     h.close();
 }

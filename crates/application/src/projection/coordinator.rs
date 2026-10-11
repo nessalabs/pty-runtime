@@ -51,6 +51,7 @@ pub struct ProjectionCoordinator {
     pub(super) queue: AdmissionQueue,
     pub(super) workspace: Mutex<NativeWorkspace>,
     pub(super) input: InputQuotas,
+    pub(super) program_status: Mutex<super::program_status::ProgramStatusState>,
     pub(super) stall_generation: AtomicU64,
 }
 impl ProjectionCoordinator {
@@ -70,6 +71,7 @@ impl ProjectionCoordinator {
         let queue_slots = options
             .staging_slots
             .checked_add(options.request_slots)
+            .and_then(|slots| slots.checked_add(1))
             .ok_or(ProjectionError::InvalidConfiguration)?;
         let protected_bytes = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             services
@@ -115,6 +117,7 @@ impl ProjectionCoordinator {
                 policy: ProjectionPolicy::new(lifetime, options, services.clock.now())?,
                 queue,
                 output_drain: None,
+                process_exit_queued: false,
                 close_waiters: Vec::new(),
                 unreclaimed_failure: None,
                 cleanup_failure: None,
@@ -140,6 +143,9 @@ impl ProjectionCoordinator {
             wiring: Wiring::new(services),
             quotas,
             input: InputQuotas::new(input_bytes, input_slots),
+            program_status: Mutex::new(super::program_status::ProgramStatusState::new(
+                options.program_status_records,
+            )?),
             stall_generation: AtomicU64::new(0),
         });
         let work: Arc<dyn IScheduledWork> = owner.clone();

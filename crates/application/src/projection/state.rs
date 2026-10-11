@@ -20,6 +20,8 @@ use std::{collections::VecDeque, sync::Arc};
 /// admitted it, so dropping a command releases its quota exactly once.
 pub(super) enum Command {
     Output(Vec<u8>, StagingLease),
+    // One reserved queue slot per lifetime, independent of reader/control quotas.
+    ProcessExited,
     Resize(TerminalSize, Arc<Ticket<ResizeOutcome>>, StagingLease),
     View(Arc<Ticket<ProjectedView>>, StagingLease),
     Checkpoint(SnapshotRequest, StagingLease),
@@ -30,7 +32,7 @@ impl Command {
             Self::Resize(_, ticket, _) => ticket.complete(Err(error)),
             Self::View(ticket, _) => ticket.complete(Err(error)),
             Self::Checkpoint(request, _) => request.fail(error),
-            Self::Output(_, _) => (),
+            Self::Output(_, _) | Self::ProcessExited => (),
         }
     }
 }
@@ -57,6 +59,7 @@ impl Command {
 ///           handle, process},    released before anything else runs. Never
 ///           ProjectionBudgets::  held across a call to an injected port.
 ///           unreclaimed,
+///           ProgramStatusState,
 ///           ICapacitySignal
 /// ```
 ///
@@ -80,6 +83,7 @@ impl Command {
 pub(super) struct Admission {
     pub policy: ProjectionPolicy,
     pub output_drain: Option<pty_runtime_domain::process::DrainOutcome>,
+    pub process_exit_queued: bool,
     pub queue: VecDeque<Command>,
     pub close_waiters: Vec<Arc<Ticket<()>>>,
     pub unreclaimed_failure: Option<ProjectionError>,

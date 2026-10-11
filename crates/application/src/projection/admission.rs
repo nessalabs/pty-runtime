@@ -209,6 +209,14 @@ impl ProjectionCoordinator {
         Ok(())
     }
 
+    /// Order process exit behind admitted output even when ordinary admission is full.
+    /// Duplicate notifications are coalesced; final reader drain applies cleanup again.
+    pub fn notify_process_exited(&self) {
+        if self.queue.record_process_exit() && self.wake().is_err() {
+            self.fail(ProjectionError::Worker);
+        }
+    }
+
     /// Record final reader drain independently of process exit or parser catchup.
     /// Existing queued work remains owned; later output/resizes are rejected. Safe
     /// before process binding. Readers invoke this after their final output callback.

@@ -15,6 +15,9 @@ enum Mode {
     String,
 }
 impl Scanner {
+    pub(super) fn plain_chunk(&self, input: &[u8]) -> bool {
+        matches!(self.mode, Mode::Ground) && !input.contains(&0x1b)
+    }
     pub(super) fn retained_bytes(&self) -> usize {
         self.body.capacity()
     }

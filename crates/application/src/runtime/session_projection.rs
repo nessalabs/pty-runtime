@@ -1,6 +1,7 @@
 use super::{RuntimeError, Session};
 use crate::projection::{
-    PinnedCheckpoint, ProjectedView, ProjectionCoordinator, ProjectionOperation, StateTransfer,
+    PinnedCheckpoint, ProjectedProgramStatus, ProjectedView, ProjectionCoordinator,
+    ProjectionOperation, StateTransfer,
 };
 use pty_runtime_domain::{
     projection::{ProjectionError, ProjectionStatus, ResizeOutcome},
@@ -15,6 +16,15 @@ impl Session {
             .context
             .projection()?
             .map(|projection| projection.status()))
+    }
+    /// Copy explicitly reported program status without restoring a parked terminal.
+    /// Raw sessions return None. The snapshot retains its shared quota until dropped;
+    /// failure or closure is reported rather than exposing stale projection state.
+    pub fn program_status(&self) -> Result<Option<ProjectedProgramStatus>, RuntimeError> {
+        self.context
+            .projection()?
+            .map(|projection| projection.program_status().map_err(RuntimeError::from))
+            .transpose()
     }
     /// Admit a bounded copy of active terminal state, restoring a parked model as needed.
     /// Dropping the wait cancels observation only; returned buffers retain their quotas.

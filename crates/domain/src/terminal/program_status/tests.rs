@@ -83,3 +83,19 @@ fn state_only_report_plan_counts_its_boxed_record_allocation() {
     // The record is boxed even when all its strings have zero capacity.
     assert!(plan.retained_bytes() >= std::mem::size_of::<ProgramStatusRecord>());
 }
+
+#[test]
+fn allocation_admission_follows_committed_continuation_and_snapshot_contents() {
+    let mut store = ProgramStatusStore::default();
+    assert_eq!(store.scan_reservation_for(b"ordinary output").unwrap(), 0);
+    assert_eq!(store.snapshot_reservation(), 0);
+    feed(&mut store, b"\x1b");
+    assert!(store.scan_reservation_for(b"]7501;state=done\x07").unwrap() > 0);
+    feed(&mut store, b"]7501;state=done\x07");
+    assert_eq!(store.scan_reservation_for(b"ordinary output").unwrap(), 0);
+    assert!(store.records().retained_bytes() <= store.snapshot_reservation());
+    assert_eq!(
+        store.scan_reservation_for(&vec![b'x'; MAX_SCAN_BYTES + 1]),
+        Err(ProgramStatusError::ChunkTooLarge)
+    );
+}

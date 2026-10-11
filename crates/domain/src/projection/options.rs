@@ -22,7 +22,7 @@ pub struct ProjectionLimits {
     pub stored_bytes: usize,
     /// Maximum retained or unreclaimed immutable source identities.
     pub stored_slots: usize,
-    /// Copied terminal cells/text and pending authoritative reply buffers.
+    /// Copied terminal cells/text, program-status stores/plans/snapshots and authoritative replies.
     pub view_bytes: usize,
     /// Outstanding observation/control waits, including queued controls and completed retained results.
     pub request_slots: usize,
@@ -78,6 +78,8 @@ pub struct ProjectionOptions {
     pub transfer_observers: usize,
     /// Native and synchronous operation limits enforced by the terminal adapter.
     pub terminal: TerminalConfig,
+    /// Maximum OSC 7501 records retained per session, in 64..=256; defaults to 256.
+    pub program_status_records: usize,
     /// Lossless parser payload cap; must admit a complete native feed chunk.
     pub staging_bytes: usize,
     /// Parser output slots, including currently executing work; controls use request_slots.
@@ -101,6 +103,7 @@ impl ProjectionOptions {
     pub fn new(terminal: TerminalConfig) -> Self {
         Self {
             terminal,
+            program_status_records: 256,
             journal_bytes: 1024 * 1024,
             journal_slots: 256,
             transfer_observers: 32,
@@ -116,7 +119,8 @@ impl ProjectionOptions {
     /// Validate all finite bounds and checked copied-view allocation accounting.
     pub fn validate(self) -> Result<Self, ProjectionError> {
         self.terminal.validate()?;
-        if self.journal_bytes == 0
+        if !(64..=256).contains(&self.program_status_records)
+            || self.journal_bytes == 0
             || self.journal_bytes > isize::MAX as usize
             || self.journal_slots == 0
             || self.journal_slots > 1_048_576
