@@ -50,3 +50,19 @@ The final combined-source mechanical gate passes in 195.998331 seconds with all 
 The independent integrity audit confirms exact raw-counter sums, preserved profile populations and unchanged source/tool/import hashes. It does not turn missing hits into coverage. Results and the failed strict collector exits remain under `work/coverage-closure/pr25-fixed-stack-coverage02`, with the independent assessment in `pr25-blockers-quality.md`. No exclusions, thresholds or assertions were weakened.
 
 No GitHub PR has been merged. The conditional authorization to merge #25, #26 and #27 in that order remains unmet while the strict coverage requirement fails. #27 remains draft.
+
+### Explicit merge authorization on 2026-10-12
+
+After the coverage limitation was explained, the user explicitly selected
+“Merge with the documented coverage shortfall.” This supersedes the earlier
+100%-coverage merge prerequisite, not the measurements or the correctness,
+review and performance gates. Independent reinspection of the final-source
+exports confirms the unchanged assertion-failure and statically false TLS
+regions described above. The strict coverage gate remains failed; no assertion,
+exclusion, threshold or counter is changed. Full release qualification remains
+incomplete. The stack is authorized to merge in order once hosted checks pass.
+
+The documentation-head #27 MSRV jobs initially failed before Rust tests because
+Codeberg returned HTTP 503 for the pinned native dependency archive. Failed-job
+reruns preserve the original failure history. This is a download failure, not
+evidence of compiler incompatibility; successful execution is still required.

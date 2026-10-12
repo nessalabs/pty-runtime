@@ -1161,3 +1161,19 @@ The two #25 review conversations are resolved after publication and independent
 re-review; the fixes and strengthened dependent UTF-8 test are propagated through
 #26 and #27. No PR is merged because the requested coverage condition is unmet.
 See `docs/reviews/stack-merge-assessment.md` for the merge assessment.
+
+### Explicit merge authorization on 2026-10-12
+
+After the coverage limitation was explained, the user explicitly selected
+“Merge with the documented coverage shortfall.” This supersedes the earlier
+100%-coverage merge prerequisite, not the measurements or the correctness,
+review and performance gates. Independent reinspection of the final-source
+exports confirms the unchanged assertion-failure and statically false TLS
+regions described above. The strict coverage gate remains failed; no assertion,
+exclusion, threshold or counter is changed. Full release qualification remains
+incomplete. The stack is authorized to merge in order once hosted checks pass.
+
+The documentation-head #27 MSRV jobs initially failed before Rust tests because
+Codeberg returned HTTP 503 for the pinned native dependency archive. Failed-job
+reruns preserve the original failure history. This is a download failure, not
+evidence of compiler incompatibility; successful execution is still required.
