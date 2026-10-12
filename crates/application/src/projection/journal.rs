@@ -13,7 +13,7 @@ use pty_runtime_domain::{
 };
 use std::{
     collections::BTreeMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, PoisonError},
     task::Waker,
 };
 
@@ -77,7 +77,7 @@ impl Journal {
         Lease::shared_and_local(self.global_observers.clone(), self.observers.clone(), 1)
     }
     pub fn open(self: &Arc<Self>, permit: Lease) -> Result<TransferObserver, ProjectionError> {
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let start = state.order.open_boundary().map_err(|error| match error {
             TransferError::Closed => ProjectionError::Closed,
             _ => ProjectionError::Capacity,
@@ -102,7 +102,7 @@ impl Journal {
         // RawWaker clone/drop may execute arbitrary caller code. Neither occurs
         // under the journal mutex, including failed/foreign cursor reads.
         let mut next_waker = waker.cloned();
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let old_waker = state.observers.get_mut(&id).and_then(Option::take);
         let result = (|| {
             if !state.observers.contains_key(&id) {
@@ -141,14 +141,14 @@ impl Journal {
         let old = self
             .state
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(PoisonError::into_inner)
             .observers
             .get_mut(&id)
             .and_then(Option::take);
         drop(old);
     }
     pub fn remove(&self, id: u64) {
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let removed = state.observers.remove(&id);
         if state.observers.is_empty() {
             state.records.clear();
@@ -165,7 +165,7 @@ impl Journal {
         self.append(RecordKind::Resize { size, generation }, None);
     }
     fn append(&self, kind: RecordKind, processed: Option<ReplayCursor>) {
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         if !state.order.accepts_events() {
             return;
         }
@@ -238,14 +238,14 @@ impl Journal {
         drain: Option<pty_runtime_domain::process::DrainOutcome>,
         failure: Option<ProjectionError>,
     ) {
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = state.order.seal(drain, failure);
         let wakes = Self::take_wakers(&mut state);
         drop(state);
         Self::wake(wakes);
     }
     pub fn close(&self) {
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         state.order.close();
         state.records.clear();
         let wakes = Self::take_wakers(&mut state);

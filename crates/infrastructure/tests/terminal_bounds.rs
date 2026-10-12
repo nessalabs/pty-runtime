@@ -140,3 +140,47 @@ fn view_and_parser_continuation_have_explicit_budgets() {
     t.feed(b"\x1b]2;unfinished long title").unwrap();
     assert!(t.checkpoint(descriptor()).is_err());
 }
+
+#[test]
+fn restore_rejects_a_valid_checkpoint_above_its_byte_budget_without_harming_the_source() {
+    let mut source = GhosttyTerminalFactory.create(config()).unwrap();
+    source.feed(b"preserved snapshot").unwrap();
+    let before = source.view().unwrap();
+    let checkpoint = source.checkpoint(descriptor()).unwrap();
+    assert!(checkpoint.bytes.len() > 1);
+    let mut bounded = config();
+    bounded.checkpoint_bytes = checkpoint.bytes.len() - 1;
+    assert!(matches!(
+        GhosttyTerminalFactory.restore(checkpoint.clone(), bounded),
+        Err(TerminalError::BudgetExceeded)
+    ));
+    assert_eq!(source.view().unwrap(), before);
+    bounded.checkpoint_bytes = checkpoint.bytes.len();
+    let mut restored = GhosttyTerminalFactory.restore(checkpoint, bounded).unwrap();
+    assert_eq!(restored.view().unwrap(), before);
+    source.feed(b"!").unwrap();
+    restored.feed(b"!").unwrap();
+    assert_eq!(restored.view().unwrap(), source.view().unwrap());
+}
+
+#[test]
+fn restore_rejects_mismatched_dimensions_without_harming_the_source() {
+    let mut source = GhosttyTerminalFactory.create(config()).unwrap();
+    source.feed(b"dimensions belong to the checkpoint").unwrap();
+    let before = source.view().unwrap();
+    let checkpoint = source.checkpoint(descriptor()).unwrap();
+    let mut mismatched = config();
+    mismatched.size = TerminalSize::new(81, 24).unwrap();
+    assert!(matches!(
+        GhosttyTerminalFactory.restore(checkpoint.clone(), mismatched),
+        Err(TerminalError::InvalidConfiguration)
+    ));
+    assert_eq!(source.view().unwrap(), before);
+    let mut restored = GhosttyTerminalFactory
+        .restore(checkpoint, config())
+        .unwrap();
+    assert_eq!(restored.view().unwrap(), before);
+    source.feed(b"!").unwrap();
+    restored.feed(b"!").unwrap();
+    assert_eq!(restored.view().unwrap(), source.view().unwrap());
+}

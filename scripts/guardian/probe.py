@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the actual packaged helper with independent PTY/control endpoints."""
 import argparse
+import errno
 import fcntl
 import json
 import os
@@ -10,6 +11,7 @@ import signal
 import socket
 import struct
 import subprocess
+import tempfile
 import termios
 import time
 
@@ -248,6 +250,80 @@ def owner_eof(executable, before_exec):
         session.close()
 
 
+def term_backstop(executable):
+    # The shell stays alive after TERM, without descendants or a second clock
+    # that could end the workload instead of the guardian's own backstop.
+    session = Session(executable, "trap '' TERM HUP; printf ready; while :; do read x; done",
+                      grace=1000)
+    try:
+        workload, guardian, sentinel, sid = session.admitted()
+        session.wait(lambda: session.output == b'ready')
+        assert os.getsid(workload) == sid
+        assert os.getpgid(workload) == workload == os.tcgetpgrp(session.master)
+        # Both owner sockets remain open. Send only TERM, directly to G, so
+        # neither owner EOF nor an owner KILL can satisfy this case.
+        session.channels[1].sendall(FRAME.pack(b'PTGR', 1, 10, session.generation, 0, 0, 0, 0))
+        session.wait(lambda: any(index == 1 and kind == 17 for index, kind, _ in session.frames))
+        applied = [values for index, kind, values in session.frames if index == 1 and kind == 17]
+        assert applied == [[workload, signal.SIGTERM, 7, 0]], session.frames
+        session.finished()
+        guardian_frames = [(kind, values) for index, kind, values in session.frames if index == 1]
+        kinds = [kind for kind, _ in guardian_frames]
+        assert kinds.count(17) == kinds.count(18) == kinds.count(4) == 1, guardian_frames
+        assert kinds.index(17) < kinds.index(18) < kinds.index(4), guardian_frames
+        assert next(values for kind, values in guardian_frames if kind == 18) == [
+            workload, signal.SIGKILL, 0, 0]
+        exits = [values for _, kind, values in session.frames if kind == 4]
+        assert exits and all(values[1:] == [workload, 0, 0]
+                             and os.waitstatus_to_exitcode(values[0]) == -signal.SIGKILL
+                             for values in exits), session.frames
+        assert not any(kind in (5, 6) for _, kind, _ in session.frames), session.frames
+        assert not live_in_session(sid)
+        return {'case': 'owner_open_term_only_guardian_backstop', 'result': 'pass',
+                'actual_exit': -signal.SIGKILL, 'signal_applied': True,
+                'escalated': True, 'sid': sid}
+    finally:
+        close_gap_session(session)
+
+
+def execute_failure(executable, command, expected_error):
+    session = Session(executable, '', arguments=[str(command)])
+    try:
+        session.wait(lambda: {index for index, kind, _ in session.frames if kind == 1} == {0, 1})
+        sid = session.process.pid
+        assert os.getsid(sid) == sid
+        session.send(16)
+        session.finished()
+        failures = [(index, values) for index, kind, values in session.frames if kind == 5]
+        assert {index for index, _ in failures} == {0, 1}, session.frames
+        assert all(values == [expected_error, 0, 0, 0] for _, values in failures), session.frames
+        assert not any(kind in (2, 3, 4, 6) for _, kind, _ in session.frames), session.frames
+        assert session.ids is None and not session.output
+        assert not live_in_session(sid)
+        return {'case': f'execute_failure_{errno.errorcode[expected_error]}',
+                'result': 'pass', 'start_error': expected_error, 'sid': sid}
+    finally:
+        close_gap_session(session)
+
+
+def close_gap_session(session):
+    # Success is asserted before teardown. On failure, owner EOF retains the
+    # helper's normal cleanup ownership; force only our actual child if it stalls.
+    try:
+        session.close()
+    finally:
+        for channel in session.channels:
+            channel.close()
+        try:
+            os.close(session.master)
+        except OSError as error:
+            if error.errno != errno.EBADF:
+                raise
+        if session.process.poll() is None:
+            session.process.kill()
+            session.process.wait(timeout=5)
+
+
 def acknowledged_handoff_failure(executable, target):
     fixture = executable.parent / 'guardian-fixture'
     session = Session(executable, '', arguments=[str(fixture), 'both'])
@@ -319,6 +395,14 @@ def main():
             print(json.dumps(handoff_failure(args.helper, target)), flush=True)
         for target in ['successor', 'sentinel']:
             print(json.dumps(acknowledged_handoff_failure(args.helper, target)), flush=True)
+        print(json.dumps(term_backstop(args.helper)), flush=True)
+        with tempfile.TemporaryDirectory(prefix='guardian-execute-') as directory:
+            missing = Path(directory) / 'missing'
+            print(json.dumps(execute_failure(args.helper, missing, errno.ENOENT)), flush=True)
+            denied = Path(directory) / 'not-executable'
+            denied.write_text('#!/bin/sh\nprintf unexpected-execution\n')
+            denied.chmod(0o600)
+            print(json.dumps(execute_failure(args.helper, denied, errno.EACCES)), flush=True)
         assert outside.poll() is None, 'outside-session control process was affected'
     finally:
         outside.kill()

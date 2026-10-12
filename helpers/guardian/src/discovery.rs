@@ -21,6 +21,8 @@ pub struct Discovery {
 }
 impl Discovery {
     pub fn new(sid: libc::pid_t) -> io::Result<Self> {
+        #[cfg(test)]
+        crate::fault_injection::check(crate::fault_injection::Operation::Discovery)?;
         Ok(Self {
             platform: platform::Inventory::new()?,
             sid,

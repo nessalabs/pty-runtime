@@ -4,6 +4,9 @@ mod cancellation;
 mod cleanup;
 mod discovery;
 mod drain;
+#[cfg(test)]
+#[path = "../tests/fault_injection.rs"]
+mod fault_injection;
 mod guardian;
 mod links;
 mod os;

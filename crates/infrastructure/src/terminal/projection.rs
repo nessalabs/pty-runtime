@@ -6,6 +6,8 @@ impl GhosttyTerminal {
         let mut info = ffi::Info::default();
         // SAFETY: Exclusive live native owner and correctly laid-out initialized ABI output.
         let result = unsafe { ffi::rt_info(self.raw.as_ptr(), &mut info) };
+        #[cfg(test)]
+        let result = super::faults::info(result, &mut info);
         if result != 0 {
             return Err(TerminalError::EngineFailure);
         }
@@ -27,6 +29,8 @@ impl GhosttyTerminal {
         // SAFETY: Exclusive live native owner; both outputs are initialized
         // scalars and the terminal is only read.
         let result = unsafe { ffi::rt_rows(self.raw.as_ptr(), &mut total, &mut scrollback) };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::Rows, result);
         if result != 0 {
             return Err(TerminalError::EngineFailure);
         }
@@ -105,6 +109,8 @@ impl GhosttyTerminal {
                 &mut style,
             )
         };
+        #[cfg(test)]
+        let result = super::faults::cell(result, &mut small, len, &mut style);
         let text = if result == -2 {
             if len > *remaining / 4 {
                 return Err(TerminalError::BudgetExceeded);
@@ -128,6 +134,8 @@ impl GhosttyTerminal {
                     &mut style,
                 )
             };
+            #[cfg(test)]
+            let retry = super::faults::result(super::faults::Point::CellRetry, retry);
             if retry != 0 {
                 return Err(TerminalError::EngineFailure);
             }

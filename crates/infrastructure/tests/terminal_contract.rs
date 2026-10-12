@@ -91,3 +91,52 @@ fn palette_and_default_color_overrides_are_domain_values() {
     assert_eq!(view.palette.indexed[1], [0x12, 0x34, 0x56]);
     assert_eq!(view.palette.foreground, Some([0xab, 0xcd, 0xef]));
 }
+
+#[test]
+fn underline_variants_and_reset_preserve_each_cells_decoration() {
+    let mut terminal = GhosttyTerminalFactory.create(config()).unwrap();
+    terminal
+        .feed(b"\x1b[4:1mA\x1b[4:2mB\x1b[4:3mC\x1b[4:4mD\x1b[4:5mE\x1b[24mF")
+        .unwrap();
+    let expected = [
+        ("A", Underline::Single),
+        ("B", Underline::Double),
+        ("C", Underline::Curly),
+        ("D", Underline::Dotted),
+        ("E", Underline::Dashed),
+        ("F", Underline::None),
+    ];
+    let view = terminal.view().unwrap();
+    for (cell, (text, underline)) in view.cells.iter().zip(expected) {
+        assert_eq!(cell.text, text);
+        assert_eq!(cell.style.underline, underline);
+        assert_eq!(cell.width, 1);
+    }
+    assert_eq!(view.cursor.col, 6);
+    terminal.feed(b"G").unwrap();
+    let after = terminal.view().unwrap();
+    assert_eq!(&after.cells[..6], &view.cells[..6]);
+    assert_eq!(after.cells[6].text, "G");
+    assert_eq!(after.cells[6].style.underline, Underline::None);
+}
+
+#[test]
+fn x10_press_only_tracking_does_not_change_encoding_or_screen_contents() {
+    let mut terminal = GhosttyTerminalFactory.create(config()).unwrap();
+    terminal.feed(b"kept\x1b[?1006h").unwrap();
+    let before = terminal.view().unwrap();
+    terminal.feed(b"\x1b[?9h").unwrap();
+    let enabled = terminal.view().unwrap();
+    assert_eq!(enabled.modes.mouse, MouseTracking::Press);
+    assert!(enabled.modes.mouse_reporting());
+    assert_eq!(enabled.modes.mouse_encoding, MouseEncoding::Sgr);
+    assert_eq!(enabled.cells, before.cells);
+    assert_eq!(enabled.cursor, before.cursor);
+    terminal.feed(b"\x1b[?9l").unwrap();
+    let disabled = terminal.view().unwrap();
+    assert_eq!(disabled.modes.mouse, MouseTracking::None);
+    assert!(!disabled.modes.mouse_reporting());
+    assert_eq!(disabled.modes.mouse_encoding, MouseEncoding::Sgr);
+    assert_eq!(disabled.cells, before.cells);
+    assert_eq!(disabled.cursor, before.cursor);
+}

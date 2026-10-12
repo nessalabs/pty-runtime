@@ -1,0 +1,13 @@
+# V12 public-contract tests: adversarial review
+
+Reviewed the actual changes in tests/projected_runtime.rs and tests/projection_correctness.rs, their existing fixture implementations, the Session::resize/Runtime::with_projection/Drop paths, and retained targeted test evidence. No builds or measured programs were run by this reviewer.
+
+No P1/P2 finding in the reviewed change.
+
+The raw-resize assertion runs after the suffix has been read and the real Ghostty projected view has synchronized with the reference model. The attachment remains live, and the fixture emits no independent subsequent output at that point, so comparing processed cursor/control generation does not rely on racing pending work. The exact Unsupported error, unchanged cursor/generation, absent projection failure and independent real model view reject meaningful incorrect behavior. The existing subsequent projected resize still verifies both OS/model success. The assertion does not independently query the unchanged OS window size; source inspection confirms current rejection occurs before process resize dispatch. This is a limit of that test's observation, not an identified implementation defect.
+
+The repeated-services test begins with one live native terminal, calls the consuming public with_projection method, and requires exact InvalidConfiguration. Because that call consumes Runtime, its synchronous Drop shuts down the original projection before returning the error. A retained Session then reporting Closed plus the original adapter's live count dropping from one to zero establishes actual cleanup despite another public handle surviving. The replacement adapter remains uncreated with an empty operation trace. This exercises lifecycle ownership, not private coordinator fields.
+
+Extracting projection_services preserves the pre-existing adapter configuration. The rejected services remain caller-owned through an explicit clone and are explicitly shut down; scheduler/blocking Drop also calls shutdown if an assertion unwinds. Original services are shut down by Runtime ownership. No sleep or guessed completion deadline was introduced to satisfy these state assertions. No private production state, coverage exclusion, implementation branch or expected-count relaxation was added.
+
+Retained work/public-gap-tests-v12/targeted.json records `cargo test --test projection_correctness --test projected_runtime --all-features` exiting zero with all seven tests passed. The author reports formatting checks passed. This bounded source/test review does not replace the post-change mechanical/performance checks or full canonical coverage collection; those remain with the coordinator.

@@ -22,6 +22,8 @@ impl ITerminal for GhosttyTerminal {
                 &mut len,
             )
         };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::Feed, result);
         if let Err(error) = self.mutation(result) {
             replies.fill(0);
             return Err(error);
@@ -40,6 +42,8 @@ impl ITerminal for GhosttyTerminal {
         }
         // SAFETY: Validated dimensions and exclusive live owner; callbacks stay in C.
         let result = unsafe { ffi::rt_resize(self.raw.as_ptr(), size.cols(), size.rows()) };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::Resize, result);
         self.mutation(result)?;
         self.generation = generation;
         self.config.size = size;
@@ -72,6 +76,8 @@ impl ITerminal for GhosttyTerminal {
         let result = unsafe {
             ffi::rt_checkpoint(self.raw.as_ptr(), bytes.as_mut_ptr(), bytes.len(), &mut len)
         };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::Checkpoint, result);
         if result != 0 {
             bytes.fill(0);
             return Err(if result == -2 {
@@ -101,6 +107,8 @@ impl ITerminal for GhosttyTerminal {
         // history unit and relinquishes its borrowed source only when complete.
         let mut rows = 0;
         let result = unsafe { ffi::rt_history(self.raw.as_ptr(), &mut rows) };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::History, result);
         match result {
             1 => {
                 self.restoring = None;
@@ -134,7 +142,10 @@ impl ITerminal for GhosttyTerminal {
             return Err(TerminalError::HistoryIncomplete);
         }
         // SAFETY: Exclusive live owner; no other call may access pages during compression.
-        match unsafe { ffi::rt_compress(self.raw.as_ptr()) } {
+        let result = unsafe { ffi::rt_compress(self.raw.as_ptr()) };
+        #[cfg(test)]
+        let result = super::faults::result(super::faults::Point::Compress, result);
+        match result {
             0 => Ok(false),
             1 => Ok(true),
             -3 => Err(TerminalError::Unsupported),
