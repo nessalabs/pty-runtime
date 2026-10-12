@@ -3,7 +3,8 @@
 
 This is a readiness gate in addition to gate.py. Native C, other platforms, and
 branch instrumentation need their own evidence; this command cannot qualify them.
-Run native/bootstrap.py first. Requires cargo-llvm-cov and llvm-tools-preview.
+Run native/bootstrap.py first. Requires cargo-llvm-cov, llvm-tools-preview, and
+the reviewed coverage compiler wrapper on Darwin for continuous fork counters.
 """
 import argparse
 import hashlib
@@ -12,6 +13,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -23,7 +25,7 @@ def clean_environment():
     for name in ("RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS", "LLVM_PROFILE_FILE",
                  "CARGO_LLVM_COV", "CARGO_LLVM_COV_SHOW_ENV",
                  "CARGO_LLVM_COV_TARGET_DIR", "CARGO_TARGET_DIR",
-                 "PTY_RUNTIME_GUARDIAN_IMAGE"):
+                 "PTY_RUNTIME_GUARDIAN_IMAGE", "LLVM_PROFILE_FILE_NAME"):
         environment.pop(name, None)
     return environment
 
@@ -69,6 +71,14 @@ def main():
     helper_hash = hashlib.sha256(helper.read_bytes()).hexdigest() if helper_ok else None
     workspace_env = {**environment, "PTY_RUNTIME_GUARDIAN_IMAGE": str(helper),
                      "CARGO_TARGET_DIR": str(build_root / "workspace")}
+    # Forked materialization exits with _exit. The already verified Darwin
+    # continuous mode keeps its shared, atomic counters without exit hooks.
+    if platform.system() == "Darwin":
+        workspace_flags = ["-C", "llvm-args=-instrprof-atomic-counter-update-all"]
+        for section in ("cnts", "bits", "data"):
+            workspace_flags += ["-C", f"link-arg=-Wl,-sectalign,__DATA,__llvm_prf_{section},{os.sysconf('SC_PAGE_SIZE'):#x}"]
+        workspace_env.update(RUSTFLAGS=" ".join(workspace_flags),
+                             LLVM_PROFILE_FILE_NAME="workspace-%p%c.profraw")
     helper_env = {**environment, "CARGO_TARGET_DIR": str(build_root / "helper")}
     if helper_ok and run("workspace-clean", ["cargo", "llvm-cov", "clean", "--workspace"], workspace_env):
         # LLVM startup changes an instrumented helper's environment before exec.
@@ -85,14 +95,15 @@ def main():
         run("workspace-report", [
             "cargo", "llvm-cov", "report", "--json", "--output-path",
             str(output / "workspace.json")] + thresholds, workspace_env)
-    if run("helper-clean", ["cargo", "llvm-cov", "clean", "--workspace",
-                            "--manifest-path", "helpers/guardian/Cargo.toml"], helper_env):
-        run("helper-tests", ["cargo", "llvm-cov", "--locked", "--manifest-path",
-                             "helpers/guardian/Cargo.toml", "--all-targets",
-                             "--no-fail-fast", "--no-report"], helper_env)
-        run("helper-report", [
-            "cargo", "llvm-cov", "report", "--manifest-path", "helpers/guardian/Cargo.toml",
-            "--json", "--output-path", str(output / "helper.json")] + thresholds, helper_env)
+    # Helper paths end through fork/_exit/group kill. Continuous counters retain
+    # those executions without changing shutdown or the workload environment policy.
+    helper_evidence = output / "helper-continuous"
+    run("helper-continuous", [sys.executable, "scripts/guardian/coverage.py",
+        "--work", str(build_root / "helper-continuous"), "--evidence", str(helper_evidence),
+        "--require-complete"], helper_env)
+    helper_export = helper_evidence / "export.stdout.txt"
+    if helper_export.exists():
+        (output / "helper.json").write_bytes(helper_export.read_bytes())
     after = source_manifest()
     metadata = {
         "platform": platform.platform(), "architecture": platform.machine(),
@@ -101,7 +112,8 @@ def main():
         "uninstrumented_helper_sha256": helper_hash, "phases": phases,
         "run_owned_build_and_profile_root": str(build_root),
         "passed": before == after and all(p["exit_code"] == 0 for p in phases),
-        "scope": "Rust workspace feature matrix and separate helper test run",
+        "scope": "Rust workspace feature matrix and separate helper units, startup and protocol fixtures",
+        "continuous_workspace_profile": platform.system() == "Darwin",
         "not_measured_by_this_command": [
             "native C bridge", "upstream native dependency", "other platform configurations",
             "Python/build tooling", "Rust branch/MC/DC coverage"],
