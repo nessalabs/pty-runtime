@@ -1,0 +1,11 @@
+# Real native boundary tests after the continuous matrix
+
+The V12 inventory identified five unmapped-by-tests underline values and X10 mouse tracking in `terminal/projection.rs`, plus checkpoint byte-budget and dimension mismatch rejection in `terminal/mod.rs`. Existing native tests covered bold/italic/color, normal/button/all-motion tracking, corruption, compatibility identity and native allocation limits. They did not cover these contracts.
+
+The added `terminal_contract.rs` cases feed ordinary VT sequences through the real pinned Ghostty factory. They check exact text, widths and Single/Double/Curly/Dotted/Dashed/None underline values, preservation of earlier cells after reset, and subsequent undecorated output. X10 reports Press while SGR encoding stays independent; disabling X10 returns None without changing screen contents or cursor.
+
+The added `terminal_bounds.rs` cases use valid checkpoints produced by the same public factory. A restore budget one byte below the checkpoint length returns BudgetExceeded, while the exact length succeeds. A mismatched terminal size returns InvalidConfiguration, while the original size succeeds. Both failures preserve the source view; subsequent source/restored feeds produce equal views. No fabricated native record or failure hook is used.
+
+The materializer cases use its existing module write entry point. A chmod-0500 private parent produces PermissionDenied, leaves the requested path absent and the existing file intact, and permits a successful retry after restoring directory permissions. An embedded-NUL path returns InvalidCommand without altering the existing prefix file or adding an entry, followed by a successful valid-path write. Every attempt compares the calling thread's full signal-mask membership. Directory cleanup restores owner permissions before removal, including during assertion unwinding. The protected-parent case ran as unprivileged uid 501; it depends on normal permission enforcement and does not claim privileged-root coverage.
+
+Validation: 12 native terminal tests and all six materializer tests pass; formatting passes. Raw logs are retained under ignored `work/native-public-gaps/terminal.log` and `materializer.log`. The new tests made no production changes. Independent reviews and the final frozen mechanical/coverage gates remain separate.

@@ -945,6 +945,141 @@ coverage. Functional regression proof is independent. A bounded default-versus-a
 and was inconclusive. Coverage integrity, the 100% target and full
 release/platform qualification remain open.
 
+### Bounded coverage verification before fault injection
+
+The newer pinned Darwin measurement resolves the previously observed saturated
+derived counters for this recorded run. The reviewed V12 coverage compiler uses
+physical counters, and continuous atomic counters retain forked executions that
+end through `_exit` or group termination. This is explicitly selected measurement
+tooling, not a claim that the stock Rust compiler anomaly is fixed upstream.
+No runtime profiling hooks, exclusions, lower thresholds or weakened assertions
+were introduced.
+
+The final complete workspace feature matrix and separate helper collection took
+212.227 seconds, with all functional phases passing and all 353 source and 45,710
+tool/cache hashes unchanged. Both strict 100% report gates **failed**:
+
+| Scope | Lines | Functions | Regions |
+| --- | --- | --- | --- |
+| Rust workspace | 10,051 / 10,529 (95.46%) | 1,035 / 1,097 (94.35%) | 23,579 / 27,018 (87.27%) |
+| Guardian, including units/startup/protocol fixtures | 1,580 / 1,739 (90.86%) | 124 / 127 (97.64%) | 3,945 / 4,716 (83.65%) |
+
+Evidence is retained under `work/coverage-closure/full-current-continuous02`.
+All 355 workspace profiles conserve their physical counters into the merged
+profile; 860,823 exported count values have no saturation. The helper includes
+all 23 real protocol probes, 17 unit tests and two startup tests, with its
+compiled source inventory, macro aliases and 53 profiles checked separately.
+Independent review records the duplicate-record and empty-profile handling and
+its limits in [the collector review](reviews/guardian-collector-integration-quality.md)
+and [the counter audit](reviews/workspace-counter-audit-adversarial.md).
+
+New meaningful tests cover raw/projected resize ownership, rejected replacement
+projection services, real public clock failure before output admission and
+already-pending waits, all five underline styles, X10 mouse mode, checkpoint
+restore byte/dimension rejection, and materializer permission/NUL failures with
+successful retries and preserved caller signal masks. Journal poison recovery
+uses equivalent method references instead of seven redundant adapter closures.
+Separate code-quality, adversarial and dependency-direction reviews found no
+unresolved scoped P1/P2 findings; the [native test record](reviews/native-public-gap-tests.md)
+links its three independent reviews.
+
+The final actual-source mechanical gate passed in 145.149 seconds with unchanged
+sources (`work/coverage-closure/final-current-gate01`). Its performance results
+remain retained. A separately recorded repetition closes missing prospective
+artifact/environment bindings using the same existing workloads, clean profiling
+settings and prebuilt ordinary release executables: one four-MiB-per-session
+trial at one and 16 sessions, plus all 25 domain trials. Sources and all 1,607
+bound tool/native/release artifacts remained unchanged; exact raw/parser bytes
+and zero observed descendants after shutdown were verified. This is scoped
+measurement, not a new paired regression comparison, speedup claim or release
+repetition/soak qualification. Evidence is under
+`work/coverage-closure/final-bound-performance01`.
+
+Coverage readiness remains blocked. Some remaining helper retry paths need actual
+OS allocation/discovery failure, and invalid native enum guards require a native
+contract violation; the supported APIs do not provide demonstrated deterministic
+triggers. Those paths remain in the inventory. See
+[the helper gaps](reviews/helper-remaining-gaps-adversarial.md) and
+[the boundary assessment](reviews/native-public-gap-tests-ddd.md).
+Rust branches are unmeasured (0/0), and other platform configurations and the
+upstream engine remain separate qualification gaps. The previously verified
+own-C 100% result does not discharge them. Neither PR is promoted to ready, and
+the requested 100% target has not been achieved.
+
+### Test-only failure injection and latest coverage
+
+The user authorized minimal test-only fault injection for previously untriggered
+OS failure/retry and native-contract paths. The controls compile only in test
+targets. Ordinary helper and infrastructure builds contain no runtime fault
+switch, feature, environment hook or dispatch cost.
+
+Four real-process helper scenarios now verify discovery/anchor refusal,
+ownership retention and retry, handoff refusal with responsive channels, and
+TERM grace followed by actual SIGKILL/reaping. Their custom Cargo test entry is
+genuinely single threaded. Nine real-Ghostty boundary tests verify malformed
+native replies, retry failure, mutation invalidation and read-only recovery.
+Materializer tests exercise syscall interruption, admission and writer failures,
+inode cleanup/retry and repeated signal-mask restoration failure using a scalar
+fault plan copied before fork. Child injection uses no TLS, allocation, locking
+or Rust callbacks. Persistent restoration failure is reported; a separate test
+guard restores the caller's mask after observing that failure.
+
+Independent review found a P2 receipt-channel race: another fork could retain a
+socket duplicate and postpone EOF. A real parked-child regression failed before
+the fix and passed after shutting down the completed writer's socket direction.
+All 42 infrastructure unit tests then passed. Quality, adversarial and DDD
+re-reviews closed the finding; no scoped P1/P2 remains. See
+[fault-seam quality](reviews/test-fault-seams-quality.md),
+[materializer adversarial review](reviews/materializer-faults-adversarial.md) and
+[ownership re-review](reviews/receipt-dependency-ownership-ddd.md).
+
+The coverage collector retains the new declared test target. Source-path
+duplication was corrected at the fixture entry, without suppressing exported
+records. Generated standard-library and libc owners are retained, including
+zero counts. Cargo's selected dependency metadata, locked archive checksum,
+exact archive/source bytes and actual library dep-info bind those owners.
+Independent [quality](reviews/coverage-primary-owners-quality.md) and
+[adversarial](reviews/coverage-primary-owners-adversarial.md) reviews verify the
+complete source/object/profile inventory and physical merge conservation.
+
+The final full matrix took 216.273 seconds. All functional phases passed, with
+361 source files and 45,710 tool/cache inputs unchanged. Both strict 100%
+threshold gates still **failed**:
+
+| Scope | Lines | Functions | Regions |
+| --- | --- | --- | --- |
+| Rust workspace | 10,200 / 10,652 (95.76%) | 1,048 / 1,109 (94.50%) | 23,902 / 27,270 (87.65%) |
+| Guardian selected objects, including test/imported code | 1,875 / 2,030 (92.36%) | 154 / 155 (99.35%) | 4,750 / 5,655 (84.00%) |
+
+Evidence is under `work/coverage-closure/full-test-fault-matrix03`. All 355
+workspace profiles conserve 307,048 counters into the merge, and all 863,978
+exported count values are nonsaturated. The helper retains 54 profiles, all 23
+protocol probes and all 71 successful collector subprocesses. Uncovered and
+unmeasured code remains explicit; other platforms and Rust branch coverage are
+not qualified by this run.
+
+The final mechanical gate passed in 160.800 seconds with unchanged sources
+(`work/coverage-closure/final-test-fault-gate01`). Existing scoped performance
+workloads also passed in a separate clean, prospectively bound run under
+`work/coverage-closure/final-test-fault-bound-performance01`: the one/16-session
+four-MiB trials verify exact bytes and zero observed descendants after shutdown;
+all 25 domain trials are retained. This does not establish a new paired
+regression comparison, a speedup, full repetition or soak qualification.
+
+The 100% target has an additional concrete incompatibility with passing the
+unchanged test suite: its region denominator includes original assertion-failure
+branches. An independent audit of the actual domain test binary proves that the
+zero region for the redaction assertion leads to its failure counter and
+`core::panicking::panic`; the successful condition executes three times. See
+[the assertion audit](reviews/assertion-failure-region-quality.md). The helper's
+remaining zero function is a standard-library TLS `needs_drop` branch that is
+statically false for the test control's non-dropping type. Neither branch is
+covered by introducing correct OS/native failure responses. We have not weakened
+assertions, manufactured passing evidence from failed tests, excluded these
+records or altered the compiler to label them covered. Other production gaps
+remain as well. The requested 100% result is not achieved, neither PR is promoted
+to ready, and no broader milestone or release qualification is claimed.
+
 ## Where to look next
 
 | Want | Go here |
