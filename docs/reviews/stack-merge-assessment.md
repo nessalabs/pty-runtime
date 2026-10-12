@@ -36,3 +36,17 @@ No PR was merged, no review conversation was resolved, and no coverage or review
 gate was waived. The follow-up is published separately as a draft stacked on
 #26. Merge the parents in dependency order only after their blockers are fixed,
 affected checks pass and independent re-review confirms resolution.
+
+## Reviewed corrections propagated on 2026-10-12
+
+PR #25's findings are now fixed by addeb58 and 2ead4a2, independently re-reviewed with retained RED/GREEN evidence and a passing 165.727s mechanical gate. Both review conversations were resolved only after the code and evidence were published. The new head a8b21fa has passing hosted Linux/macOS/MSRV and PTY checks. Historical unresolved-finding statements above describe the pre-fix assessment.
+
+Ordinary branch merges propagated those fixes to #26 and #27 without force-pushing. Fresh #26 CI exposed an old dependent expectation that malformed UTF-8 app erases the earlier app. db2f0af corrects stored/resolved app to exactly `earlier` and strengthens continued-message parsing; no assertion is removed. All 24 targeted domain tests pass; separate quality/adversarial/DDD reviews pass and the corrected #26 mechanical gate passes in 225.778s. The failed CI/local fixture runs remain recorded.
+
+PR #27 head `55174b8` contains the propagated corrections. All hosted Linux/macOS quality, MSRV and PTY experiment checks pass at the published heads of #25 (`a8b21fa`), #26 (`db2f0af`) and #27 (`55174b8`). CodeRabbit skipped the dependent-base/draft reviews; those statuses do not replace the independent reviews recorded here.
+
+The final combined-source mechanical gate passes in 195.998331 seconds with all 361 source hashes unchanged (`work/pr25-blockers/final-stack-gate01`). The complete coverage matrix executes successfully across all feature phases and helper commands, but both strict 100% collectors fail. Workspace coverage is 10,195/10,646 lines (95.763667%), 1,049/1,109 functions (94.589720%) and 23,892/27,264 regions (87.632042%). Helper coverage is 1,871/2,030 lines (92.167488%), 154/155 functions (99.354839%) and 4,732/5,655 regions (83.678161%). Rust branches remain unmeasured (0/0).
+
+The independent integrity audit confirms exact raw-counter sums, preserved profile populations and unchanged source/tool/import hashes. It does not turn missing hits into coverage. Results and the failed strict collector exits remain under `work/coverage-closure/pr25-fixed-stack-coverage02`, with the independent assessment in `pr25-blockers-quality.md`. No exclusions, thresholds or assertions were weakened.
+
+No GitHub PR has been merged. The conditional authorization to merge #25, #26 and #27 in that order remains unmet while the strict coverage requirement fails. #27 remains draft.

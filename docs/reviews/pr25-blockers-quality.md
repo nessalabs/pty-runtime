@@ -121,3 +121,63 @@ Scoped quality review passes with no P1/P2 finding. This does not waive the
 separate strict coverage requirement or constitute a whole-stack gate pass.
 
 Reviewed test SHA-256: `52b45ccbf230b743a20467227a84c95364a6022cac3c0d949931a97844370a88`.
+
+## Combined stack coverage audit at 55174b8
+
+Independently inspected `work/coverage-closure/pr25-fixed-stack-coverage02`
+after both fixes and the dependent oracle correction propagated. The unchanged
+strict runner completed in 310.439 seconds. All three workspace functional
+feature phases pass; the workspace and helper strict completeness reports fail.
+Workspace: 10,195/10,646 lines, 1,049/1,109 functions, 23,892/27,264 regions.
+Helper: 1,871/2,030 lines, 154/155 functions, 4,732/5,655 regions. Branch and
+MC/DC coverage remain unsupported; native and other-platform coverage remain
+outside this measured scope. There is no 100% pass and no merge acceptance.
+
+All 361 recorded source hashes and 45,710 compiler/tool-source hashes match
+current files. The workspace physical-counter auditor differs from the
+previously reviewed auditor only in its output-directory selection. All 360
+bound audit input hashes match, as does the exact 355-profile population.
+Independently parsed all 60 retained empty-profile summaries: their function,
+block, and total counts are zero. The bound audit conserves 307,117 counters
+across 42,632 raw identities into 15,616 merged identities plus 27,016
+zero-only omitted identities; it accumulates duplicate physical records.
+The exported 864,160 count values have maximum 100,643,809 and no saturation.
+This re-review checks the bound auditor and its input integrity; it does not
+claim a second independent full LLVM decode of every raw profile.
+
+Helper inventory hashes match for 32 source inputs, 293 tool inputs, 2,909
+installed Rust source files, 389 dependency files, and all 59 binary/profile
+inputs. Its exact raw population is 54 profiles, and all 71 command records
+pass. Its bound counter conservation is 296 raw identities into 272 merged
+plus 24 zero-only omitted, with 4,020 counters and maximum raw sum 328,975.
+The export checks 16,809 counts, maximum 339,583, without saturation; helper
+readiness totals match the retained export. Integrity review passes within
+this measurement scope; the strict completeness result remains FAIL.
+
+## Final-stack mechanical and scoped performance re-review
+
+`work/pr25-blockers/final-stack-gate01` passes in 195.998 seconds at 55174b8;
+all 361 recorded source hashes still match. Independently reviewed prospective
+`work/coverage-closure/pr25-final-stack-bound-performance01`: all 1,607 bound
+artifact/native/tool hashes match before, after and current files, including
+the exact 355-file release population. The collector differs from the
+previously reviewed collector only in its output directory. Cargo JSON selects
+one executable for each workload, and the nested Running paths select those
+exact executables without compilation/checking/dirty artifacts during capture.
+Neither executable contains LLVM profile sections. Runtime, domain and bundled
+helper symbol inspections and the selected dependency files show no reviewed
+test fault-injection code entering these release measurements.
+
+Runtime trial at 1/16 sessions completes in 49.284/705.021 ms, with startup
+258.247/209.395 ms and cleanup 1.648/1.391 ms. Validated raw and parsed counts
+match at 4,194,326/67,109,222 bytes; both shutdown samples retain five file
+descriptors and zero descendants. Post-processing process RSS is
+11,517,952/147,931,136 bytes. These are process point samples, not total or peak
+memory. Domain evidence retains all 25 correctly ordered positive trials;
+median ordinary/oversized/query/saturated/one-byte times are respectively
+0.861/12.270/6.316/13.414/10.144 ms. All original raw trials remain retained.
+
+Scoped performance review passes. This establishes the stated workloads and
+artifact identity, not a relative regression threshold, speedup, full release
+qualification, repetitions or soak. The strict coverage failure above remains
+a merge blocker. No reviewer builds or benchmark reruns were performed.

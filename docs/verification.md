@@ -1133,3 +1133,31 @@ correction. See `docs/reviews/pr26-stale-*.md`, the PR 25 quality ledger, and
 `work/pr25-blockers/pr26-stale-oracle-{red,green}.log`. Full propagated-source,
 hosted and strict coverage checks remain separate; no PR is merged by this
 fixture correction.
+
+### Final corrected-stack validation (2026-10-12)
+
+At code head `55174b8`, the complete mechanical gate passes in 195.998331 seconds
+with all 361 source hashes unchanged. All hosted Linux/macOS quality, MSRV and
+PTY experiment checks pass on the corrected heads of #25, #26 and #27.
+Independent quality, adversarial and DDD reviews find no remaining P1/P2 in the
+scoped blocker corrections. A prospective bound rerun of the existing runtime
+and domain performance workloads passes with source/artifact hashes and
+populations unchanged; this is scoped workload evidence, not a new speedup or
+soak claim. See `work/pr25-blockers/final-stack-gate01` and
+`work/coverage-closure/pr25-final-stack-bound-performance01`.
+
+The complete corrected-stack coverage matrix finishes every functional phase
+successfully, with counter integrity independently verified. Strict 100%
+coverage still FAILS: workspace lines 95.763667%, functions 94.589720%, regions
+87.632042%; helper lines 92.167488%, functions 99.354839%, regions 83.678161%.
+Rust branch coverage is unmeasured, not 100%. The unchanged assertion-failure
+regions and statically false helper branch limitations recorded earlier remain;
+real production gaps also remain. No missing hits are fabricated, failed-test
+profiles used to manufacture a pass, or code excluded. The failed strict
+collector exits are retained in
+`work/coverage-closure/pr25-fixed-stack-coverage02`.
+
+The two #25 review conversations are resolved after publication and independent
+re-review; the fixes and strengthened dependent UTF-8 test are propagated through
+#26 and #27. No PR is merged because the requested coverage condition is unmet.
+See `docs/reviews/stack-merge-assessment.md` for the merge assessment.
