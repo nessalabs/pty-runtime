@@ -452,15 +452,76 @@ fn malformed_id_outside_value_alphabet_cannot_overwrite_root() {
     }
 }
 
+fn assert_duplicate_app_at_every_boundary(value: &[u8], expected: Option<&str>) {
+    for terminator in [b"\x07".as_slice(), b"\x1b\\".as_slice()] {
+        let mut bytes = b"\x1b]7501;state=working:app=earlier:app=".to_vec();
+        bytes.extend_from_slice(value);
+        bytes.extend_from_slice(b":state=done:msg=b2s=");
+        bytes.extend_from_slice(terminator);
+        for split in 0..=bytes.len() {
+            let mut store = ProgramStatusStore::default();
+            feed(&mut store, &bytes[..split]);
+            feed(&mut store, &bytes[split..]);
+            let snapshot = store.records();
+            assert_eq!(snapshot.records.len(), 1, "split={split}");
+            let record = &snapshot.records[0];
+            assert_eq!(record.state, ProgramState::Done);
+            assert_eq!(record.msg.as_deref(), Some("ok"));
+            assert_eq!(
+                record.app.as_deref(),
+                expected,
+                "split={split}, value={value:?}"
+            );
+            assert_eq!(record.resolved_app.as_deref(), expected);
+        }
+    }
+}
+
 #[test]
-fn invalid_last_app_is_absent_instead_of_reviving_earlier_duplicate() {
-    let mut store = ProgramStatusStore::default();
-    for app in ["bad,app", "bad!", "bad app"] {
-        report(&mut store, &format!("state=done:app=earlier:app={app}"));
-        assert!(
-            store.records().records[0].app.is_none(),
-            "invalid app {app}"
-        );
+fn malformed_duplicate_app_preserves_earlier_value_at_every_chunk_boundary() {
+    // These pairs fail the general value grammar and therefore do not replace
+    // an earlier syntactically valid occurrence of the key.
+    for value in [
+        b"bad!".as_slice(),
+        b"bad app".as_slice(),
+        b"bad\xff".as_slice(),
+    ] {
+        assert_duplicate_app_at_every_boundary(value, Some("earlier"));
+    }
+}
+
+#[test]
+fn syntactically_valid_duplicate_app_replaces_earlier_value() {
+    // Comma is allowed by pair syntax but not by the app-specific grammar.
+    // Empty app is also syntactically valid, so both replace with absence.
+    for value in [b"bad,app".as_slice(), b"".as_slice()] {
+        assert_duplicate_app_at_every_boundary(value, None);
+    }
+    assert_duplicate_app_at_every_boundary(b"later", Some("later"));
+}
+
+#[test]
+fn malformed_duplicate_app_still_enforces_byte_limit_before_skipping() {
+    for invalid_byte in [b'!', 0xff] {
+        let mut at_limit = vec![b'a'; 31];
+        at_limit.push(invalid_byte);
+        assert_duplicate_app_at_every_boundary(&at_limit, Some("earlier"));
+
+        let mut bytes = b"\x1b]7501;state=error:app=earlier:app=".to_vec();
+        bytes.extend_from_slice(&at_limit);
+        bytes.extend_from_slice(b"a:app=later\x07");
+        for split in 0..=bytes.len() {
+            let mut store = ProgramStatusStore::default();
+            report(&mut store, "state=done:app=protected:msg=b2s=");
+            let before = store.records();
+            feed(&mut store, &bytes[..split]);
+            feed(&mut store, &bytes[split..]);
+            assert_eq!(
+                store.records(),
+                before,
+                "split={split}, byte={invalid_byte}"
+            );
+        }
     }
 }
 
