@@ -129,26 +129,28 @@ fn materializer_aborted_open_unlinks_partial_file_and_preserves_mask() {
 }
 
 #[test]
-fn materializer_protected_parent_preserves_existing_files_and_caller_mask() {
+fn materializer_open_eacces_preserves_existing_files_and_caller_mask() {
+    use super::fault::{self, Point};
     let directory = Directory::new();
     let path = directory.0.join("image");
     let retained = directory.0.join("retained");
     fs::write(&retained, b"original").unwrap();
-    fs::set_permissions(&directory.0, fs::Permissions::from_mode(0o500)).unwrap();
     let _mask = SignalMask::install();
     let before = SignalMask::current();
-    let result = write(&path, b"new");
-    fs::set_permissions(&directory.0, fs::Permissions::from_mode(0o700)).unwrap();
+    // Inject the open result: directory permissions need not deny UID 0.
+    // This checks materializer recovery from EACCES, not OS permission policy.
+    let (result, consumed) = fault::write(&path, b"new", Point::Open, -1, libc::EACCES, 1);
+    assert_eq!(
+        consumed, b"F",
+        "the open fault must be consumed exactly once"
+    );
     assert_eq!(SignalMask::current(), before);
     assert_eq!(result, Err(ProcessError::PermissionDenied));
     assert!(!path.exists());
     assert_eq!(fs::read(&retained).unwrap(), b"original");
-    write(&path, b"retry after permission restoration").unwrap();
+    write(&path, b"retry after open failure").unwrap();
     assert_eq!(SignalMask::current(), before);
-    assert_eq!(
-        fs::read(&path).unwrap(),
-        b"retry after permission restoration"
-    );
+    assert_eq!(fs::read(&path).unwrap(), b"retry after open failure");
 }
 
 #[test]

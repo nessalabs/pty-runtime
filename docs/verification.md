@@ -1177,3 +1177,27 @@ The documentation-head #27 MSRV jobs initially failed before Rust tests because
 Codeberg returned HTTP 503 for the pinned native dependency archive. Failed-job
 reruns preserve the original failure history. This is a download failure, not
 evidence of compiler incompatibility; successful execution is still required.
+
+### Final PR 27 review corrections
+
+Fresh Codex/CodeRabbit review identified a test portability defect: UID 0 can
+bypass a directory's 0500 mode. The fixture now injects exactly one Open/EACCES
+through the existing test-only syscall seam. It asserts exact fault consumption,
+PermissionDenied, absent new inode, retained sibling bytes, unchanged caller
+signal mask and a successful uninjected retry with exact bytes. No UID is
+skipped, production code changed or outcome assertion weakened. This test
+proves EACCES recovery, not host discretionary-access-control enforcement.
+The original root failure is reported by the hosted reviewer; the local host
+cannot run as root without credentials, so no local root RED is claimed.
+
+The corrected named test runs and passes (targeted03). Two earlier module-name
+filters selected zero tests; their exit-zero outputs are retained but are not
+acceptance evidence. The complete gate then passes in 67.510884
+seconds with unchanged source hashes, including the existing scoped runtime
+and domain performance checks. Independent quality, adversarial and DDD
+reviews are under `docs/reviews/pr27-permission-fixture-*.md`. The stale
+direct-counter review heading is corrected to reflect the later closed mapping
+findings while preserving historical failures and the unmet strict coverage
+requirement. Existing coverage percentages describe the prior measured source,
+not a new coverage run of this test-only correction. The explicit merge
+authorization for the documented shortfall remains in effect.

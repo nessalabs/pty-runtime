@@ -66,3 +66,15 @@ The documentation-head #27 MSRV jobs initially failed before Rust tests because
 Codeberg returned HTTP 503 for the pinned native dependency archive. Failed-job
 reruns preserve the original failure history. This is a download failure, not
 evidence of compiler incompatibility; successful execution is still required.
+
+### Merge progress after explicit authorization
+
+PR #25 merged first as `a566890cba73ec06b6eae71479a6a5fdb7da0417`,
+then #26 was retargeted to main and merged as
+`137b0557904c9522bfe816ab3ab84ee4e29df97d`. Both verified checked heads were
+unchanged when merged; no administrator bypass was used. PR #27 now targets
+main and is ready for review. Fresh review identified the UID-dependent EACCES
+fixture and stale direct-counter decision heading; both are corrected with
+independent review and a new passing full gate. See the final PR 27 correction
+section of `docs/verification.md`. PR #27 must still pass hosted checks and have
+its corrected review conversations resolved before its authorized merge.

@@ -2,7 +2,7 @@
 
 ## Current decision
 
-**V10 remains BLOCKED by missing identity-macro entry mappings.** Its new statement case does not cover direct let-initializer identity expansion: nine required invocation-token bytes are unmapped. The fixed V9 fork/abrupt-death calibration now also passes lone/whole-group death with no instrumented survivor, within the recorded Darwin setup. These persistence results do not discharge the source-ownership blocker, full matrix, or 100% readiness requirements.
+**The identity-macro and forwarded-parent mapping findings are resolved by the later scoped V10–V12 re-reviews below.** The final corrected-stack matrix and independent counter-integrity audit are recorded in `pr25-blockers-quality.md` and `stack-merge-assessment.md`; those runs do not satisfy the strict 100% coverage target. Readiness therefore remains incomplete. The user subsequently authorized merging with the documented coverage shortfall; that authorization does not change any coverage value or establish full release qualification. Earlier blocker decisions below are retained as review history, not current unresolved mapping findings.
 
 Reviewer: `retained_eof_adversarial`, independent of the wrapper author. This reviewer authored the side-effect oracles before execution and inspected the actual wrapper implementation, stock compiler query, execution records, full LLVM exports and validator results. The coordinating parent executed the oracles; this review ran no build or test.
 
