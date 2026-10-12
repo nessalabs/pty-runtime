@@ -1,7 +1,12 @@
 //! Real pinned Ghostty terminal adapter; enable the `ghostty` feature to build it.
+#[cfg(test)]
+mod faults;
 mod ffi;
 mod projection;
 mod state;
+#[cfg(test)]
+#[path = "../../tests/fixtures/terminal_faults.rs"]
+mod tests;
 use pty_runtime_application::terminal::{ITerminal, ITerminalFactory};
 use pty_runtime_domain::terminal::*;
 use std::{ffi::c_void, ptr::NonNull};

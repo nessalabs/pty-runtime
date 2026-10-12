@@ -21,6 +21,8 @@ pub fn handoff(
     parent: i32,
     generation: u64,
 ) -> io::Result<()> {
+    #[cfg(test)]
+    crate::fault_injection::check(crate::fault_injection::Operation::Handoff)?;
     let (mut parked, monitor) = UnixStream::pair()?;
     let pid = os::fork()?;
     if pid == 0 {

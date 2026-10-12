@@ -1,4 +1,7 @@
 //! Independent bounded regressions for projection/runtime ownership failures.
+#[path = "projection_correctness/clock_failure.rs"]
+mod clock_failure;
+
 mod terminal {
     pub use pty_runtime_application::terminal::{ITerminal, ITerminalFactory};
 }
@@ -69,20 +72,22 @@ fn configured_owner(options: RuntimeOptions, backend: Arc<dyn IProcessBackend>) 
         options,
         Arc::new(MemorySessionRepository::default()),
         backend,
-        ProjectionServices {
-            terminal: Arc::new(native_fixture::Factory(Arc::new(
-                native_fixture::Probe::default(),
-            ))),
-            clock: Arc::new(MonotonicSystemClock::default()),
-            scheduler: Arc::new(StdWorkScheduler::with_workers(2, 1).unwrap()),
-            blocking: Arc::new(BoundedBlockingExecutor::new(2, 1).unwrap()),
-            capacity: Arc::new(CondvarCapacitySignal::default()),
-            store: Arc::new(provider_fixture::Store::default()),
-            protector: Arc::new(provider_fixture::Protector::default()),
-        },
+        projection_services(Arc::new(native_fixture::Probe::default())),
     )
     .unwrap()
 }
+fn projection_services(probe: Arc<native_fixture::Probe>) -> ProjectionServices {
+    ProjectionServices {
+        terminal: Arc::new(native_fixture::Factory(probe)),
+        clock: Arc::new(MonotonicSystemClock::default()),
+        scheduler: Arc::new(StdWorkScheduler::with_workers(2, 1).unwrap()),
+        blocking: Arc::new(BoundedBlockingExecutor::new(2, 1).unwrap()),
+        capacity: Arc::new(CondvarCapacitySignal::default()),
+        store: Arc::new(provider_fixture::Store::default()),
+        protector: Arc::new(provider_fixture::Protector::default()),
+    }
+}
+
 #[test]
 fn process_future_panic_does_not_strand_runtime_shutdown() {
     let runtime = owner();
@@ -298,4 +303,48 @@ fn resize_panic_during_close_keeps_cleanup_scheduled() {
         session.projection_status().unwrap().unwrap().residency,
         Residency::Closed
     );
+}
+
+#[test]
+fn replacing_projection_services_is_rejected_and_closes_the_consumed_owner() {
+    let original = Arc::new(native_fixture::Probe::default());
+    let replacement = Arc::new(native_fixture::Probe::default());
+    let runtime = pty_runtime_application::runtime::Runtime::new(
+        95,
+        RuntimeOptions::default(),
+        Arc::new(MemorySessionRepository::default()),
+        Arc::new(Backend),
+    )
+    .unwrap()
+    .with_projection(projection_services(original.clone()))
+    .unwrap();
+    let session = runtime
+        .spawn(
+            SessionId::new("replacement-services".into()).unwrap(),
+            &CommandSpec::new("/unused".into(), "/".into(), vec![]).unwrap(),
+            SessionOptions::projected(terminal_config()),
+        )
+        .unwrap();
+    assert_eq!(original.alive.load(std::sync::atomic::Ordering::Acquire), 1);
+    let rejected = projection_services(replacement.clone());
+    let result = runtime.with_projection(rejected.clone());
+    assert!(matches!(
+        result,
+        Err(RuntimeError::Projection(
+            ProjectionError::InvalidConfiguration
+        ))
+    ));
+    assert_eq!(
+        session.projection_status().unwrap().unwrap().residency,
+        Residency::Closed
+    );
+    assert_eq!(original.alive.load(std::sync::atomic::Ordering::Acquire), 0);
+    assert_eq!(
+        replacement.alive.load(std::sync::atomic::Ordering::Acquire),
+        0
+    );
+    assert!(replacement.trace.lock().unwrap().is_empty());
+    // Rejected services never transfer ownership; the caller stops its pools.
+    rejected.scheduler.shutdown();
+    rejected.blocking.shutdown();
 }

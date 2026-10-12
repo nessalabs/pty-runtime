@@ -34,6 +34,8 @@ impl Anchor {
         foreground: bool,
         generation: u64,
     ) -> io::Result<Self> {
+        #[cfg(test)]
+        crate::fault_injection::check(crate::fault_injection::Operation::Anchor)?;
         let (parent, child) = UnixStream::pair()?;
         // Complete fallible parent transport setup before creating a child whose
         // ledger must be retained until wait observes its exit.

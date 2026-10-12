@@ -8,13 +8,37 @@ use std::{
 };
 
 #[cfg(test)]
+#[path = "../../tests/fixtures/process_image_syscall_fault.rs"]
+mod fault;
+#[cfg(test)]
 #[path = "../../tests/fixtures/process_image_materialize_hook.rs"]
 mod hook;
+
+macro_rules! syscall {
+    ($fault:ident, $point:ident, $operation:expr) => {{
+        #[cfg(test)]
+        {
+            match $fault
+                .as_mut()
+                .and_then(|plan| plan.take(fault::Point::$point))
+            {
+                Some(result) => result as _,
+                None => $operation,
+            }
+        }
+        #[cfg(not(test))]
+        {
+            $operation
+        }
+    }};
+}
 
 pub(super) fn write(path: &Path, bytes: &[u8]) -> Result<(), ProcessError> {
     write_inner(
         path,
         bytes,
+        #[cfg(test)]
+        None,
         #[cfg(test)]
         None,
     )
@@ -27,19 +51,20 @@ pub(super) fn write_observed(
     observer: &mut dyn FnMut(),
 ) -> Result<(), ProcessError> {
     let hook = hook::Hook::new(observer).map_err(super::super::error)?;
-    write_inner(path, bytes, Some(&hook))
+    write_inner(path, bytes, Some(&hook), None)
 }
 
 #[cfg(test)]
 pub(super) fn write_abort_after_open(path: &Path, bytes: &[u8]) -> Result<(), ProcessError> {
     let hook = hook::Hook::abort_after_open().map_err(super::super::error)?;
-    write_inner(path, bytes, Some(&hook))
+    write_inner(path, bytes, Some(&hook), None)
 }
 
 fn write_inner(
     path: &Path,
     bytes: &[u8],
     #[cfg(test)] hook: Option<&hook::Hook<'_>>,
+    #[cfg(test)] mut fault: Option<fault::Fault>,
 ) -> Result<(), ProcessError> {
     let path =
         CString::new(path.as_os_str().as_bytes()).map_err(|_| ProcessError::InvalidCommand)?;
@@ -48,10 +73,14 @@ fn write_inner(
     // SAFETY: both outputs are writable sigset_t storage. Block inherited handlers
     // before fork; the child performs only raw operations and keeps this mask.
     let mask_error = unsafe {
-        if libc::sigfillset(blocked.as_mut_ptr()) != 0 {
+        if syscall!(fault, SigFill, libc::sigfillset(blocked.as_mut_ptr())) != 0 {
             return Err(super::super::error(std::io::Error::last_os_error()));
         }
-        libc::pthread_sigmask(libc::SIG_SETMASK, blocked.as_ptr(), previous.as_mut_ptr())
+        syscall!(
+            fault,
+            InstallMask,
+            libc::pthread_sigmask(libc::SIG_SETMASK, blocked.as_ptr(), previous.as_mut_ptr())
+        )
     };
     if mask_error != 0 {
         return Err(super::super::error(std::io::Error::from_raw_os_error(
@@ -61,7 +90,7 @@ fn write_inner(
     // SAFETY: the child uses only inherited immutable byte/path storage and
     // async-signal-safe syscalls, with no allocation, locking, unwinding or Drop.
     // The parent never opens the executable inode for writing.
-    let pid = unsafe { libc::fork() };
+    let pid = unsafe { syscall!(fault, Fork, libc::fork()) };
     if pid == 0 {
         #[cfg(test)]
         if let Some(hook) = hook {
@@ -72,6 +101,8 @@ fn write_inner(
             bytes,
             #[cfg(test)]
             hook,
+            #[cfg(test)]
+            fault,
         );
         // SAFETY: exit the owned materializer without inherited Rust destructors.
         unsafe { libc::_exit(status) }
@@ -83,10 +114,18 @@ fn write_inner(
     }
     // Restore before any other parent work. Retry EINTR; surface restore failure
     // even when fork itself failed so this thread cannot keep a full block mask.
-    let mut restore_error = restore_mask(&previous);
+    let mut restore_error = restore_mask(
+        &previous,
+        #[cfg(test)]
+        &mut fault,
+    );
     if let Some(error) = fork_error {
         if restore_error != 0 {
-            restore_error = restore_mask(&previous);
+            restore_error = restore_mask(
+                &previous,
+                #[cfg(test)]
+                &mut fault,
+            );
         }
         return Err(super::super::error(if restore_error != 0 {
             std::io::Error::from_raw_os_error(restore_error)
@@ -98,7 +137,11 @@ fn write_inner(
     let observed = hook.map(hook::Hook::observe);
     // Child unlinks after a successful open that later fails. Parent only removes
     // when the child may have been killed before that cleanup could run.
-    let (result, remove) = reap(pid);
+    let (result, remove) = reap(
+        pid,
+        #[cfg(test)]
+        &mut fault,
+    );
     if remove {
         unlink_path(&path);
     }
@@ -110,7 +153,11 @@ fn write_inner(
         }
     }
     if restore_error != 0 {
-        restore_error = restore_mask(&previous);
+        restore_error = restore_mask(
+            &previous,
+            #[cfg(test)]
+            &mut fault,
+        );
     }
     if restore_error != 0 {
         unlink_path(&path);
@@ -121,11 +168,18 @@ fn write_inner(
     result
 }
 
-fn restore_mask(previous: &MaybeUninit<libc::sigset_t>) -> libc::c_int {
+fn restore_mask(
+    previous: &MaybeUninit<libc::sigset_t>,
+    #[cfg(test)] fault: &mut Option<fault::Fault>,
+) -> libc::c_int {
     loop {
         // SAFETY: successful install initialized previous; only this thread's mask.
         let error = unsafe {
-            libc::pthread_sigmask(libc::SIG_SETMASK, previous.as_ptr(), std::ptr::null_mut())
+            syscall!(
+                fault,
+                RestoreMask,
+                libc::pthread_sigmask(libc::SIG_SETMASK, previous.as_ptr(), std::ptr::null_mut())
+            )
         };
         if error != libc::EINTR {
             return error;
@@ -138,13 +192,16 @@ fn unlink_path(path: &CStr) {
     let _ = unsafe { libc::unlink(path.as_ptr()) };
 }
 
-fn reap(pid: libc::pid_t) -> (Result<(), ProcessError>, bool) {
+fn reap(
+    pid: libc::pid_t,
+    #[cfg(test)] fault: &mut Option<fault::Fault>,
+) -> (Result<(), ProcessError>, bool) {
     let mut status = 0;
     let mut killed = false;
     loop {
         // SAFETY: pid is our successful fork result; status is writable. Host
         // SIGCHLD auto-reaping and competing reapers are prohibited by backend.
-        let result = unsafe { libc::waitpid(pid, &mut status, 0) };
+        let result = unsafe { syscall!(fault, Wait, libc::waitpid(pid, &mut status, 0)) };
         if result == pid {
             // A tracer can report a stop even without WUNTRACED. Keep ownership
             // until waitpid reports an actual exit or fatal signal.
@@ -187,11 +244,16 @@ fn child_write(
     path: &CStr,
     bytes: &[u8],
     #[cfg(test)] hook: Option<&hook::Hook<'_>>,
+    #[cfg(test)] mut fault: Option<fault::Fault>,
 ) -> libc::c_int {
     // SAFETY: path and bytes are immutable inherited storage; open creates only
     // the preselected private inode. Each write stays within the supplied slice.
     unsafe {
-        let fd = open_exclusive(path);
+        let fd = open_exclusive(
+            path,
+            #[cfg(test)]
+            &mut fault,
+        );
         if fd < 0 {
             return failure();
         }
@@ -206,7 +268,11 @@ fn child_write(
         }
         let mut offset = 0;
         while offset < bytes.len() {
-            let written = libc::write(fd, bytes.as_ptr().add(offset).cast(), bytes.len() - offset);
+            let written = syscall!(
+                fault,
+                Write,
+                libc::write(fd, bytes.as_ptr().add(offset).cast(), bytes.len() - offset)
+            );
             if written < 0 {
                 if errno() == libc::EINTR {
                     continue;
@@ -220,10 +286,10 @@ fn child_write(
             }
             offset += written as usize;
         }
-        if libc::fchmod(fd, 0o500) < 0 {
+        if syscall!(fault, Chmod, libc::fchmod(fd, 0o500)) < 0 {
             return abandon(fd, path);
         }
-        if libc::close(fd) < 0 {
+        if syscall!(fault, Close, libc::close(fd)) < 0 {
             let _ = libc::unlink(path.as_ptr());
             return failure();
         }
@@ -231,15 +297,26 @@ fn child_write(
     }
 }
 
-unsafe fn open_exclusive(path: &CStr) -> libc::c_int {
+unsafe fn open_exclusive(
+    path: &CStr,
+    #[cfg(test)] fault: &mut Option<fault::Fault>,
+) -> libc::c_int {
     loop {
         // SAFETY: caller supplies a NUL-terminated staging path; flags create a
         // new non-followed inode with close-on-exec.
         let fd = unsafe {
-            libc::open(
-                path.as_ptr(),
-                libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
-                0o700,
+            syscall!(
+                fault,
+                Open,
+                libc::open(
+                    path.as_ptr(),
+                    libc::O_WRONLY
+                        | libc::O_CREAT
+                        | libc::O_EXCL
+                        | libc::O_NOFOLLOW
+                        | libc::O_CLOEXEC,
+                    0o700,
+                )
             )
         };
         if fd >= 0 || errno() != libc::EINTR {

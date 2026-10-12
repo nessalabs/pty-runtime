@@ -34,3 +34,8 @@ unsafe_op_in_unsafe_fn = "deny"
 [[test]]
 name = "startup"
 path = "tests/startup.rs"
+
+[[test]]
+name = "fault_recovery"
+path = "src/fault_recovery.rs"
+harness = false

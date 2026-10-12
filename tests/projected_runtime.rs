@@ -122,6 +122,24 @@ fn detached_real_model_parks_transfers_restores_and_resizes_without_losing_bytes
         &reference.view().unwrap()
     );
     let size = TerminalSize::new(100, 30).unwrap();
+    let before_raw_resize = session.projection_status().unwrap().unwrap();
+    assert!(matches!(
+        session.resize(size),
+        Err(RuntimeError::Projection(ProjectionError::Terminal(
+            pty_runtime::terminal::TerminalError::Unsupported
+        )))
+    ));
+    let after_raw_resize = session.projection_status().unwrap().unwrap();
+    assert_eq!(
+        after_raw_resize.control_generation,
+        before_raw_resize.control_generation
+    );
+    assert_eq!(after_raw_resize.processed, before_raw_resize.processed);
+    assert_eq!(after_raw_resize.failure, None);
+    assert_eq!(
+        block_on(session.projected_view().unwrap()).unwrap().view(),
+        &reference.view().unwrap()
+    );
     let resized = block_on(session.resize_projected(size).unwrap()).unwrap();
     assert_eq!(resized.os, Ok(()));
     assert_eq!(resized.model, Ok(()));
