@@ -25,3 +25,12 @@ mod io_parking_faults;
 mod io_pressure;
 mod lock_order;
 mod native_faults;
+
+mod program_status;
+mod program_status_terminal;
+
+mod program_status_boundaries;
+
+mod coverage_boundaries;
+
+mod construction_boundaries;

@@ -15,6 +15,9 @@ enum Mode {
     String,
 }
 impl Scanner {
+    pub(super) fn plain_chunk(&self, input: &[u8]) -> bool {
+        matches!(self.mode, Mode::Ground) && !input.contains(&0x1b)
+    }
     pub(super) fn retained_bytes(&self) -> usize {
         self.body.capacity()
     }
@@ -24,6 +27,9 @@ impl Scanner {
         mutations: &mut Vec<Mutation>,
         queries: &mut Vec<usize>,
     ) {
+        if self.plain_chunk(input) {
+            return;
+        }
         let mut offset = 0;
         while offset < input.len() {
             if matches!(self.mode, Mode::Ground) {

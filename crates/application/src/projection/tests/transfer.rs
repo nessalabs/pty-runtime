@@ -309,3 +309,32 @@ fn no_observers_allocate_no_continuation_storage_and_new_transfer_skips_no_appli
     ));
     h.close();
 }
+
+#[test]
+fn a_later_observer_cannot_read_earlier_retained_events() {
+    let h = Harness::standard();
+    let (first_pin, first) = open_observer(&h);
+    let earlier = first.boundary().cursor;
+    h.owner.stage_output(b"before");
+    h.pump();
+    let old_event = event(&first, earlier);
+    let (second_pin, second) = open_observer(&h);
+    assert_eq!(second.boundary(), old_event.after());
+    assert!(matches!(second.read(earlier),
+        Err(TransferError::ResyncRequired { oldest }) if oldest == second.boundary().cursor));
+    assert!(matches!(
+        event(&first, earlier).kind(),
+        TransferEventKind::Output(b"before")
+    ));
+    h.owner.stage_output(b"after");
+    h.pump();
+    let new_event = event(&second, second.boundary().cursor);
+    assert!(matches!(
+        new_event.kind(),
+        TransferEventKind::Output(b"after")
+    ));
+    assert_eq!(new_event.after().processed.offset, 11);
+    drop((first_pin, first, second_pin, second, old_event, new_event));
+    h.close();
+    assert_budgets_released(&h);
+}

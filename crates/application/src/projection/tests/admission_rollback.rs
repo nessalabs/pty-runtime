@@ -311,3 +311,161 @@ fn factory_identity_outside_the_domain_bound_is_refused_before_native_creation()
         ));
     }
 }
+
+/// Runs registered work only when the runtime waits for capacity. This keeps the
+/// close handshake deterministic without running callbacks under a wake caller's
+/// locks. Each wake is coalesced and each wait performs at most one owner turn.
+#[derive(Default)]
+struct CloseDriver {
+    handles: Mutex<Vec<Arc<DrivenHandle>>>,
+    generation: AtomicUsize,
+    waits: AtomicUsize,
+}
+struct DrivenHandle {
+    work: std::sync::Weak<dyn crate::scheduling::IScheduledWork>,
+    pending: std::sync::atomic::AtomicBool,
+    closed: std::sync::atomic::AtomicBool,
+}
+impl crate::scheduling::IWorkHandle for DrivenHandle {
+    fn wake(&self) -> Result<(), crate::scheduling::SchedulingError> {
+        if self.closed.load(Ordering::SeqCst) {
+            return Err(crate::scheduling::SchedulingError::Closed);
+        }
+        self.pending.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+    fn close(&self) {
+        self.closed.store(true, Ordering::SeqCst);
+    }
+}
+impl crate::scheduling::IWorkScheduler for CloseDriver {
+    fn register(
+        &self,
+        work: std::sync::Weak<dyn crate::scheduling::IScheduledWork>,
+    ) -> Result<Arc<dyn crate::scheduling::IWorkHandle>, crate::scheduling::SchedulingError> {
+        let handle = Arc::new(DrivenHandle {
+            work,
+            pending: true.into(),
+            closed: false.into(),
+        });
+        self.handles.lock().unwrap().push(handle.clone());
+        Ok(handle)
+    }
+    fn shutdown(&self) {
+        use crate::scheduling::IWorkHandle;
+        for handle in self.handles.lock().unwrap().iter() {
+            handle.close();
+        }
+    }
+}
+impl crate::scheduling::ICapacitySignal for CloseDriver {
+    fn generation(&self) -> u64 {
+        self.generation.load(Ordering::SeqCst) as u64
+    }
+    fn notify(&self) {
+        self.generation.fetch_add(1, Ordering::SeqCst);
+    }
+    fn wait_after(&self, _: u64, _: std::time::Instant) {
+        use crate::scheduling::{IWorkHandle, WorkSchedule};
+        assert!(
+            self.waits.fetch_add(1, Ordering::SeqCst) < 16,
+            "backend rollback did not settle within sixteen scheduled turns"
+        );
+        let handles = self.handles.lock().unwrap().clone();
+        for handle in handles {
+            if handle.closed.load(Ordering::SeqCst) || !handle.pending.swap(false, Ordering::SeqCst)
+            {
+                continue;
+            }
+            let Some(work) = handle.work.upgrade() else {
+                continue;
+            };
+            match work.run() {
+                WorkSchedule::Finished => handle.close(),
+                WorkSchedule::Dormant => (),
+                WorkSchedule::After(_) => {
+                    panic!("closing an unused model must not need a timer")
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn backend_failure_closes_the_projected_model_and_reuses_its_single_runtime_slot() {
+    let backend = Arc::new(Backend::default());
+    let probe = Arc::new(super::terminal::Probe::default());
+    let driver = Arc::new(CloseDriver::default());
+    let runtime = Runtime::new(
+        993,
+        RuntimeOptions {
+            max_sessions: 1,
+            ..RuntimeOptions::default()
+        },
+        Arc::new(Registry::default()),
+        backend.clone(),
+    )
+    .unwrap()
+    .with_projection(ProjectionServices {
+        terminal: Arc::new(super::terminal::Factory(probe.clone())),
+        clock: Arc::new(Clock::default()),
+        scheduler: driver.clone(),
+        blocking: Arc::new(Jobs::default()),
+        capacity: driver.clone(),
+        store: Arc::new(Store::default()),
+        protector: Arc::new(Protector::default()),
+    })
+    .unwrap();
+    let id = SessionId::new("backend-rejected-model".into()).unwrap();
+    let command = CommandSpec::new("/unused".into(), "/".into(), vec![]).unwrap();
+    let mut session_options = SessionOptions::projected(options().terminal);
+    session_options.process.read_chunk = options().terminal.feed_bytes;
+    let baseline = runtime.resources();
+    for attempt in 1..=2 {
+        assert!(matches!(
+            runtime.spawn(id.clone(), &command, session_options.clone()),
+            Err(RuntimeError::Process(ProcessError::Internal))
+        ));
+        assert_eq!(
+            backend.0.load(Ordering::SeqCst),
+            attempt,
+            "every retry must reach the backend after acquiring the sole projection slot"
+        );
+        assert_eq!(
+            probe.alive.load(Ordering::SeqCst),
+            0,
+            "backend rejection must destroy its native model before returning"
+        );
+        assert!(matches!(
+            runtime.lookup(&id),
+            Err(RuntimeError::MissingSession)
+        ));
+        let resources = runtime.resources();
+        assert_eq!(resources.observers, baseline.observers);
+        assert_eq!(resources.replay_capacity, baseline.replay_capacity);
+        assert_eq!(resources.input_bytes, baseline.input_bytes);
+        assert_eq!(resources.input_slots, baseline.input_slots);
+        let projection = resources.projection.unwrap();
+        for budget in [
+            projection.journal_bytes,
+            projection.journal_slots,
+            projection.transfer_observers,
+            projection.staging_bytes,
+            projection.staging_slots,
+            projection.native_reservations,
+            projection.checkpoint_buffers,
+            projection.stored_bytes,
+            projection.stored_slots,
+            projection.views,
+            projection.requests,
+        ] {
+            assert_eq!(
+                budget.used, 0,
+                "backend rejection must return every projection reservation"
+            );
+        }
+    }
+    assert_eq!(driver.handles.lock().unwrap().len(), 2);
+    runtime.shutdown();
+    assert_eq!(probe.alive.load(Ordering::SeqCst), 0);
+}

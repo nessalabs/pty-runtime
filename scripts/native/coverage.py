@@ -17,7 +17,9 @@ import subprocess
 import sys
 
 BRIDGE = ("owner", "checkpoint", "view", "verification")
-TESTS = ("terminal_contract", "terminal_bounds", "terminal_live_restore")
+TESTS = ("terminal_contract", "terminal_bounds", "terminal_live_restore",
+         "terminal_history", "terminal_view_edges", "terminal_cursor_roundtrip",
+         "terminal_state_contract")
 ROOT = Path(__file__).resolve().parents[2]
 
 

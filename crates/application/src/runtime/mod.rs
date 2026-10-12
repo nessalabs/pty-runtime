@@ -22,3 +22,9 @@ pub use session::{CompletionWait, Session};
 
 #[cfg(test)]
 mod context_tests;
+
+#[cfg(test)]
+mod boundary_tests;
+
+#[cfg(test)]
+mod owner_boundary_tests;

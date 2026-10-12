@@ -12,6 +12,7 @@ pub struct ProgramStatusSnapshot {
     /// Stored reports with ancestor applications resolved at snapshot time.
     pub records: Vec<ProgramStatusRecord>,
 }
+
 impl ProgramStatusSnapshot {
     /// Owned allocation bytes, excluding allocator metadata and the struct itself.
     pub fn retained_bytes(&self) -> usize {
@@ -115,6 +116,19 @@ impl ProgramStatusStore {
         }
         Ok(32768 + chunk_len * (2 * size_of::<Mutation>() + 2 * size_of::<usize>() + 4))
     }
+    /// Bound a scan against this committed continuation before allocating its plan.
+    /// Ordinary text in ground state requires no heap allocation. Other input uses
+    /// the conservative static bound; a plan never clones retained records.
+    pub fn scan_reservation_for(&self, chunk: &[u8]) -> Result<usize, ProgramStatusError> {
+        if chunk.len() > MAX_SCAN_BYTES {
+            return Err(ProgramStatusError::ChunkTooLarge);
+        }
+        if self.scanner.plain_chunk(chunk) {
+            Ok(0)
+        } else {
+            Self::scan_reservation(chunk.len())
+        }
+    }
     /// Owned heap bytes, excluding allocator metadata, store struct and shared identity.
     pub fn retained_bytes(&self) -> usize {
         self.scanner.retained_bytes()
@@ -164,6 +178,16 @@ impl ProgramStatusStore {
         self.apply(Mutation::Exit);
         self.generation += 1;
         Ok(())
+    }
+    /// Bound the next owned snapshot before allocating it, including inherited app copies.
+    /// Empty snapshots require no heap reservation; no records are copied here.
+    pub fn snapshot_reservation(&self) -> usize {
+        self.records.len() * (size_of::<ProgramStatusRecord>() + 32)
+            + self
+                .records
+                .iter()
+                .map(ProgramStatusRecord::heap_bytes)
+                .sum::<usize>()
     }
     /// Copy at most the configured record cap; callers must admit snapshot memory first.
     pub fn records(&self) -> ProgramStatusSnapshot {
@@ -219,5 +243,68 @@ impl ProgramStatusStore {
         if self.records.len() != before {
             self.revision += 1
         }
+    }
+}
+
+#[cfg(test)]
+mod counter_boundaries {
+    use super::*;
+
+    fn active_store() -> ProgramStatusStore {
+        let mut store = ProgramStatusStore::default();
+        let plan = store
+            .scan(b"\x1b]7501;state=working:id=active\x07\x1b]7501;state=")
+            .unwrap();
+        store.commit(plan).unwrap();
+        store
+    }
+
+    #[test]
+    fn exhausted_generation_rejects_scan_and_exit_without_mutation() {
+        let mut store = active_store();
+        // Reach the arithmetic boundary locally; no production constructor or
+        // configurable counter is added to expose an impossible setup publicly.
+        store.generation = u64::MAX;
+        let before = store.records();
+        let retained = store.retained_bytes();
+        assert!(matches!(
+            store.scan(b"done\x07"),
+            Err(ProgramStatusError::RevisionExhausted)
+        ));
+        assert_eq!(
+            store.process_exited(),
+            Err(ProgramStatusError::RevisionExhausted)
+        );
+        assert_eq!(store.records(), before);
+        assert_eq!(store.retained_bytes(), retained);
+        assert_eq!(store.generation, u64::MAX);
+    }
+
+    #[test]
+    fn exhausted_revision_rejects_mutations_and_preserves_pending_continuation() {
+        let mut store = active_store();
+        store.revision = u64::MAX;
+        let before = store.records();
+        let generation = store.generation;
+        assert!(matches!(
+            store.scan(b"error\x07"),
+            Err(ProgramStatusError::RevisionExhausted)
+        ));
+        assert_eq!(
+            store.process_exited(),
+            Err(ProgramStatusError::RevisionExhausted)
+        );
+        assert_eq!(store.records(), before);
+        assert_eq!(store.generation, generation);
+
+        // Restore only the test's synthetic counter. Completing the original
+        // partial report proves the rejected scan did not consume its suffix.
+        store.revision = before.revision - 100;
+        let plan = store.scan(b"done\x07").unwrap();
+        store.commit(plan).unwrap();
+        let snapshot = store.records();
+        assert_eq!(snapshot.records.len(), 2);
+        assert_eq!(snapshot.records[1].state, ProgramState::Done);
+        assert_eq!(snapshot.revision, u64::MAX - 99);
     }
 }

@@ -108,6 +108,13 @@ fn read_loop(
                     if retained.is_none() {
                         return DrainOutcome::Eof;
                     }
+                    // macOS can report EOF after session teardown even while
+                    // this retained child descriptor remains open. Once the
+                    // workload has exited, release it and confirm EOF again.
+                    if session.workload_exited.load(Ordering::Acquire) {
+                        drop(retained.take());
+                        continue;
+                    }
                     break;
                 }
                 Ok(count) => count,

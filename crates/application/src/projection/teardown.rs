@@ -19,6 +19,7 @@ impl ProjectionCoordinator {
         if self.status().residency == Residency::Closed {
             return;
         }
+        self.clear_program_status();
         self.journal.close();
         let rejected = self.queue.abandon_close();
         for event in rejected {

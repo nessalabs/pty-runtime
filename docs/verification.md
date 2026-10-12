@@ -780,9 +780,9 @@ after the first read would have failed the byte assertion on that runner.
 ## Program Status Protocol — stage 1 (issue #21)
 
 The domain parser and bounded record store implement OSC 7501 revision 0.4.
-They are not yet connected to runtime sessions: this stage sends no terminal
-replies and exposes no automatic session status. The application integration
-and lifecycle tests are stage 2, still pending.
+At the stage 1 checkpoint these types were not connected to runtime sessions:
+the commit sends no terminal replies and exposes no automatic session status.
+The stage 2 result below records the subsequent integration and lifecycle tests.
 
 The 37 domain unit tests and 17 independent public acceptance tests cover split
 sequences, opaque non-target controls, bounded records, inheritance, deletion,
@@ -806,6 +806,144 @@ of 93.54% / 92.37% / 91.68%, and separately instrumented guardian coverage of
 13.60% / 19.27% / 16.05%. These fail the required 100% and zero-uncovered target.
 Branch coverage is unavailable (0/0); native bridge and other platforms remain
 outside this Rust measurement. This stage claims no release qualification.
+
+## Program Status Protocol — stage 2 (issue #21)
+
+Projected sessions now own the protocol store independently of their native
+terminal. `Session::program_status()` returns a bounded, quota-held snapshot;
+raw sessions return `None`. Reads do not restore parked models. Record caps
+are configurable in 64..=256, and copied snapshots retain their memory charge
+after session close. Reports remain untrusted data, never authorization.
+
+Queries receive the fixed revision-0.4 capability reply in stream order with
+native replies. All slices of the original chunk share one logical reply limit;
+the aggregate and native reply buffers have a combined peak reservation. Only
+a fully accepted chunk commits protocol mutations and advances its original-byte
+position. Native errors, including `HistoryIncomplete`, fail projection without
+retrying a partially accepted prefix. Original replay and transfer bytes remain
+unchanged. Ordered exit markers bypass ordinary admission pressure and native
+restoration; final drain clears working/blocked records again after tail output.
+
+Evidence on macOS arm64:
+
+- Fourteen independently authored coordinator tests pass for split queries,
+  exact/over-limit replies, a mutating second-slice failure, exit/drain ordering,
+  full admission, parked restoration, snapshot concurrency and quota lifetimes.
+- Three real PTY/Ghostty tests pass. They assert the capability reply precedes
+  device attributes, raw sessions send no reply, both observers see original
+  bytes, status sequences leave the view identical to a plain-text reference,
+  transfer preserves the original tail, and parking/status reads/exit preserve
+  the intended lifecycle. Suppressing the fixed reply made the real-child
+  handshake test fail; restoration passed. Logs are retained in
+  `work/osc7501-stage2/real-runtime/`.
+- The frozen mechanical gate passed with `sources_unchanged=true`, exit 0, in
+  90.38 seconds (`work/osc7501-stage2/gate-final`). Its per-file manifest ties
+  the result to the reviewed source rather than only to the stage 1 base commit.
+- Independent DDD, Clean Code/SOLID and adversarial reviews pass with no scoped
+  P1/P2 findings. Their records and final source identities are under
+  [`reviews/`](reviews/). A stale worker comment was corrected and re-reviewed.
+
+The existing pressure test expected only the chunks following an oversized reply
+to remain staged. The unified failure path now also retains the offending
+original chunk, so its expected count changed from three to four. This does not
+retry that chunk; projection is failed. The initial result was preserved and the
+corrected assertion passed the full gate.
+
+A coverage follow-up added five independent coordinator boundary tests (19 total)
+and domain counter/opaque-control tests without changing production behavior.
+The expanded frozen mechanical gate passed again, with unchanged sources, at
+`work/osc7501-stage2/gate-coverage-expanded`; independent quality re-review passed
+source SHA `aaf8eabeb3597197fedffaebba148c631566499d77df1ca81de634df0b62bf8f`.
+
+The first final-source performance batch **failed** the predeclared 10% median
+regression limit at sixteen sessions: 511.109 -> 623.483 ms. That failure is
+retained. A prospectively specified, fixed five-pair alternating baseline/current
+comparison then passed the unchanged guardrail: 47.419 -> 46.233 ms at one session
+and 597.061 -> 474.446 ms at sixteen. Every controlled record validated the exact
+original bytes and zero observed descendants after shutdown. Large variance and
+uncontrolled ambient load prevent a causal speedup claim. The independent review
+and every dataset are recorded in
+[`reviews/program-status-performance.md`](reviews/program-status-performance.md).
+
+The final coverage gate **failed** with unchanged sources. Workspace
+line/function/region coverage is 93.82% / 92.52% / 91.96%; guardian coverage remains
+13.60% / 19.27% / 16.05%. The new domain files are 99.79% / 100% / 99.45%, including
+the local counter tests; their remaining store regions are assertion failure
+arms, not identified unexecuted production regions. The two new application files
+are 96.30% / 86.36% / 92.52%, including untriggered defensive error paths.
+Scope, instrumentation limits and per-file gaps are recorded in
+[`reviews/program-status-coverage.md`](reviews/program-status-coverage.md).
+Neither specialist approval nor the scoped performance result waives the 100%
+target. The two implementation PRs remain draft; no G3/G4 or release
+qualification is claimed.
+
+## Coverage follow-up and current readiness
+
+The follow-up adds fifty meaningful Rust boundary tests and expands the own-C
+contract coverage without lowering any threshold or excluding production error
+paths. Tests cover public overflow/refusal rollback, transfer boundaries,
+projection slot reuse, real filesystem/socket contracts, helper CLI admission,
+and descriptor ownership. A separately benchmarked three-line scanner shortcut
+skips a redundant search only for Ground-state chunks without an escape byte.
+
+Final-source mechanical checks passed in 51.344 seconds with unchanged source
+manifest. The full Rust 1.85 workspace test matrix also passed (67.307 seconds)
+after correcting a test-only let-chain rejected by hosted MSRV CI. Independent
+reviewers re-reviewed that compatibility fix. Separate Clean Code/SOLID, adversarial, and DDD reviews found no scoped
+P1/P2 code findings. Two earlier P2 test-quality findings were fixed and
+independently re-reviewed. Detailed findings, source identities, rejected
+experiments, raw evidence locations and limitations are in
+[`reviews/coverage-closure.md`](reviews/coverage-closure.md) and its linked ledgers.
+
+Readiness is still blocked by both coverage and performance:
+
+- Strict workspace line/function/region coverage is 94.53% / 93.21% / 92.84%;
+  helper coverage is 32.21% / 56.88% / 32.85%. All test phases passed; both 100%
+  report thresholds failed. Tool totals include some test scaffolding. No target
+  was reduced. Actual helper termination prevents ordinary profile flushing;
+  continuous-profile experiments produced invalid derived counts and were rejected.
+- All four own-C bridge files reached 100% lines/functions/regions/branch sides,
+  using seven real terminal targets plus allocator and explicit boundary-fault
+  contracts. This does not qualify the Rust/helper/upstream-engine/platform scope.
+- The fixed final scanner-candidate comparison passed at one session (+0.21%)
+  but failed at sixteen (+20.60%, 360.339 → 434.551 ms; limit +10%). All twenty
+  records passed exact-byte and observed cleanup checks. Earlier failed cohorts
+  remain recorded; the microbenchmark gain does not establish the runtime cause.
+
+Both PRs remain draft and unmerged. Neither the 100% readiness target nor the
+full release workloads/soak have passed. No broader milestone is claimed.
+
+### Additional hosted macOS EOF blocker
+
+Hosted CI on `a3e0fee` passed both Rust 1.85 and Linux gates and all PTY
+experiment jobs. One macOS gate passed; the other failed the existing concurrent
+producer test with `Truncated` instead of EOF after successful workload exit.
+A longer test-only drain allowance was investigated and rejected: an isolated
+single-callback diagnostic still truncated with two seconds available.
+
+An isolated trace then identified repeated zero-byte reads after workload exit
+while the reader retains its child endpoint. That path does not release the
+endpoint and loops until the drain deadline. A named public-boundary regression
+reproduces it with exact bytes and exit zero. The user extended the ownership exception, and the reviewed reader fix is now
+applied. It releases the retained child endpoint after an observed workload exit
+and confirms EOF through a further read; default drain deadlines are unchanged.
+The actual-source mechanical gate passes (124.216 s, unchanged manifest), as do
+independent quality, DDD and adversarial reviews. Tests preserve expired-deadline
+truncation and late descendant output alongside the failing-before/passing-after
+EOF regression. Rust 1.85 also passes (53.570 s). The fixed five-pair performance
+cohort passes the unchanged 10% limit at both session counts; earlier failed
+cohorts remain recorded, and no causal speedup is claimed. Hosted checks remain
+pending for the integrated commit. See
+[`the integration record`](reviews/coverage-closure.md#authorized-eof-integration).
+
+Strict coverage still fails (118.958 s; all test phases passed, both reports
+failed). Workspace export totals are 94.53% lines / 93.21% functions / 92.84%
+regions; helper totals remain 32.21% / 56.88% / 32.85%. Inconsistent saturated
+workspace counters mean these are reported totals with an instrumentation
+anomaly, not reliable evidence of coverage improvement or complete new-line
+coverage. Functional regression proof is independent. A bounded default-versus-atomic-counter diagnostic did not reproduce the anomaly
+and was inconclusive. Coverage integrity, the 100% target and full
+release/platform qualification remain open.
 
 ## Where to look next
 
@@ -844,3 +982,19 @@ independent quality/adversarial/DDD re-reviews and limitations are in
 `docs/reviews/pr25-*.md` and `work/pr25-blockers`. The strict 100% coverage gate
 has not passed, so these fixes do not authorize merging the stack. Final
 propagated-source and hosted checks remain separate.
+
+### Dependent PR 26 UTF-8 oracle correction
+
+Propagating the reviewed parser fix exposed one old dependent test that expected
+malformed UTF-8 app to erase an earlier app. Fresh Linux/macOS CI and the local
+fixed-stack coverage run failed that exact assertion; these failed results are
+retained. The protocol-correct oracle now requires stored and resolved app to
+be exactly `earlier`. Existing count, state, kind and malformed-id no-mutation
+assertions remain, and a valid message after the malformed pair must be exactly
+`ok`, proving parsing continues. No production behavior or acceptance threshold
+changes in this correction. All five coverage behavior tests and 19 acceptance
+tests pass; independent quality, adversarial and DDD re-reviews approve the
+correction. See `docs/reviews/pr26-stale-*.md`, the PR 25 quality ledger, and
+`work/pr25-blockers/pr26-stale-oracle-{red,green}.log`. Full propagated-source,
+hosted and strict coverage checks remain separate; no PR is merged by this
+fixture correction.

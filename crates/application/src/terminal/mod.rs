@@ -31,7 +31,8 @@ pub trait ITerminalFactory: Send + Sync {
 /// No operation can be cancelled midway; admission bounds their input/output resources.
 pub trait ITerminal: Send {
     /// Feed one bounded ordered chunk; replies must enter the authoritative writer exactly once.
-    /// HistoryIncomplete rejects the chunk unchanged; stage it until complete and retry.
+    /// Any feed error, including HistoryIncomplete, may follow partial mutation.
+    /// Fail projection and never replay the chunk or an already accepted prefix.
     /// Other processing errors invalidate projection; retrying applied bytes is not safe.
     fn feed(&mut self, bytes: &[u8]) -> Result<TerminalEffects, TerminalError>;
     /// Apply one ordered resize, requiring generation exactly one above the previous control.

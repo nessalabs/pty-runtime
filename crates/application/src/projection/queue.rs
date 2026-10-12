@@ -390,6 +390,18 @@ impl AdmissionQueue {
 
     // ---- stream end --------------------------------------------------------
 
+    /// Queue exactly one exit marker behind already admitted output, using its
+    /// dedicated preallocated slot. Reader and observation quotas cannot reject it.
+    pub fn record_process_exit(&self) -> bool {
+        let mut state = self.lock();
+        if state.process_exit_queued || Self::check_accepting(&state).is_err() {
+            return false;
+        }
+        state.process_exit_queued = true;
+        state.queue.push_back(Command::ProcessExited);
+        true
+    }
+
     /// Record the reader's final drain once. Reports an existing projection
     /// failure so the caller can seal the journal on the spot.
     pub fn record_drain(&self, outcome: DrainOutcome) -> Option<ProjectionError> {
@@ -409,10 +421,12 @@ impl AdmissionQueue {
         let ready = state.output_drain.is_some()
             && engine_idle
             && !matches!(status.residency, Residency::Restoring | Residency::Usable)
-            && !state
-                .queue
-                .iter()
-                .any(|command| matches!(command, Command::Output(..) | Command::Resize(..)))
+            && !state.queue.iter().any(|command| {
+                matches!(
+                    command,
+                    Command::Output(..) | Command::Resize(..) | Command::ProcessExited
+                )
+            })
             && status.processed == status.published
             && status.failure.is_none();
         ready.then_some(state.output_drain).flatten()

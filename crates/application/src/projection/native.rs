@@ -1,7 +1,7 @@
 use super::{
     ProjectedView, ProjectionCoordinator, ProjectionError, Residency, ResizeOutcome,
     budgets::Lease,
-    state::{Command, NativeWorkspace, Reply, Resizing},
+    state::{Command, NativeWorkspace, Resizing},
 };
 use crate::scheduling::WorkSchedule;
 use pty_runtime_domain::{process::ProcessError, terminal::CheckpointDescriptor};
@@ -104,52 +104,10 @@ impl ProjectionCoordinator {
         event: Command,
     ) -> WorkSchedule {
         match event {
-            Command::Output(bytes, mut staging) => {
-                let memory = match Lease::shared(
-                    self.quotas.shared.views.clone(),
-                    workspace.config.reply_bytes,
-                ) {
-                    Ok(memory) => memory,
-                    Err(_) => {
-                        self.requeue(Command::Output(bytes, staging));
-                        return WorkSchedule::After(Duration::from_millis(5));
-                    }
-                };
-                let result = match &mut workspace.terminal {
-                    Some(terminal) => self.native_call(|| terminal.feed(&bytes)),
-                    None => Err(ProjectionError::Closed),
-                };
-                match result {
-                    Ok(mut effects) => {
-                        if effects.0.len() > workspace.config.reply_bytes {
-                            effects.0.fill(0);
-                            self.fail(ProjectionError::Capacity);
-                        } else {
-                            let processed = self.queue.record_processed(bytes.len());
-                            if let Err(error) = processed {
-                                self.fail(error);
-                            } else {
-                                self.journal.output(bytes, self.status().processed);
-                                if let Some(timing) = staging.timing.take() {
-                                    timing.finish(true);
-                                }
-                            }
-                            if !effects.0.is_empty() {
-                                workspace.reply = Some(Reply {
-                                    bytes: effects.0,
-                                    _memory: memory,
-                                    operation: None,
-                                });
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        // A native error can occur after mutation. Retain the affected
-                        // original bytes and fail projection; never feed them again.
-                        self.requeue(Command::Output(bytes, staging));
-                        self.fail(error);
-                        return WorkSchedule::Dormant;
-                    }
+            Command::Output(bytes, staging) => return self.apply_output(workspace, bytes, staging),
+            Command::ProcessExited => {
+                if let Err(error) = self.apply_program_exit() {
+                    self.fail(error);
                 }
             }
             Command::Resize(size, ticket, mut staging) => {

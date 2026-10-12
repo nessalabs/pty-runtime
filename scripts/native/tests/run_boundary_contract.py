@@ -15,7 +15,7 @@ REDIRECT = ("malloc", "calloc", "posix_memalign", "free", "ghostty_terminal_set"
             "ghostty_terminal_get", "ghostty_terminal_vt_write", "ghostty_terminal_compress", "ghostty_terminal_resize",
             "ghostty_grid_ref_style", "ghostty_grid_ref_cell", "ghostty_cell_get",
             "ghostty_grid_ref_graphemes", "ghostty_snapshot_encode",
-            "ghostty_snapshot_decoder_set", "ghostty_snapshot_decoder_get",
+            "ghostty_snapshot_decoder_set", "ghostty_snapshot_decoder_get", "ghostty_snapshot_decoder_ready",
             "ghostty_snapshot_decoder_next", "ghostty_formatter_terminal_new")
 
 

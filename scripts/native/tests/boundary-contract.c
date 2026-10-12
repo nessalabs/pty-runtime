@@ -87,6 +87,8 @@ static void mutation_failures(void) {
   inject("resize", 0); assert(rt_resize(o, 30, 5) == -1); assert(fault_hits == 1);
   inject("compress-error", 0); assert(rt_compress(o) == -1); assert(fault_hits == 1);
   inject("compress-unsupported", 0); assert(rt_compress(o) == -3); assert(fault_hits == 1);
+  inject("compress-pending", 0); assert(rt_compress(o) == 0); assert(fault_hits == 1);
+  inject("compress-complete", 0); assert(rt_compress(o) == 1); assert(fault_hits == 1);
   inject("encode", 0); assert(rt_checkpoint(o, bytes, sizeof(bytes), &len) == -1);
   assert(fault_hits == 1 && len == 0);
   inject(NULL, 0); size_t rows = 99; assert(rt_history(o, &rows) == 1 && rows == 0);
@@ -117,6 +119,11 @@ static void checkpoint_failures(void) {
     assert(!rt_restore(bytes, len, 65536, 1024, LIMIT, &error));
     assert(error == -1 && fault_hits == 1 && !live_allocations);
   }
+  /* Decoder-owned page budgets do not set our allocator's denied bit. Their
+   * explicit result must still remain a limit failure, not corrupt input. */
+  inject("decoder-ready-budget", 0);
+  assert(!rt_restore(bytes, len, 65536, 1024, LIMIT, &error));
+  assert(error == -2 && fault_hits == 1 && !live_allocations);
   inject("set", GHOSTTY_TERMINAL_OPT_WRITE_PTY);
   assert(!rt_restore(bytes, len, 65536, 1024, LIMIT, &error));
   assert(error == -1 && fault_hits == 1 && !live_allocations);
@@ -146,6 +153,8 @@ static void checkpoint_failures(void) {
   inject("formatter-new", 0);
   assert(rt_verify_format(bytes, len, output, capacity, &formatted) == -1);
   assert(fault_hits == 1 && !live_allocations);
+  inject(NULL, 0); assert(rt_verify_format(bytes, len, output, capacity, &formatted) == 0);
+  assert(formatted > 0 && formatted <= capacity && !live_allocations);
   inject(NULL, 0); free(bytes); free(output);
 }
 int main(void) {

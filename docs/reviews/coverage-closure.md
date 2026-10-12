@@ -1,0 +1,285 @@
+# Coverage follow-up: scope, evidence, and remaining blockers
+
+This follow-up retains the 100% target and zero-uncovered requirements. Both
+program-status PRs remain drafts until that target and the required gates pass.
+The batch adds 50 Rust behavior tests plus four native bridge contract cases;
+production error paths and coverage thresholds are unchanged. A subsequent
+three-line scanner optimization skips a redundant plain-text search only when
+the scanner is in Ground state and the chunk contains no escape byte.
+
+## Changes and evidence
+
+- Domain/application tests cover validation, bounded admission, refusal rollback,
+  projection construction, worker ownership, and shutdown through existing ports.
+  These doubles establish orchestration, not real PTY/native behavior.
+- Infrastructure tests use real encryption and filesystem storage, check cleanup
+  refusal/recovery and foreign-content preservation, and check process/scheduler
+  admission through their public interfaces.
+- Guardian tests use real socket pairs for status delivery, deduplication,
+  queue bounds, invalid frames, and one-sided failure. Fresh guarded child
+  processes test CLI validation. Read-only discovery and descriptor contracts
+  do not change the test host's session or signal dispositions.
+- The native coverage driver now runs all seven existing terminal contract
+  executables. Explicit test-only external-call faults cover pending/completed
+  compression results and decoder-owned budget refusal; a real formatter call
+  verifies successful output. These do not claim Ghostty naturally produces
+  the injected fault cases.
+
+The first frozen Rust measurement is preserved at
+`work/coverage-closure/coverage-first`: all test phases passed, thresholds failed,
+and sources were unchanged. Its workspace result was 9982/10566 lines,
+1035/1107 functions, and 14721/15853 regions. Its helper result was 476/1478
+lines, 62/109 functions, and 747/2274 regions. This includes subsequently
+rejected private-state test fixtures and is **not final acceptance evidence**.
+
+## Findings and fixes
+
+The independent domain/boundary reviewer found two P2 problems:
+
+1. Direct private counter writes and mutex poisoning manufactured states without
+   the required public failure path. Those tests were removed. Observer refusal
+   and shutdown now use public Runtime operations and existing external ports.
+   Unreachable defensive paths remain gaps; no production seam was added.
+2. A descriptor test inherited close-on-exec from socket construction. It now
+   clears and verifies the precondition before adoption. An isolated mutation
+   replacing SETFD with GETFD fails that assertion; unchanged production passes.
+
+Both findings were independently re-reviewed as resolved. The code-quality,
+adversarial, and domain/boundary reviews report no remaining P1/P2 code finding
+in this batch. Their ledgers and author fix record preserve the original
+findings, fixes, evidence, and limited scope. They do not waive coverage.
+
+The shutdown test proves rejection of late admission and cancellation of a
+late-bound process. It alone does not prove shutdown waited for every admitted
+operation; a scoped-thread join is not such an assertion.
+
+## Rejected guardian instrumentation experiment
+
+Normal coverage measures the helper's unit/CLI tests separately from workspace
+runtime tests, which use an uninstrumented helper to preserve environment
+semantics. This omits integrated helper execution from the accepted counters.
+
+The experiment in `work/coverage-closure/fork-proof` tested per-child continuous
+profiles with LLVM runtime APIs. Simple C and Rust fork/_exit/SIGKILL fixtures
+produced consistent Boolean coverage, with duplicated prefix counts explicitly
+unsuitable as global execution frequencies. The real helper still failed the
+counter sanity audit: 50 of 120 profiles had saturated derived regions, and the
+combined report had ten saturated rows. All twenty protocol cases passed, but
+that is behavior evidence, not permission to trust invalid derived coverage counts.
+The saturated regions overlap active cleanup-loop tails; asynchronous termination
+can leave inferred counter expressions inconsistent. This evidence does not
+uniquely identify fork sharing as the cause.
+
+The actual-helper report in `work/coverage-closure/guardian-fork-evidence` is
+rejected. No hook was integrated, no bad regions were discarded or clamped,
+and no profiler allocation was added to the fork-isolated materializer.
+
+## Remaining scope
+
+A percentage for own C does not qualify the Rust workspace, guardian, upstream
+Zig engine, or other platform configurations. Rust branch/MC/DC instrumentation
+reports zero records, which is unmeasured, not 100%. Inline test assertion arms
+also occur in the existing Rust denominator. OS allocation/thread/fork/entropy
+failures, poison recovery without a public inducing path, and forked `_exit`
+paths remain explicit gaps; this batch does not manufacture invalid state or
+remove production defenses to satisfy them. Linux coverage and full ADR
+performance/lifecycle/reconnect/soak qualification remain outstanding.
+
+Final mechanical, coverage, and controlled performance results follow below.
+
+## Scanner cost investigation
+
+The failed final-source runtime cohort is retained: one-session median regressed
+16.70% and sixteen-session median regressed 34.59%, both beyond the unchanged 10%
+limit. All byte, cleanup, and source-identity checks passed. Broad process samples
+were dominated by waits and did not establish a causal bottleneck.
+
+An isolated experiment compared the original domain crate against a scan-entry
+fast return using its existing `plain_chunk` predicate. Five alternating process
+pairs, each with five trials per existing parser workload, reduced ordinary-text
+8 MiB run-median time from about 2.02 ms to 0.27 ms. Non-timing fields matched for
+all paired workloads; 70 candidate domain tests passed. Continuation states never
+use this shortcut. Raw data and copied sources are under
+`work/coverage-closure/scanner-experiment`. This supports the narrow optimization,
+not an explanation or waiver of the integrated performance failure.
+
+A separate conventional-profile experiment used a linked compile-time `%p`
+filename without continuous mode or a fork hook. Seventeen unit tests and all
+20 real protocol cases passed, with no saturated counters. It produced no useful
+actual-helper coverage: the sentinel also kills its own supervision group, so
+normal profile flushing never occurs. Twenty helper-start profiles were empty;
+nonempty actual profiles came from the workload fixture, not the helper. Unit-only
+and merged helper exports were identical. This is not added to accepted coverage;
+evidence remains in `work/coverage-closure/guardian-conventional-evidence`.
+
+## Frozen final-source checks
+
+The final candidate source digest is
+`07ea3217667be0e547ec5fd403ef8175c234dc98832a3cca6facb3158c29c092`.
+The mechanical gate passed in 132.604 seconds with an unchanged source manifest
+(`work/coverage-closure/gate-scanner`). The separate independent quality review
+of the final added tests is in `coverage-closure-independent-tests-quality.md`;
+DDD and adversarial re-reviews also found no scoped P1/P2 code finding.
+
+The strict coverage run failed in 117.823 seconds with unchanged sources
+(`work/coverage-closure/coverage-scanner`). Every behavioral test phase passed;
+only the two threshold-report phases failed. Workspace totals are 9955/10531
+lines (94.53%), 1029/1104 functions (93.21%), and 14604/15729 regions (92.85%).
+Helper totals are 476/1478 lines (32.21%), 62/109 functions (56.88%), and 747/2274
+regions (32.85%). The workspace denominator includes some test scaffolding;
+these are tool-scoped totals, not a pure production-code denominator. No
+production error paths or thresholds were excluded or relaxed. The target
+remains unmet, so neither PR is ready.
+
+The final complete own-C measurement passed: 249/249 lines, 23/23 functions,
+356/356 regions, and 198/198 branch sides. All nine executables passed (seven
+real terminal contracts, allocator contract, and explicit synthetic boundary
+contract). Evidence: `work/coverage-closure/native-scanner-complete-evidence`.
+The immediately preceding invocation omitted the optional allocator-contract
+argument and consequently failed at 99.20% lines/95.65% functions/98.60% regions/
+98.99% branch sides. That incomplete invocation is preserved separately at
+`native-scanner-evidence`; the corrected invocation includes the existing
+allocator test, with no source or denominator changes.
+
+The one prospectively declared scanner-candidate performance cohort also failed
+(`work/coverage-closure/performance-scanner`). One-session baseline/current
+medians were 48.390750/48.492667 ms (+0.21%, pass). Sixteen-session medians were
+360.339000/434.551291 ms (+20.60%, fail against 10%). All twenty raw records met
+exact byte, completion, stable-source, and zero-observed-descendant checks.
+All samples and the prior failures remain recorded; no replacement cohort was
+run. The scanner microbenchmark benefit does not explain this integrated failure.
+Both the coverage and performance readiness blockers therefore remain open.
+
+## Hosted MSRV finding and correction
+
+Hosted Rust 1.85 rejected a new test-only `&& let Some(...)` condition in
+`projection/tests/admission_rollback.rs` (E0658). This P2 compatibility issue
+was missed by the initial reviews. The [original failing job](https://github.com/nessalabs/pty-runtime/actions/runs/38178543250/job/114585999601)
+and local `/tmp/pty-coverage-msrv-failure.log` preserve the failure. The test fixture now uses two stable early
+continues, preserving the closed/pending/weak-upgrade evaluation order. No
+production source changed. Independent quality, adversarial and DDD reviewers
+re-reviewed the actual correction and marked the scoped finding resolved.
+
+The focused Rust 1.85 test and full locked workspace/all-targets/all-features
+matrix pass with unchanged sources (`work/coverage-closure/msrv-fix-focused.log`
+and `msrv-fix-matrix`). The corrected source digest is
+`8f137114df26f12d1d679f735d47c0c83a55c72f74c1f188c65ad6a8806b2018`.
+The previous performance comparison still fails for the unchanged production
+candidate; this test syntax correction is not grounds to retry that cohort.
+
+Post-correction validation is complete with unchanged source manifests:
+Rust 1.85 full matrix PASS (67.307 s), stable mechanical gate PASS (51.344 s),
+and strict coverage FAIL (122.943 s). The final artifacts are
+`work/coverage-closure/{msrv-fix-matrix,gate-msrv-final,coverage-msrv-final}`.
+Workspace totals are 9955/10531 lines, 1029/1104 functions, and 14603/15729
+regions (94.53% / 93.21% / 92.84%). Helper totals remain 476/1478 lines,
+62/109 functions, and 747/2274 regions (32.21% / 56.88% / 32.85%).
+Every test phase passed; only the two threshold reports failed. The earlier
+scanner-run region count remains historical, not silently replaced.
+Own-C production and its contract sources did not change in this syntax fix;
+the complete 100% component evidence remains applicable. Both strict coverage
+and the unchanged production candidate's sixteen-session performance remain
+readiness failures.
+
+## Hosted macOS EOF failure remains open
+
+After the MSRV correction, both hosted Rust 1.85 jobs, both Linux gates, all PTY
+experiment jobs and one macOS gate passed. The other [macOS gate](https://github.com/nessalabs/pty-runtime/actions/runs/38179155056/job/114587814005)
+failed `simultaneous_producers_deliver_complete_bytes_and_quiet_cancel_remains_live`:
+exit was zero but drain was `Truncated`, while EOF was expected. The log is
+retained at `/tmp/pty-coverage-macos-failure.log`.
+
+A proposed fixture-only two-second producer drain allowance passed focused tests
+and `gate-drain-final`, but was rejected and reverted after an isolated delayed
+reader still truncated with that allowance. Its passing gate applies only to
+that rejected candidate and does not close the failure. Default limits and all
+original EOF/exact-byte assertions remain intact in the actual branch.
+
+The isolated trace shows workload exit, followed by repeated `Ok(0)` reads with
+`retained=true`, `exited=true`, and `stop=false`, until the exact drain deadline
+sets stop and reports truncation. This confirms a local runtime EOF-handling P2;
+the hosted failure is consistent with that mechanism but did not itself capture
+read outcomes. Raw evidence and the failing named public-boundary regression are
+under `work/coverage-closure/process-pressure-diagnostic`. A minimal correction
+is being verified in that isolated copy, not applied to the separately owned
+runtime implementation. Coverage, performance and this P2 keep both PRs draft.
+
+## Frozen EOF proposal verification
+
+The isolated proposal is now reviewable at
+`work/coverage-closure/retained-eof-fix.patch`, SHA256
+`55aefd7e61f27bacdbfba1e1d0ff540f1f0c30003a22fc97ff76f4d458103c63`.
+It adds seven lines to the reader's post-exit zero-byte-read handling and three
+public-boundary integration tests. The independent adversarial reviewer added
+the missing late-descendant-output preservation test; an independent quality
+reviewer re-reviewed that addition. Final quality, DDD and adversarial reviews
+report no scoped unresolved P1/P2 findings (see `retained-eof-proposal-*.md`).
+
+The full `python3 scripts/gate.py` passed against the isolated frozen source
+in 112.332 seconds, with its source manifest unchanged.
+Evidence: `work/coverage-closure/eof-proposal-gate/{metadata.json,command.log}`.
+This includes the gate's runtime performance contracts; it is not a replacement
+controlled performance cohort. Baseline failure and focused passing evidence
+remain in `process-pressure-diagnostic/FIX-EVIDENCE.md`.
+
+The actual branch still has no reader or drain-timeout change. Integration awaits
+an explicit extension of the user's issue #21 exception to the separately owned
+raw PTY implementation. Once integrated, actual-source gates and hosted platform
+checks remain required. Strict coverage, the failed sixteen-session comparison
+and release workloads remain open. Neither draft PR is ready for acceptance.
+
+## Authorized EOF integration
+
+The user explicitly extended the ownership exception to apply the EOF fix and
+complete integration verification. The actual branch now contains the exact
+reviewed patch (seven reader lines and three public integration tests), source
+digest `e986497052ef14b8e5f1aeb65920a61ec7d9e2ea5942fb1b2e005a5b557210e0`.
+The proposal-stage statements above describe the earlier unapplied state.
+
+Actual-checkout mechanical gate PASS: 124.216 seconds, exit zero, source manifest
+unchanged (`work/coverage-closure/eof-integrated-gate`). An independent reviewer
+matched all 351 manifest entries to actual source and verified all three new
+tests plus the retained-endpoint invariant in both infrastructure configurations.
+Independent quality/SOLID, DDD and adversarial source reviews report no unresolved
+P1/P2 finding in the integrated correction.
+
+The full Rust 1.85 workspace/all-targets/all-features matrix also passes in
+53.570 seconds with unchanged sources (`eof-integrated-msrv`). Strict coverage
+fails in 118.958 seconds with unchanged sources (`eof-integrated-coverage`): all
+test phases passed, and both 100% reports failed. The workspace export reports
+9959/10535 lines, 1029/1104 functions and 14611/15737 regions; helper totals are
+476/1478 lines, 62/109 functions and 747/2274 regions. Workspace values are
+**reported export totals with an instrumentation anomaly**, not authoritative
+coverage-improvement evidence: three reader instantiations have inconsistent
+saturated derived counters. A pre-existing context/panic-path anomaly is also
+present. Functional regression evidence is separate; the earlier claim that the
+export proved all new executable lines covered is withdrawn. Raw exports remain
+preserved and the integrity cause is being investigated without production edits.
+
+The fixed five-pair performance cohort completed with all twenty records valid.
+One-session medians are 45.533750 ms baseline / 43.753959 ms candidate (-3.91%);
+sixteen-session medians are 602.493208 / 479.758917 ms (-20.37%). Both pass the
+unchanged ratio <=1.10 rule. The two runner evidence findings were fixed and
+independently re-reviewed before collection. See
+`retained-eof-integrated-performance.md` for the prospective plan, final audit,
+all samples and remaining limitations. Earlier failed cohorts remain recorded;
+wide variation and the EOF correction's position outside the measured payload
+interval prohibit attributing these differences to the fix or claiming speedup.
+
+Hosted Linux/macOS/MSRV verification is pending on the integrated commit.
+Strict coverage and full release/platform qualification remain unmet. Default
+deadlines and all original EOF assertions remain intact. The affected zero-read
+branch was introduced in `ec9a3fbb`; the correction preserves its retained-tail
+protection while releasing the endpoint after an independently observed exit.
+
+The single paired coverage-counter diagnostic is inconclusive. Fresh default
+and atomic-counter builds each passed the seven delayed-EOF/pressure cases and
+the retained-endpoint invariant, but neither export reproduced saturation and
+both marked the new guard as unexecuted. Atomic compiler flags were verified;
+source and uninstrumented helper hashes stayed unchanged. No successful phase
+was repeated. A rejected CLI filter placement was corrected before its retained
+unit test executed; both invocations remain recorded. Evidence is under
+`work/coverage-closure/eof-counter-diagnostic`. This cannot attribute the anomaly
+to lost counter updates or establish coverage improvement, and does not replace
+the failed full-scope coverage run. No production behavior or coverage threshold
+was changed for the diagnostic.

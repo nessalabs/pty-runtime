@@ -79,6 +79,17 @@ impl IScheduledWork for ProjectionCoordinator {
         if self.status().failure.is_some() {
             return self.work_while_failed(&mut workspace, &services);
         }
+        // Exit is session state; consuming its ordered marker must not restore
+        // a parked native model merely to remove working/blocked reports.
+        if self
+            .queue
+            .take_next_if(|command| matches!(command, Command::ProcessExited))
+            .is_some()
+        {
+            if let Err(error) = self.apply_program_exit() {
+                self.fail(error);
+            }
+        }
         self.seal_journal_if_drained(&workspace);
         match Phase::of(residency, &workspace) {
             Phase::Detached => self.read_back_source(&mut workspace),
@@ -190,10 +201,9 @@ impl ProjectionCoordinator {
             // before more bytes are fed. All end the batch, so this changes when
             // the worker returns, never the order in which commands apply.
             //
-            // Failure has to be re-read per chunk. `apply_command` can fail the
-            // projection and still fall through to an immediate schedule with no
-            // reply or resize set - an oversized generated reply does exactly
-            // that - and `queue.fail` deliberately *retains* staged output. One
+            // Failure has to be re-read per chunk. `queue.fail` deliberately
+            // retains staged output, and future command paths may report failure
+            // with an immediate schedule and no pending reply or resize. One
             // chunk per run, `run`'s own failure guard caught this before the
             // next chunk. Inside a batch there is no such guard, so without this
             // check the loop would dequeue the very bytes failure just preserved
@@ -244,6 +254,10 @@ impl ProjectionCoordinator {
     fn seal_journal_if_drained(&self, workspace: &NativeWorkspace) {
         let engine_idle = workspace.resize.is_none() && workspace.reply.is_none();
         if let Some(drain) = self.queue.settled_drain(engine_idle) {
+            if let Err(error) = self.finish_program_drain() {
+                self.fail(error);
+                return;
+            }
             self.journal.end(Some(drain), None);
         }
     }
@@ -294,6 +308,7 @@ impl ProjectionCoordinator {
         workspace: &mut NativeWorkspace,
         services: &super::ProjectionServices,
     ) -> WorkSchedule {
+        self.clear_program_status();
         workspace.terminal = None;
         workspace.resident = None;
         workspace.restore_memory = None;

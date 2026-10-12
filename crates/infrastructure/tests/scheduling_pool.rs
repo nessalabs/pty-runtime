@@ -25,6 +25,21 @@ fn work(run: impl Fn() -> WorkSchedule + Send + Sync + 'static) -> Arc<dyn ISche
     })
 }
 #[test]
+fn shutdown_rejects_new_registrations_without_running_work() {
+    let pool = StdWorkScheduler::new(1).unwrap();
+    let (tx, rx) = mpsc::channel();
+    let work = work(move || {
+        tx.send(()).unwrap();
+        WorkSchedule::Finished
+    });
+    pool.shutdown();
+    assert!(matches!(
+        pool.register(Arc::downgrade(&work)),
+        Err(SchedulingError::Closed)
+    ));
+    assert_eq!(rx.try_recv(), Err(mpsc::TryRecvError::Empty));
+}
+#[test]
 fn running_wakes_coalesce_without_overlap_and_close_releases_after_run() {
     let pool = StdWorkScheduler::with_workers(1, 2).unwrap();
     let barrier = Arc::new(Barrier::new(2));
