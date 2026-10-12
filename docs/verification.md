@@ -777,6 +777,36 @@ before the read. macOS CI run 37745584612 (commit `f405349`, macos-15) passed
 the gate, which runs this test. That is one green run of this order. A close
 after the first read would have failed the byte assertion on that runner.
 
+## Program Status Protocol — stage 1 (issue #21)
+
+The domain parser and bounded record store implement OSC 7501 revision 0.4.
+They are not yet connected to runtime sessions: this stage sends no terminal
+replies and exposes no automatic session status. The application integration
+and lifecycle tests are stage 2, still pending.
+
+The 37 domain unit tests and 17 independent public acceptance tests cover split
+sequences, opaque non-target controls, bounded records, inheritance, deletion,
+query offsets, stale/foreign transactions, and conservative allocation bounds.
+Independent reviews found and re-reviewed fixes for malformed ids overwriting
+the root, invalid repeated apps retaining earlier values, malformed UTF-8 pairs
+hiding valid later pairs, and missing boxed-record/scanner admission costs.
+No scoped P1/P2 findings remain in the domain, design or adversarial reviews.
+
+The mechanical gate passed with unchanged sources at base `2fca655` plus this
+stage's changes (artifact `work/osc7501-stage1/gate-final`). Five-trial domain
+measurements are retained under `work/program-status-performance/20261011T162443Z-ddea88ac`,
+with source identity, workload, toolchain and platform recorded there. Ordinary
+8 MiB scans took 1.99–2.03 ms; these are parser measurements, not an integrated
+runtime throughput or peak-RSS claim. Stage 2 will compare integrated ordinary
+output against the unchanged baseline on the same host.
+
+Readiness is **not passed**. The unchanged-source coverage run at
+`work/osc7501-stage1/coverage` measured workspace line/function/region coverage
+of 93.54% / 92.37% / 91.68%, and separately instrumented guardian coverage of
+13.60% / 19.27% / 16.05%. These fail the required 100% and zero-uncovered target.
+Branch coverage is unavailable (0/0); native bridge and other platforms remain
+outside this Rust measurement. This stage claims no release qualification.
+
 ## Where to look next
 
 | Want | Go here |
@@ -786,3 +816,31 @@ after the first read would have failed the byte assertion on that runner.
 | Behavior by area | [`features/`](features/) |
 | Why we chose this | [`adr/`](adr/) |
 | Early measurements | [`experiments/`](experiments/) |
+
+## PR 25 review-blocker fixes
+
+The malformed duplicate-app review finding is fixed: general pair syntax is
+validated before replacing an earlier app. Malformed ASCII/UTF-8 values are
+skipped, while valid pair syntax with an app-invalid or empty value replaces
+with absence. Byte limits and invalid-id report rejection remain unchanged.
+Independent acceptance tests failed before the fix (17 pass, two fail) and all
+19 pass after it, covering every chunk boundary, BEL/ST terminators, later
+state/message pairs and 32/33-byte limits.
+
+The benchmark now stops its unreaped owned Cargo process group, closes both
+pipes and reaps under one bounded cleanup deadline before re-raising the same
+KeyboardInterrupt. The real SIGINT regression showed a live launcher before
+and no live launcher/descendant after the fix. Four additional orchestration
+cases preserve original cancellation on Python 3.9, avoid closed-pipe
+communicate re-entry, retry interrupted operations without resetting the
+budget, and never signal an already-reaped leader. All seven tests pass.
+This runner assumes Cargo retains/waits for its benchmark; it does not claim
+ownership of arbitrary orphaned groups or immunity to every signal-storm
+bytecode boundary. Failed cleanup is recorded rather than called successful.
+
+The actual-source mechanical gate and its existing scoped performance checks
+pass with unchanged sources. Findings, failure-before/pass-after evidence,
+independent quality/adversarial/DDD re-reviews and limitations are in
+`docs/reviews/pr25-*.md` and `work/pr25-blockers`. The strict 100% coverage gate
+has not passed, so these fixes do not authorize merging the stack. Final
+propagated-source and hosted checks remain separate.
