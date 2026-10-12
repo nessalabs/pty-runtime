@@ -982,3 +982,19 @@ independent quality/adversarial/DDD re-reviews and limitations are in
 `docs/reviews/pr25-*.md` and `work/pr25-blockers`. The strict 100% coverage gate
 has not passed, so these fixes do not authorize merging the stack. Final
 propagated-source and hosted checks remain separate.
+
+### Dependent PR 26 UTF-8 oracle correction
+
+Propagating the reviewed parser fix exposed one old dependent test that expected
+malformed UTF-8 app to erase an earlier app. Fresh Linux/macOS CI and the local
+fixed-stack coverage run failed that exact assertion; these failed results are
+retained. The protocol-correct oracle now requires stored and resolved app to
+be exactly `earlier`. Existing count, state, kind and malformed-id no-mutation
+assertions remain, and a valid message after the malformed pair must be exactly
+`ok`, proving parsing continues. No production behavior or acceptance threshold
+changes in this correction. All five coverage behavior tests and 19 acceptance
+tests pass; independent quality, adversarial and DDD re-reviews approve the
+correction. See `docs/reviews/pr26-stale-*.md`, the PR 25 quality ledger, and
+`work/pr25-blockers/pr26-stale-oracle-{red,green}.log`. Full propagated-source,
+hosted and strict coverage checks remain separate; no PR is merged by this
+fixture correction.

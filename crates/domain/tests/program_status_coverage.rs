@@ -68,14 +68,16 @@ fn malformed_utf8_fields_follow_their_distinct_protocol_rules() {
 
     feed(
         &mut store,
-        b"\x1b]7501;\xff=ignored:state=blocked:kind=question:app=earlier:app=\xff\x07",
+        b"\x1b]7501;\xff=ignored:state=blocked:kind=question:app=earlier:app=\xff:msg=b2s=\x07",
     );
     let snapshot = store.records();
     assert_eq!(snapshot.records.len(), 1);
     assert_eq!(snapshot.records[0].state, ProgramState::Blocked);
     assert_eq!(snapshot.records[0].kind, Some(ProgramStatusKind::Question));
-    assert_eq!(snapshot.records[0].app, None);
-    assert_eq!(snapshot.records[0].resolved_app, None);
+    // Malformed pair syntax is skipped, preserving the earlier valid app.
+    assert_eq!(snapshot.records[0].app.as_deref(), Some("earlier"));
+    assert_eq!(snapshot.records[0].resolved_app.as_deref(), Some("earlier"));
+    assert_eq!(snapshot.records[0].msg.as_deref(), Some("ok"));
 }
 
 #[test]

@@ -99,3 +99,25 @@ Final reviewed hashes:
 - `scripts/program_status_performance.py`: `7fff923f914678b39c303755714c8f236f1f7c2ddd5c2e965b430403c77892a8`
 
 - `scripts/tests/test_program_status_performance.py`: `7291b8f2999cdd2524228aed164ce7c72df9f0f8954d6863b3f043283954cfcc`
+
+## PR 26 dependent malformed-app oracle correction
+
+Independently reviewed the eight-line diff in
+`crates/domain/tests/program_status_coverage.rs` after the parser fix propagated
+from PR 25. The old UTF-8 duplicate-app oracle expected both raw and resolved
+app to be absent; that contradicts the reviewed protocol rule that malformed
+pairs are skipped. The correction expects both to preserve `earlier` and adds
+a subsequent valid base64 message with decoded value `ok`, proving processing
+continues after the malformed pair. Existing record-count, state, kind and
+invalid-id root-protection assertions remain intact. Production is unchanged.
+This is a corrected oracle, not reduced test coverage or weakened assertions.
+
+Reviewed retained `work/pr25-blockers/pr26-stale-oracle-red.log`: the original
+oracle failed with actual `Some("earlier")` versus expected `None` (4/5 passed).
+The green log retains all five coverage behavior tests plus all 19 parser
+acceptance tests passing. Those acceptance tests independently distinguish
+malformed syntax from syntactically valid but semantically invalid app values.
+Scoped quality review passes with no P1/P2 finding. This does not waive the
+separate strict coverage requirement or constitute a whole-stack gate pass.
+
+Reviewed test SHA-256: `52b45ccbf230b743a20467227a84c95364a6022cac3c0d949931a97844370a88`.
