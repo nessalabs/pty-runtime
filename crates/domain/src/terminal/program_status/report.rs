@@ -37,18 +37,10 @@ pub(super) fn parse(body: &[u8]) -> Option<Mutation> {
         let value = match std::str::from_utf8(value) {
             Ok(value) => value,
             Err(_) if key == "id" => return None,
-            Err(_) if key == "app" => {
-                app = None;
-                continue;
-            }
             Err(_) => continue,
         };
         if key == "id" && !valid_id(value) {
             return None;
-        }
-        if key == "app" {
-            app = Some(value);
-            continue;
         }
         if !value
             .bytes()
@@ -58,6 +50,7 @@ pub(super) fn parse(body: &[u8]) -> Option<Mutation> {
         }
         match key {
             "state" => state = Some(value),
+            "app" => app = Some(value),
             "id" => id = Some(value),
             "kind" => kind = Some(value),
             "progress" => progress = Some(value),

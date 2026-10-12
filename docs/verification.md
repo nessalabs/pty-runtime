@@ -954,3 +954,31 @@ release/platform qualification remain open.
 | Behavior by area | [`features/`](features/) |
 | Why we chose this | [`adr/`](adr/) |
 | Early measurements | [`experiments/`](experiments/) |
+
+## PR 25 review-blocker fixes
+
+The malformed duplicate-app review finding is fixed: general pair syntax is
+validated before replacing an earlier app. Malformed ASCII/UTF-8 values are
+skipped, while valid pair syntax with an app-invalid or empty value replaces
+with absence. Byte limits and invalid-id report rejection remain unchanged.
+Independent acceptance tests failed before the fix (17 pass, two fail) and all
+19 pass after it, covering every chunk boundary, BEL/ST terminators, later
+state/message pairs and 32/33-byte limits.
+
+The benchmark now stops its unreaped owned Cargo process group, closes both
+pipes and reaps under one bounded cleanup deadline before re-raising the same
+KeyboardInterrupt. The real SIGINT regression showed a live launcher before
+and no live launcher/descendant after the fix. Four additional orchestration
+cases preserve original cancellation on Python 3.9, avoid closed-pipe
+communicate re-entry, retry interrupted operations without resetting the
+budget, and never signal an already-reaped leader. All seven tests pass.
+This runner assumes Cargo retains/waits for its benchmark; it does not claim
+ownership of arbitrary orphaned groups or immunity to every signal-storm
+bytecode boundary. Failed cleanup is recorded rather than called successful.
+
+The actual-source mechanical gate and its existing scoped performance checks
+pass with unchanged sources. Findings, failure-before/pass-after evidence,
+independent quality/adversarial/DDD re-reviews and limitations are in
+`docs/reviews/pr25-*.md` and `work/pr25-blockers`. The strict 100% coverage gate
+has not passed, so these fixes do not authorize merging the stack. Final
+propagated-source and hosted checks remain separate.
