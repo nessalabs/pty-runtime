@@ -1,0 +1,594 @@
+{
+  "date": "2026-11-03T09:08:34.086Z",
+  "documents": 14,
+  "baselines": [
+    {
+      "owner": "event-forwarding",
+      "id": "9941e04d-4e7e-42e6-8399-f0d0237ef25d",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:34.757Z",
+        "config": "tla/PublicationReceipt.cfg",
+        "modelDigest": "a095b65fa26879a0bc0aa86dcaf64cf91f50cbdb8e645dd66d2cf84be3bf3d71",
+        "states": 7,
+        "held": [
+          "ValidatedAcknowledgement",
+          "StablePendingIdentity"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    },
+    {
+      "owner": "parking",
+      "id": "17866495-4715-433b-83f8-a6c23380b31d",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:38.054Z",
+        "config": "tla/ParkCommit.cfg",
+        "modelDigest": "520cdff481ca062025a6e22ba2bbe0dac11fa0150fe955dcc186edd42a064260",
+        "states": 20,
+        "held": [
+          "PublishedBeforeRelease",
+          "CurrentAttempt",
+          "OpenAtRelease"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    },
+    {
+      "owner": "program-status",
+      "id": "a187ca34-0a9a-44bb-8d8e-79a5160e23ed",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:42.644Z",
+        "config": "tla/StatusCommit.cfg",
+        "modelDigest": "dbd05117072a80571fa69cb27a2208ebac810e220e2e3885280b2855049b0983",
+        "states": 17,
+        "held": [
+          "LocalPlan",
+          "CurrentPlan",
+          "WholeNativeAcceptance"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    },
+    {
+      "owner": "replay",
+      "id": "2a60bd50-ed70-4a9e-a6df-442af3251a0c",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:47.313Z",
+        "config": "tla/ReplayAdmission.cfg",
+        "modelDigest": "eff61d9950948de9e5228edb07a19aa96ff168f902cd62a50163a919d9777228",
+        "states": 17,
+        "held": [
+          "SameLifetime",
+          "GapBeforeSuffix"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    },
+    {
+      "owner": "sessions",
+      "id": "66725986-f1c5-4df5-897c-75229bef17d2",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:50.750Z",
+        "config": "tla/CompletionFacts.cfg",
+        "modelDigest": "005b04ed6d2bb7ae5e9174450d8bd534dc49343684ec82125619f21c5d885cb4",
+        "states": 11,
+        "held": [
+          "BothFacts",
+          "NoInventedExit"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    },
+    {
+      "owner": "transfer",
+      "id": "8b331c27-00fb-4185-a0c4-8d97b16658f9",
+      "state": "passed",
+      "message": "Every rule held. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:54.683Z",
+        "config": "tla/TransferSeal.cfg",
+        "modelDigest": "d127ebf636723d9631395d6043d47d45889da70ff5e6d54241c9073abe54d3b5",
+        "states": 27,
+        "held": [
+          "FrozenPrefix",
+          "EndHasEvidence"
+        ],
+        "broke": [],
+        "unchecked": []
+      }
+    }
+  ],
+  "controls": [
+    {
+      "name": "acknowledge-mismatching-receipt",
+      "owner": "event-forwarding",
+      "expected": "ValidatedAcknowledgement",
+      "passed": true,
+      "id": "c8be4755-d6cc-4222-ac59-ad3a4a30b13f",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:36.066Z",
+        "config": "tla/PublicationReceipt.cfg",
+        "modelDigest": "21944e00ceea5d2d6fb567f4b0d85c454551ba409ae7e22a49754c075bc6cb58",
+        "states": 10,
+        "held": [
+          "StablePendingIdentity"
+        ],
+        "broke": [
+          {
+            "rule": "ValidatedAcknowledgement",
+            "path": [
+              "Start with pending is FALSE, prepared is FALSE, identity is 1, attempts is 0, acknowledged is FALSE, receiptMatched is FALSE.",
+              "Prepare: pending is TRUE, prepared is TRUE, identity is 1, attempts is 0, acknowledged is FALSE, receiptMatched is FALSE.",
+              "Acknowledge: pending is FALSE, prepared is TRUE, identity is 1, attempts is 0, acknowledged is TRUE, receiptMatched is FALSE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "change-id-after-uncertain-append",
+      "owner": "event-forwarding",
+      "expected": "StablePendingIdentity",
+      "passed": true,
+      "id": "5cd28d12-0a7b-4332-b6df-f1e4c4c77095",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:37.387Z",
+        "config": "tla/PublicationReceipt.cfg",
+        "modelDigest": "abe56f4e7e63a26637a8669847f1fcca182daccaf7c75b7c5021d41ee2bd6f8b",
+        "states": 7,
+        "held": [
+          "ValidatedAcknowledgement"
+        ],
+        "broke": [
+          {
+            "rule": "StablePendingIdentity",
+            "path": [
+              "Start with pending is FALSE, prepared is FALSE, identity is 1, attempts is 0, acknowledged is FALSE, receiptMatched is FALSE.",
+              "Prepare: pending is TRUE, prepared is TRUE, identity is 1, attempts is 0, acknowledged is FALSE, receiptMatched is FALSE.",
+              "Uncertain: pending is TRUE, prepared is TRUE, identity is 2, attempts is 1, acknowledged is FALSE, receiptMatched is FALSE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "release-before-publication",
+      "owner": "parking",
+      "expected": "PublishedBeforeRelease",
+      "passed": true,
+      "id": "7793d66a-d115-4204-a2bc-d1cd49f1f18a",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:39.382Z",
+        "config": "tla/ParkCommit.cfg",
+        "modelDigest": "2cf63cff167dcb04c4d541281bb7bf49bb158ff6a299b3a8eaeb5f9a737c95cb",
+        "states": 24,
+        "held": [
+          "CurrentAttempt",
+          "OpenAtRelease"
+        ],
+        "broke": [
+          {
+            "rule": "PublishedBeforeRelease",
+            "path": [
+              "Start with releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is resident, activity is 0, captured is 0, released is FALSE.",
+              "Begin: releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is parking, activity is 0, captured is 0, released is FALSE.",
+              "Release: releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is parked, activity is 0, captured is 0, released is TRUE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "release-stale-activity",
+      "owner": "parking",
+      "expected": "CurrentAttempt",
+      "passed": true,
+      "id": "fe8808b9-d672-4d93-9107-a6a248d1be71",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:40.717Z",
+        "config": "tla/ParkCommit.cfg",
+        "modelDigest": "9171e412f7c17b5c772c154f7c347ae7c421179cacacfe687e84d3cf5475ef6a",
+        "states": 22,
+        "held": [
+          "PublishedBeforeRelease",
+          "OpenAtRelease"
+        ],
+        "broke": [
+          {
+            "rule": "CurrentAttempt",
+            "path": [
+              "Start with releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is resident, activity is 0, captured is 0, released is FALSE.",
+              "Begin: releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is parking, activity is 0, captured is 0, released is FALSE.",
+              "Activity: releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is parking, activity is 1, captured is 0, released is FALSE.",
+              "Publish: releaseClosed is FALSE, releaseActivity is 0, published is TRUE, closed is FALSE, phase is parking, activity is 1, captured is 0, released is FALSE.",
+              "Release: releaseClosed is FALSE, releaseActivity is 1, published is TRUE, closed is FALSE, phase is parked, activity is 1, captured is 0, released is TRUE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "release-after-close",
+      "owner": "parking",
+      "expected": "OpenAtRelease",
+      "passed": true,
+      "id": "d363a7f7-42de-47a0-a3b2-84d85838d387",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:42.002Z",
+        "config": "tla/ParkCommit.cfg",
+        "modelDigest": "9ea37e3c3c1e2b245787f19a343377af539ac59b694f39d7a552510924503fb7",
+        "states": 22,
+        "held": [
+          "PublishedBeforeRelease",
+          "CurrentAttempt"
+        ],
+        "broke": [
+          {
+            "rule": "OpenAtRelease",
+            "path": [
+              "Start with releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is resident, activity is 0, captured is 0, released is FALSE.",
+              "Begin: releaseClosed is FALSE, releaseActivity is 0, published is FALSE, closed is FALSE, phase is parking, activity is 0, captured is 0, released is FALSE.",
+              "Publish: releaseClosed is FALSE, releaseActivity is 0, published is TRUE, closed is FALSE, phase is parking, activity is 0, captured is 0, released is FALSE.",
+              "Close: releaseClosed is FALSE, releaseActivity is 0, published is TRUE, closed is TRUE, phase is parking, activity is 0, captured is 0, released is FALSE.",
+              "Release: releaseClosed is TRUE, releaseActivity is 0, published is TRUE, closed is TRUE, phase is parked, activity is 0, captured is 0, released is TRUE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "commit-foreign-plan",
+      "owner": "program-status",
+      "expected": "LocalPlan",
+      "passed": true,
+      "id": "bcc8cf4a-cd84-4124-af58-c22b0420a951",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:43.979Z",
+        "config": "tla/StatusCommit.cfg",
+        "modelDigest": "6c9445466d66930cbd070d73f3c5174fa272479c1098e517457274b563b76911",
+        "states": 20,
+        "held": [
+          "CurrentPlan",
+          "WholeNativeAcceptance"
+        ],
+        "broke": [
+          {
+            "rule": "LocalPlan",
+            "path": [
+              "Start with nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneration (shortened)",
+              "Scan: nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 2, commitNative is FALSE, committed is FALSE, planGeneration is 0, (shortened)",
+              "AcceptNative: nativeAccepted is TRUE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 2, commitNative is FALSE, committed is FALSE, planGeneratio (shortened)",
+              "Commit: nativeAccepted is TRUE, commitOwner is 2, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 2, commitNative is TRUE, committed is TRUE, planGeneration is 0, (shortened)"
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "commit-stale-plan",
+      "owner": "program-status",
+      "expected": "CurrentPlan",
+      "passed": true,
+      "id": "b2bc67ee-d676-430d-8c31-31b45c12b59c",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:45.292Z",
+        "config": "tla/StatusCommit.cfg",
+        "modelDigest": "70d7adef124ba96b13f0b02154f8c8283dbf73acc5800f92aa4dc9ddc3f3f2a1",
+        "states": 18,
+        "held": [
+          "LocalPlan",
+          "WholeNativeAcceptance"
+        ],
+        "broke": [
+          {
+            "rule": "CurrentPlan",
+            "path": [
+              "Start with nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneration (shortened)",
+              "Scan: nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneration is 0, (shortened)",
+              "OtherCommit: nativeAccepted is FALSE, commitOwner is 1, generation is 1, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneratio (shortened)",
+              "AcceptNative: nativeAccepted is TRUE, commitOwner is 1, generation is 1, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneratio (shortened)",
+              "Commit: nativeAccepted is TRUE, commitOwner is 1, generation is 1, commitGeneration is 0, commitCurrent is 1, planOwner is 1, commitNative is TRUE, committed is TRUE, planGeneration is 0, (shortened)"
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "commit-before-native-acceptance",
+      "owner": "program-status",
+      "expected": "WholeNativeAcceptance",
+      "passed": true,
+      "id": "8697ec17-082f-443c-abce-81bca0a31080",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:46.625Z",
+        "config": "tla/StatusCommit.cfg",
+        "modelDigest": "7d2f9a9122ca1cf451b681356d8dcd93bfa966d3023d85bf3779302b7fbbef96",
+        "states": 23,
+        "held": [
+          "LocalPlan",
+          "CurrentPlan"
+        ],
+        "broke": [
+          {
+            "rule": "WholeNativeAcceptance",
+            "path": [
+              "Start with nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneration (shortened)",
+              "Scan: nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is FALSE, planGeneration is 0, (shortened)",
+              "Commit: nativeAccepted is FALSE, commitOwner is 1, generation is 0, commitGeneration is 0, commitCurrent is 0, planOwner is 1, commitNative is FALSE, committed is TRUE, planGeneration is 0 (shortened)"
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "read-foreign-lifetime",
+      "owner": "replay",
+      "expected": "SameLifetime",
+      "passed": true,
+      "id": "f80ccda2-85fc-4126-867f-ac2a28c6bbd7",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:48.648Z",
+        "config": "tla/ReplayAdmission.cfg",
+        "modelDigest": "ffe3cabe516cd62faabe44107a99d950405dc1d66eb751c0f6620184e3beab23",
+        "states": 30,
+        "held": [
+          "GapBeforeSuffix"
+        ],
+        "broke": [
+          {
+            "rule": "SameLifetime",
+            "path": [
+              "Start with end is 0, readFloor is 0, accepted is FALSE, readOffset is 0, kind is none, readLife is 1.",
+              "Read: end is 0, readFloor is 0, accepted is TRUE, readOffset is 0, kind is dataOrPending, readLife is 2."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "hide-evicted-prefix",
+      "owner": "replay",
+      "expected": "GapBeforeSuffix",
+      "passed": true,
+      "id": "dbc5d2b2-898d-4872-a056-145ae4b796c2",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:50.014Z",
+        "config": "tla/ReplayAdmission.cfg",
+        "modelDigest": "7ce0c406f57f23b843c5de6c5e9c4a8e3b6484315e63ad5b8c9d78c0faf9a68f",
+        "states": 17,
+        "held": [
+          "SameLifetime"
+        ],
+        "broke": [
+          {
+            "rule": "GapBeforeSuffix",
+            "path": [
+              "Start with end is 0, readFloor is 0, accepted is FALSE, readOffset is 0, kind is none, readLife is 1.",
+              "Append: end is 1, readFloor is 0, accepted is FALSE, readOffset is 0, kind is none, readLife is 1.",
+              "Append: end is 2, readFloor is 0, accepted is FALSE, readOffset is 0, kind is none, readLife is 1.",
+              "Append: end is 3, readFloor is 0, accepted is FALSE, readOffset is 0, kind is none, readLife is 1.",
+              "Read: end is 3, readFloor is 1, accepted is TRUE, readOffset is 0, kind is dataOrPending, readLife is 1."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "finish-before-drain",
+      "owner": "sessions",
+      "expected": "BothFacts",
+      "passed": true,
+      "id": "ca99d6fa-d43a-4d09-9626-2afde7dda5d0",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:52.348Z",
+        "config": "tla/CompletionFacts.cfg",
+        "modelDigest": "0841ff81456a13623346d8c045db632909ce4b40564020aeb9cdfff2997df78d",
+        "states": 14,
+        "held": [
+          "NoInventedExit"
+        ],
+        "broke": [
+          {
+            "rule": "BothFacts",
+            "path": [
+              "Start with actual is FALSE, reportedExit is FALSE, finished is FALSE, drained is FALSE, failed is FALSE.",
+              "ObserveExit: actual is TRUE, reportedExit is FALSE, finished is FALSE, drained is FALSE, failed is FALSE.",
+              "Finish: actual is TRUE, reportedExit is TRUE, finished is TRUE, drained is FALSE, failed is FALSE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "invent-exit-on-supervision-failure",
+      "owner": "sessions",
+      "expected": "NoInventedExit",
+      "passed": true,
+      "id": "f22b437b-ea1f-4d00-9b08-edb464ecf410",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:53.961Z",
+        "config": "tla/CompletionFacts.cfg",
+        "modelDigest": "bd033075a6a01e01f7b5fca58e85e21b237fffbbbdea816bad0eb409b1370dbd",
+        "states": 11,
+        "held": [
+          "BothFacts"
+        ],
+        "broke": [
+          {
+            "rule": "NoInventedExit",
+            "path": [
+              "Start with actual is FALSE, reportedExit is FALSE, finished is FALSE, drained is FALSE, failed is FALSE.",
+              "ObserveFailure: actual is FALSE, reportedExit is FALSE, finished is FALSE, drained is FALSE, failed is TRUE.",
+              "Drain: actual is FALSE, reportedExit is FALSE, finished is FALSE, drained is TRUE, failed is TRUE.",
+              "Finish: actual is FALSE, reportedExit is TRUE, finished is TRUE, drained is TRUE, failed is TRUE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "append-after-seal",
+      "owner": "transfer",
+      "expected": "FrozenPrefix",
+      "passed": true,
+      "id": "f82d69a8-b967-4da8-9488-4545125b4c94",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:56.102Z",
+        "config": "tla/TransferSeal.cfg",
+        "modelDigest": "d4d0ed76b7fd20e64d80935b6bbb9332dee28c2e9d134f7665c1e3f7638c804a",
+        "states": 42,
+        "held": [
+          "EndHasEvidence"
+        ],
+        "broke": [
+          {
+            "rule": "FrozenPrefix",
+            "path": [
+              "Start with boundary is 0, sealFailure is FALSE, seq is 0, sealed is FALSE, sealDrain is FALSE, drained is FALSE, failed is FALSE.",
+              "Drain: boundary is 0, sealFailure is FALSE, seq is 0, sealed is FALSE, sealDrain is FALSE, drained is TRUE, failed is FALSE.",
+              "Seal: boundary is 0, sealFailure is FALSE, seq is 0, sealed is TRUE, sealDrain is TRUE, drained is TRUE, failed is FALSE.",
+              "Append: boundary is 0, sealFailure is FALSE, seq is 1, sealed is TRUE, sealDrain is TRUE, drained is TRUE, failed is FALSE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    },
+    {
+      "name": "seal-without-drain-or-failure",
+      "owner": "transfer",
+      "expected": "EndHasEvidence",
+      "passed": true,
+      "id": "dda84234-200d-4926-9949-e379741c125c",
+      "state": "broke",
+      "message": "A rule broke. This checks the design, not the code.",
+      "result": {
+        "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+        "checker": "tlc-1.7.4",
+        "date": "2026-11-03T09:08:57.506Z",
+        "config": "tla/TransferSeal.cfg",
+        "modelDigest": "bab3884b4530f58ae511a502c12c6d2ce01e4e673b3d0e78d04719608e81f5a4",
+        "states": 39,
+        "held": [
+          "FrozenPrefix"
+        ],
+        "broke": [
+          {
+            "rule": "EndHasEvidence",
+            "path": [
+              "Start with boundary is 0, sealFailure is FALSE, seq is 0, sealed is FALSE, sealDrain is FALSE, drained is FALSE, failed is FALSE.",
+              "Seal: boundary is 0, sealFailure is FALSE, seq is 0, sealed is TRUE, sealDrain is FALSE, drained is FALSE, failed is FALSE."
+            ],
+            "states": []
+          }
+        ],
+        "unchecked": []
+      }
+    }
+  ],
+  "ok": true
+}
