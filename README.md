@@ -5,6 +5,9 @@ headless terminal projection. The initial reader strategy is one dedicated
 reader per live PTY. Implementation and release qualification are in progress;
 standalone experiment results are not evidence of a finished session runtime.
 
+Start with the [task-oriented state atlas](docs/state/README.md) for lifecycle
+maps, recovery decisions and bounded-model evidence.
+
 Read [embedding guidance](docs/usage.md), the [docs hub](docs/README.md),
 [what we have verified](docs/verification.md), [coding standards](coding_standards.md),
 and [experiment instructions](experiments/README.md).
@@ -25,4 +28,5 @@ Native prerequisites are Python 3.9+, a C compiler, and Rust.
 `python3 scripts/native/bootstrap.py` downloads SHA-verified Zig/Ghostty pins and
 builds the native library into the ignored cache. The mandatory gate prepares
 that cache automatically. `cargo test --no-default-features` exercises raw-only
-use without Ghostty; projected use requires the default `ghostty` feature.
+use without Ghostty; the default `ghostty` feature supplies projection, or a caller can inject
+compatible services through `with_projection_adapters`.

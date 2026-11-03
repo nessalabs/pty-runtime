@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-03",
+  "sourceRevision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+  "platform": "macOS-26.3-arm64-arm-64bit",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "sourceDigest": "a2324fef73aff84e938274d7a19d6d72d26cb42f61da9a5c95bc03661704e615",
+  "gate": {
+    "command": "python3 scripts/gate.py",
+    "outcome": "passed",
+    "phase": "initial baseline before final review",
+    "localLog": "outer work/org-docs-tools/pty-initial-gate.log",
+    "aggregateRustPasses": 1079,
+    "failed": 0,
+    "ignoredOccurrences": 4,
+    "uniqueTestCount": false
+  },
+  "scopedPerformance": {
+    "runtime": {
+      "scope": "one 4 MiB/session trial at 1 and 16 sessions; not full G4 repeats or soak",
+      "platform": "macOS-26.3-arm64-arm-64bit",
+      "machine": "arm64",
+      "revision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+      "source_sha256_before": "a2324fef73aff84e938274d7a19d6d72d26cb42f61da9a5c95bc03661704e615",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "--test",
+        "runtime_performance",
+        "--features",
+        "ghostty",
+        "--",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "started_unix_seconds": 1793696775.6133099,
+      "rss_scope": "test process point samples; excludes separate helper/producer processes; not peak",
+      "exit_code": 0,
+      "timed_out": false,
+      "command_elapsed_seconds": 7.1847312919999995,
+      "source_sha256_after": "a2324fef73aff84e938274d7a19d6d72d26cb42f61da9a5c95bc03661704e615",
+      "source_stable": true
+    },
+    "programStatus": {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--release",
+        "-p",
+        "pty-runtime-domain",
+        "--example",
+        "program_status_performance"
+      ],
+      "revision": "c68837e2b7bf1c9009e1a4587a1a58107ec0425c",
+      "source_sha256_before": "a2324fef73aff84e938274d7a19d6d72d26cb42f61da9a5c95bc03661704e615",
+      "source_sha256_after": "a2324fef73aff84e938274d7a19d6d72d26cb42f61da9a5c95bc03661704e615",
+      "sources_unchanged": true,
+      "platform": "macOS-26.3-arm64-arm-64bit",
+      "machine": "arm64",
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "elapsed_seconds": 0.7553196249999999,
+      "exit_code": 0,
+      "scope": "Five release-build domain trials per workload; excludes PTY, native parser and OS memory."
+    }
+  },
+  "reviews": {
+    "ddd": "passed after D1 bounded demo cleanup and D2 projection capability condition corrected; independently rechecked",
+    "organization": "passed docs-only journeys and owner/layout review",
+    "adversarial": "passed six models and fourteen controls/source correspondence; no material finding"
+  },
+  "limits": [
+    "No release qualification",
+    "No new coverage measurement",
+    "No Linux or x86_64 execution this run",
+    "Browser demo not exercised",
+    "No production implementation changed"
+  ]
+}

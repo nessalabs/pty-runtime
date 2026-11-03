@@ -4,6 +4,7 @@
 
 | Document | Purpose |
 | --- | --- |
+| [state/](state/README.md) | Task-oriented ownership maps, decisions and bounded model evidence |
 | [usage.md](usage.md) | How to embed the library |
 | [features/](features/README.md) | Product behavior by area |
 | [adr/](adr/README.md) | Binding design decisions |

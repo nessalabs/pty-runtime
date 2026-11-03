@@ -1,0 +1,100 @@
+[
+  {
+    "owner": "sessions",
+    "name": "finish-before-drain",
+    "to": "/\\ (actual \\/ failed)",
+    "rule": "BothFacts",
+    "from": "/\\ (actual \\/ failed) /\\ drained"
+  },
+  {
+    "owner": "sessions",
+    "name": "invent-exit-on-supervision-failure",
+    "to": "reportedExit' = TRUE",
+    "rule": "NoInventedExit",
+    "from": "reportedExit' = actual"
+  },
+  {
+    "owner": "replay",
+    "name": "read-foreign-lifetime",
+    "to": "/\\ offset <= end",
+    "rule": "SameLifetime",
+    "from": "/\\ life = 1 /\\ offset <= end"
+  },
+  {
+    "owner": "replay",
+    "name": "hide-evicted-prefix",
+    "to": "\"dataOrPending\"",
+    "rule": "GapBeforeSuffix",
+    "from": "IF offset < Floor THEN \"gap\" ELSE \"dataOrPending\""
+  },
+  {
+    "owner": "parking",
+    "name": "release-before-publication",
+    "to": "/\\ phase = \"parking\" /\\ activity",
+    "rule": "PublishedBeforeRelease",
+    "from": "/\\ phase = \"parking\" /\\ published /\\ activity"
+  },
+  {
+    "owner": "parking",
+    "name": "release-stale-activity",
+    "to": "/\\ ~closed",
+    "rule": "CurrentAttempt",
+    "from": "/\\ activity = captured /\\ ~closed"
+  },
+  {
+    "owner": "parking",
+    "name": "release-after-close",
+    "to": "/\\ activity = captured",
+    "rule": "OpenAtRelease",
+    "from": "/\\ activity = captured /\\ ~closed"
+  },
+  {
+    "owner": "transfer",
+    "name": "append-after-seal",
+    "to": "/\\ seq < 2",
+    "rule": "FrozenPrefix",
+    "from": "/\\ seq < 2 /\\ ~sealed"
+  },
+  {
+    "owner": "transfer",
+    "name": "seal-without-drain-or-failure",
+    "to": "/\\ ~sealed",
+    "rule": "EndHasEvidence",
+    "from": "/\\ ~sealed /\\ (drained \\/ failed)"
+  },
+  {
+    "owner": "program-status",
+    "name": "commit-foreign-plan",
+    "to": "/\\ ~committed /\\ planGeneration",
+    "rule": "LocalPlan",
+    "from": "/\\ ~committed /\\ planOwner = 1 /\\ planGeneration"
+  },
+  {
+    "owner": "program-status",
+    "name": "commit-stale-plan",
+    "to": "/\\ nativeAccepted",
+    "rule": "CurrentPlan",
+    "from": "/\\ planGeneration = generation /\\ nativeAccepted"
+  },
+  {
+    "owner": "program-status",
+    "name": "commit-before-native-acceptance",
+    "to": "/\\ planGeneration = generation",
+    "rule": "WholeNativeAcceptance",
+    "from": "/\\ planGeneration = generation /\\ nativeAccepted"
+  },
+  {
+    "owner": "event-forwarding",
+    "name": "acknowledge-mismatching-receipt",
+    "to": "/\\ pending /\\ acknowledged",
+    "rule": "ValidatedAcknowledgement",
+    "from": "/\\ pending /\\ receipt = identity /\\ acknowledged"
+  },
+  {
+    "owner": "event-forwarding",
+    "name": "change-id-after-uncertain-append",
+    "to": "identity' = 2",
+    "rule": "StablePendingIdentity",
+    "from": "identity' = identity"
+  }
+]
